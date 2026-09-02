@@ -126,6 +126,11 @@ avec la même graine est reconnu comme identique et retiré sans doublon.
 - CLAUDE.md §9.5 : l'écran du journal d'audit et le tableau de bord du §6 sont
   arrimés à la fin du S4. L'entrée « Journal d'audit » de la barre de navigation
   ne mène encore nulle part — le manque est assumé et daté plutôt que masqué.
+- Correctif (revue S3) : une borne de date bien formée mais inexistante au
+  calendrier est refusée. « 2026-09-32 » finissait en erreur serveur, et
+  « 2026-02-30 » — plus grave — était reporté au 1er mars sans un mot : la
+  recherche portait sur une journée que personne n'avait demandée pendant que
+  le journal d'audit consignait le critère tel qu'il avait été saisi.
 
 Sortie de jalon S3 atteinte : recherche, réécoute streamée et écoutes tracées,
 démontrées bout en bout sur des données simulées.
