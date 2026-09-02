@@ -706,3 +706,80 @@ flux si des enregistrements bien plus longs devaient apparaître. Enfin, la
 rotation de clé n'est pas outillée : `keyRef` permet aux générations de
 coexister, mais rechiffrer un stockage entier demandera une commande dédiée,
 et elle devra pouvoir être interrompue et reprise.
+
+### 9.14 Une sauvegarde qui ne se vérifie pas n'est qu'une intention (S4)
+
+Le §9.13 laissait un fil : « la perte de la clé maître rend le stockage
+définitivement illisible […] sa garde et sa sauvegarde sortent du produit, et
+devront être traitées avec la sauvegarde de la base plutôt qu'à côté — une base
+restaurée sans sa clé ne rend rien ». Ce lot le referme. Rien de tout cela ne
+figurait au §7 : la sauvegarde n'est pas un jalon, c'est ce sans quoi les cinq
+autres ne valent rien le jour d'un sinistre.
+
+**Le produit sauvegarde la base et inventorie le stockage ; il ne recopie pas
+les pièces.** Un enregistreur de conformité accumule des dizaines de
+gigaoctets d'audio, que les moyens de l'exploitant copient déjà bien mieux
+qu'une commande Node ne le ferait — instantané de volume, rsync, sauvegarde
+d'entreprise. Ce que le produit seul peut apporter, c'est la **preuve que
+cette copie est complète et intacte** : une ligne par pièce avec son empreinte,
+sa taille et son état, et une vérification qui confronte cet inventaire au
+disque en recalculant chaque empreinte — déchiffrement compris. Copier
+l'audio aurait été le geste visible ; savoir dire ce qui manque est le geste
+utile.
+
+**La sauvegarde ne contient jamais la clé maître, mais elle sait la
+reconnaître.** Y écrire la clé reviendrait à ranger le coffre avec sa
+combinaison scotchée dessus, alors qu'une copie de sauvegarde se duplique,
+s'emporte hors site et circule. Le manifeste retient donc une **empreinte
+publique** de la clé, dérivée sous un contexte qui lui est propre : elle ne
+peut ni ouvrir un conteneur, ni remonter à la clé, mais elle permet de dire à
+la restauration « ce n'est pas la clé qui a scellé ces pièces » — au lieu de
+le découvrir des mois plus tard, à la première écoute demandée par un
+contrôleur. La garde de la clé, elle, reste hors du produit ; ce qui entre
+dans le produit, c'est le moyen de constater qu'on tient la bonne.
+
+**La vérification dit toujours jusqu'où elle est allée.** Sans clé, les sceaux
+ne sont pas ouverts : le rapport déclare les pièces « constatées présentes,
+intégrité non vérifiée » plutôt que de les compter comme vérifiées. Une clé qui
+ne concorde pas n'est pas utilisée pour tenter d'ouvrir quoi que ce soit. Cette
+règle vaut plus que le confort d'un rapport tout vert : un contrôle qui conclut
+au-delà de ce qu'il a constaté ne vaut rien, et c'est précisément ce qu'on
+reprocherait à l'exploitant.
+
+Sont constatés, et chacun compte comme une anomalie : une pièce absente du
+disque, une empreinte qui ne correspond plus à celle relevée à l'ingestion, un
+sceau qui refuse de s'ouvrir, une pièce scellée avec une clé que le manifeste
+ne connaît pas, un fichier qu'aucun enregistrement ne réclame, la déclaration
+d'origine du producteur (le json du contrat §3) disparue d'à côté de sa preuve,
+et — signe qu'on aimerait ne jamais voir — un fichier **revenu** à la place
+d'une pièce purgée. La sortie de la commande n'est nulle que si rien de tout
+cela n'a été trouvé : une vérification qui réussit toujours ne vérifie rien.
+
+**La prise ne s'inscrit pas au journal d'audit.** Aucune action n'est ajoutée
+au §5. Sauvegarder ne touche à aucune preuve, ne s'attribue à aucun locataire
+et ne s'exécute au nom d'aucun compte : c'est un acte d'exploitation, en ligne
+de commande, là où le journal trace des personnes agissant sur des pièces. Le
+manifeste **est** la trace — daté, énuméré, empreint, et il survit à la base
+qu'il décrit, ce qu'aucune ligne du journal ne saurait faire puisqu'elle
+disparaîtrait avec elle. C'est la même logique qu'au §9.7, où le `PurgeRun`
+tient lieu de trace de la simulation.
+
+L'empreinte du manifeste s'affiche en fin de prise, à consigner ailleurs :
+c'est ce qui permettra de démontrer, plus tard, que la sauvegarde présentée est
+bien celle qui a été faite ce jour-là. Une sauvegarde qui s'auto-certifie ne
+certifie rien ; le maillon de départ se garde hors d'elle.
+
+**Réserve** — la vérification du stockage relit chaque pièce en entier : c'est
+la seule façon de vérifier une empreinte, et c'est aussi ce qui la rend lente
+sur un gros volume. Elle est faite pour un contrôle périodique et pour l'après
+sinistre, pas pour tourner à chaque heure ; si un balayage continu devient
+nécessaire, ce sera par échantillonnage tournant, jamais par un allègement de
+ce que la vérification affirme. La détection des fichiers qu'aucun
+enregistrement ne réclame tient par ailleurs l'ensemble des chemins du stockage
+en mémoire — quelques dizaines d'octets par pièce, à revoir en tri sur fichier
+si un stockage devait dépasser le million d'appels. Enfin, la restauration
+elle-même n'est pas outillée : `pg_restore` est un outil standard, bien
+documenté, et une commande maison qui l'enroberait ajouterait un intermédiaire
+au pire moment. C'est en revanche la procédure écrite — restaurer, remettre la
+clé, vérifier — qui devra être jouée pour de bon avant la première mise en
+service, comme on joue un exercice d'évacuation.

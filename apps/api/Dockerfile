@@ -33,8 +33,10 @@ ENV NODE_ENV=production
 ENV TZ=Africa/Douala
 WORKDIR /app
 
+# `postgresql-client` pour `pg_dump` : la commande de sauvegarde (§9.14)
+# doit pouvoir tourner là où tourne l'api, sans dépendre d'un poste tiers.
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends tini curl openssl ca-certificates \
+  && apt-get install -y --no-install-recommends tini curl openssl ca-certificates postgresql-client \
   && rm -rf /var/lib/apt/lists/*
 
 # La CLI Prisma vérifie ses moteurs au démarrage et doit pouvoir écrire dans
@@ -50,7 +52,7 @@ COPY --from=build --chown=node:node /app/apps/api/prisma ./apps/api/prisma
 COPY apps/api/docker-entrypoint.sh /usr/local/bin/
 
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh \
-  && mkdir -p /data/ingest /data/storage /data/quarantine \
+  && mkdir -p /data/ingest /data/storage /data/quarantine /data/backups \
   && chown -R node:node /data
 
 USER node

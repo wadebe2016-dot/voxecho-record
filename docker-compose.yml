@@ -54,6 +54,10 @@ services:
       INGEST_DIR: /data/ingest
       STORAGE_DIR: /data/storage
       QUARANTINE_DIR: /data/quarantine
+      # Sauvegardes (§9.14). Le défaut partage le volume des preuves, ce
+      # qui ne protège de rien en cas de perte du volume : en exploitation,
+      # monter ici un stockage distinct, et l'emporter hors de la machine.
+      BACKUP_DIR: ${BACKUP_DIR:-/data/backups}
       INGEST_POLL_ENABLED: ${INGEST_POLL_ENABLED:-true}
       INGEST_POLL_MS: ${INGEST_POLL_MS:-5000}
       INGEST_ORPHAN_MIN: ${INGEST_ORPHAN_MIN:-10}

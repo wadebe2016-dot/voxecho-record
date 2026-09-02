@@ -230,3 +230,30 @@ démontrées bout en bout sur des données simulées.
 - Activation progressive : l'api lit les deux formats, et `storage:sceller`
   rattrape l'existant — en simulation par défaut, empreinte vérifiée avant
   toute réécriture. Décisions et réserves en §9.13.
+
+- Sauvegarde et vérification de restauration : `sauvegarde:creer` prend le dump
+  de la base (`pg_dump`, format custom), inventorie le stockage — une ligne par
+  pièce, avec son empreinte et son état — et écrit le manifeste qui relie les
+  deux. Les fichiers audio ne sont pas recopiés : leur copie relève de
+  l'exploitant, l'inventaire est ce qui prouvera qu'elle est complète.
+- **La clé maître n'entre jamais dans la sauvegarde**, seule son empreinte
+  publique y figure — de quoi reconnaître la bonne clé à la restauration, rien
+  de quoi ouvrir une pièce. Le fil laissé ouvert au §9.13 est refermé.
+- `sauvegarde:verifier` confronte la prise à son manifeste, l'inventaire au
+  disque et la clé détenue à celle qui a scellé les pièces : empreintes
+  recalculées, déchiffrement compris. Elle constate une pièce absente, altérée,
+  scellée sous une clé inconnue, un fichier qu'aucun enregistrement ne réclame,
+  une déclaration d'origine disparue, et un fichier revenu à la place d'une
+  pièce purgée. Sortie non nulle dès la première anomalie.
+- La vérification dit jusqu'où elle est allée : sans clé, les sceaux ne sont pas
+  ouverts et les pièces sont annoncées « présentes, intégrité non vérifiée »
+  plutôt que comptées comme vérifiées.
+- L'empreinte du manifeste s'affiche en fin de prise, à consigner hors de la
+  sauvegarde : une sauvegarde qui s'auto-certifie ne certifie rien. Décisions et
+  réserves en §9.14 de `CLAUDE.md` — dont l'absence de trace au journal, le
+  manifeste en tenant lieu comme le `PurgeRun` au §9.7.
+- Les commandes refusent une option inconnue : `--stockages` ne doit pas rendre
+  « aucune anomalie » sans avoir regardé le stockage. Constaté à l'usage, où la
+  valeur de `--empreinte` était prise pour un répertoire de sauvegarde.
+- L'image docker de l'api embarque `postgresql-client` : la sauvegarde doit
+  pouvoir tourner là où tourne l'api, sans dépendre d'un poste tiers.
