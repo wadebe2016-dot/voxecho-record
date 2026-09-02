@@ -104,7 +104,23 @@ Tout ce qui ne passe pas ces contrôles part en `QUARANTINE_DIR` avec un
 compris, car l'ingestion ne crée jamais de locataire. Rien n'est jamais
 supprimé silencieusement, et un re-dépôt identique est un no-op tracé.
 
-Le simulateur (`tools/simulator`, §4) reste à construire.
+### Le simulateur
+
+`tools/simulator` fabrique des appels réalistes sans téléphonie : numéros
+camerounais, heures ouvrées, durées de 15 s à 10 min, audio en deux
+tonalités alternées qui imitent le tour de parole. Il n'écrit que des
+fichiers — aucune connexion à la base, aucun appel à l'api — pour qu'en S5
+le remplacer par FreeSWITCH ne change rien au portail.
+
+```bash
+pnpm --filter @voxecho/simulator simulate -- --batch 50
+pnpm --filter @voxecho/simulator simulate -- --continuous 10/min --tenant banque-cemac,mfi-b
+pnpm --filter @voxecho/simulator simulate -- --one --corrupt   # doit finir en quarantaine
+pnpm --filter @voxecho/simulator simulate -- --help
+```
+
+`--seed <n>` rejoue une démonstration à l'identique ; `--spread-days <n>`
+étale le lot sur plusieurs jours pour peupler le tableau de bord.
 
 ## Documentation
 
