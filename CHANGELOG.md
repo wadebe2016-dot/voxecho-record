@@ -273,3 +273,26 @@ démontrées bout en bout sur des données simulées.
   éléments et le rapport annonçait la longueur de la liste — cinq mille pièces
   disparues se lisaient « 20 pièce(s) absente(s) ». Un constat compte désormais
   tout, n'énumère que les premières, et dit combien il n'a pas énumérées.
+
+- Scénario « contrôle COBAC » joué de bout en bout comme un test
+  (`apps/api/test/controle-cobac.spec.ts`) : la téléphonie dépose, le portail
+  range et scelle, puis un contrôleur interroge le périmètre de conservation,
+  l'intégrité d'une pièce, qui a le droit de l'entendre, ce qui protège un
+  appel sous enquête, comment on détruit, ce que le journal en dit, et ce qui
+  se passerait si tout brûlait.
+- Il se joue sur une instance **chiffrée au repos**, avec le vrai simulateur en
+  ligne de commande et une graine fixée. Le seul artifice est le temps : deux
+  appels sont vieillis en base, faute de pouvoir attendre deux ans qu'une
+  conservation arrive à échéance.
+- Ce que le contrôle établit, et qu'aucune déclaration ne remplace : le fichier
+  rangé n'est pas un WAV lisible mais la réécoute rend l'empreinte de
+  l'ingestion ; le superviseur cherche sans entendre ni emporter ; la fiche
+  d'export recalcule l'empreinte au lieu de l'affirmer ; la conservation forcée
+  épargne une pièce que la purge aurait détruite ; l'appel purgé garde sa fiche
+  et rend 410 ; le journal ne se réécrit pas ; la sauvegarde se vérifie, et une
+  clé qui n'est pas la bonne est reconnue comme telle.
+
+**Sortie de jalon S4 atteinte** : rétention, conservation forcée, purge tracée,
+export horodaté, journal d'audit, tableau de bord, chiffrement au repos,
+sauvegarde et restauration — le tout joué en une fois, dans l'ordre d'un
+contrôle.
