@@ -1,10 +1,12 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "module": "CommonJS",
+    "module": "ES2022",
     "rootDir": "src",
-    "outDir": "dist/cjs",
-    "incremental": false
+    "outDir": "dist/esm",
+    "incremental": false,
+    "declaration": false,
+    "declarationMap": false
   },
   "include": ["src/**/*.ts"],
   "exclude": ["test", "**/*.test.ts"]

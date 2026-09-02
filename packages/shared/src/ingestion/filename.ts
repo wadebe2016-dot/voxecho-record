@@ -1,4 +1,4 @@
-import type { IngestMetadata } from './contract';
+import type { IngestMetadata } from './contract.js';
 
 /**
  * Nommage des fichiers déposés — CLAUDE.md §3 :

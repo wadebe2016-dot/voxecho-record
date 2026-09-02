@@ -1,4 +1,4 @@
-import type { Role } from '../domain/enums';
+import type { Role } from '../domain/enums.js';
 
 export interface LoginRequest {
   email: string;

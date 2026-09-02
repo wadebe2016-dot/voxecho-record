@@ -13,6 +13,10 @@ module.exports = {
   coverageDirectory: 'coverage',
   moduleNameMapper: {
     '^@voxecho/shared$': '<rootDir>/../../packages/shared/src/index.ts',
+    // `packages/shared` écrit ses imports relatifs avec l'extension `.js`,
+    // seule forme valable pour sa sortie ESM. Les tests lisent les sources
+    // TypeScript, où le résolveur de Jest ne fait pas cette substitution.
+    '^(\\.{1,2}/.*)\\.js$': '$1',
   },
   testTimeout: 20000,
 };
