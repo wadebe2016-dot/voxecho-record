@@ -1,5 +1,5 @@
-import type { IngestDirection, IngestSource } from '../ingestion/contract';
-import type { RecordingStatus } from '../domain/enums';
+import type { IngestDirection, IngestSource } from '../ingestion/contract.js';
+import type { RecordingStatus } from '../domain/enums.js';
 
 /**
  * Enregistrement tel que le portail le reçoit. Le SHA-256 est exposé : il est

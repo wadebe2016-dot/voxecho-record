@@ -96,3 +96,8 @@ avec la même graine est reconnu comme identique et retiré sans doublon.
   PostgreSQL (`test_1`…`test_N`). Sur un schéma partagé, le vidage des tables
   entre deux cas détruisait les données d'un autre worker — invisible sur une
   machine à deux cœurs, systématique sur un runner qui en a quatre.
+- `packages/shared` est émis en double, CommonJS pour l'api et les outils Node,
+  ESM pour le portail. Le portail n'en importait jusqu'ici que des types,
+  effacés à la compilation ; la première valeur importée (`INGEST_DIRECTIONS`)
+  a cassé la construction, Rollup ne sachant pas suivre un export nommé à
+  travers une chaîne de `export *` en CommonJS.

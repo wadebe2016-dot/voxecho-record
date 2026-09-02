@@ -1,4 +1,4 @@
-import { parseRadical } from './filename';
+import { parseRadical } from './filename.js';
 
 /**
  * Disposition des répertoires du contrat d'ingestion — CLAUDE.md §3.
