@@ -1,0 +1,112 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Secrets factices, valides au regard de la validation d'environnement :
+  # la CI ne doit dépendre d'aucun secret réel.
+  JWT_ACCESS_SECRET: ci-access-secret-0123456789abcdefghijklmnop
+  JWT_REFRESH_SECRET: ci-refresh-secret-0123456789abcdefghijklmnop
+  DATABASE_URL: postgresql://voxecho:voxecho@localhost:5432/voxecho?schema=public
+
+jobs:
+  verifier:
+    name: Lint, tests et construction
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: voxecho
+          POSTGRES_PASSWORD: voxecho
+          POSTGRES_DB: voxecho
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U voxecho -d voxecho"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Installer les dépendances
+        run: pnpm install --frozen-lockfile
+
+      - name: Écrire le .env attendu par les outils
+        run: |
+          {
+            echo "DATABASE_URL=${DATABASE_URL}"
+            echo "JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}"
+            echo "JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}"
+          } > .env
+
+      - name: Vérifier le formatage
+        run: pnpm format:check
+
+      - name: Générer le client Prisma
+        run: pnpm --filter @voxecho/api exec prisma generate
+
+      - name: Construire les types partagés
+        run: pnpm --filter @voxecho/shared build
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Vérification des types
+        run: pnpm -r typecheck
+
+      - name: Appliquer les migrations
+        run: pnpm --filter @voxecho/api exec prisma migrate deploy
+
+      - name: Tests
+        run: pnpm test
+
+      - name: Construction
+        run: pnpm build
+
+  images:
+    name: Construction des images
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Image de l'api
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Image du portail
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

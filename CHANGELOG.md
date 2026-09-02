@@ -29,3 +29,13 @@ Format : une entrée par session de travail, en français.
 - `GET /api/recordings` : liste paginée et triée côté serveur, restreinte au
   locataire du jeton, chaque consultation tracée (`SEARCH`). Types de
   réponse partagés avec le portail dans `packages/shared`.
+- `apps/web` : portail React + Vite + Tailwind — connexion, bandeau
+  locataire, navigation masquée par rôle, liste des enregistrements dense
+  avec empreinte SHA-256, heures affichées en Africa/Douala. Jetons en
+  `sessionStorage` : la session ne survit pas à la fermeture de l'onglet.
+- Livrable docker-compose : api, portail servi par nginx (même origine, donc
+  pas de CORS), PostgreSQL. L'api applique les migrations à son démarrage.
+- CI GitHub Actions : formatage, lint, types, migrations, 144 tests,
+  construction des paquets et des deux images.
+
+Sortie de jalon S1 atteinte : connexion, liste vide et tests verts.
