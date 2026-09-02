@@ -18,6 +18,8 @@ interface GraineUtilisateur {
 
 interface GraineLocataire {
   name: string;
+  /** Sous-répertoire surveillé par l'ingestion : `INGEST_DIR/<slug>/`. */
+  slug: string;
   users: GraineUtilisateur[];
   retentionDays: number;
 }
@@ -25,6 +27,7 @@ interface GraineLocataire {
 const LOCATAIRES: GraineLocataire[] = [
   {
     name: 'Banque de démonstration CEMAC',
+    slug: 'banque-cemac',
     retentionDays: 3650,
     users: [
       { email: 'admin@demo.cm', role: Role.ADMIN },
@@ -34,6 +37,7 @@ const LOCATAIRES: GraineLocataire[] = [
   },
   {
     name: 'Microfinance Témoin',
+    slug: 'microfinance-temoin',
     retentionDays: 1825,
     users: [{ email: 'admin@temoin.cm', role: Role.ADMIN }],
   },
@@ -49,8 +53,8 @@ async function main(): Promise<void> {
   for (const graine of LOCATAIRES) {
     const tenant = await prisma.tenant.upsert({
       where: { name: graine.name },
-      update: {},
-      create: { name: graine.name },
+      update: { slug: graine.slug },
+      create: { name: graine.name, slug: graine.slug },
     });
 
     for (const utilisateur of graine.users) {

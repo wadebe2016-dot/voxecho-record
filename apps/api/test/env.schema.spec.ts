@@ -17,6 +17,14 @@ describe('validation de la configuration', () => {
     expect(env.INGEST_DIR).toBe('./data/ingest');
   });
 
+  it('lit « false » comme faux : une chaîne non vide ne vaut pas activation', () => {
+    // `z.coerce.boolean()` accepterait « false » comme vrai et laisserait un
+    // balayage tourner là où l'exploitant l'a explicitement coupé.
+    expect(validateEnv({ ...base }).INGEST_POLL_ENABLED).toBe(true);
+    expect(validateEnv({ ...base, INGEST_POLL_ENABLED: 'false' }).INGEST_POLL_ENABLED).toBe(false);
+    expect(() => validateEnv({ ...base, INGEST_POLL_ENABLED: 'oui' })).toThrow();
+  });
+
   it('convertit les nombres fournis en chaînes', () => {
     const env = validateEnv({ ...base, API_PORT: '8080', AUTH_LOCK_DURATION_MIN: '30' });
     expect(env.API_PORT).toBe(8080);

@@ -42,3 +42,24 @@ Format : une entrée par session de travail, en français.
   bascule vers `@@unique([tenantId, email])` si une offre mutualisée arrive.
 
 Sortie de jalon S1 atteinte : connexion, liste vide et tests verts.
+
+### S2 — Ingestion
+
+- Contrat §3 amendé : le locataire d'un dépôt se lit dans l'arborescence,
+  `INGEST_DIR/<slug>/`. Le json et la version de schéma ne changent pas ;
+  décision et réserve consignées en §9.2 de `CLAUDE.md`.
+- Service `ingestion` : balayage périodique d'`INGEST_DIR`, détection de la
+  paire wav+json, contrôle du nom, des métadonnées, de l'en-tête WAV, de la
+  taille et de la durée, SHA-256 calculé en flux, rangement sous
+  `STORAGE_DIR/<tenantId>/<yyyy>/<mm>/` et trace `INGEST`.
+- Quarantaine systématique et tracée : json malformé ou hors contrat, wav
+  tronqué ou de durée démentie, nom en désaccord avec les métadonnées, json
+  orphelin, extension étrangère, dépôt visant un locataire inconnu ou
+  désactivé. L'ingestion ne crée jamais de locataire implicitement.
+- Idempotence : un re-dépôt identique est retiré et tracé ; un re-dépôt de
+  même nom mais d'empreinte différente est un conflit mis en quarantaine, la
+  preuve déjà rangée n'est jamais écrasée.
+- `Tenant.slug` et `Tenant.active` ajoutés ; `AuditEvent.tenantId` devient
+  nullable pour les seuls dépôts qu'aucun locataire ne réclame.
+- Lecture et fabrication d'en-têtes WAV PCM dans `packages/shared`, partagées
+  avec le simulateur à venir — 185 tests.

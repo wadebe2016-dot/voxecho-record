@@ -23,7 +23,9 @@ describe('journal d’audit append-only', () => {
 
   beforeEach(async () => {
     await resetTestData(prisma);
-    const tenant = await prisma.tenant.create({ data: { name: 'Locataire audit' } });
+    const tenant = await prisma.tenant.create({
+      data: { name: 'Locataire audit', slug: 'locataire-audit' },
+    });
     tenantId = tenant.id;
     const event = await prisma.auditEvent.create({
       data: { tenantId, action: 'LOGIN', ip: '10.0.0.1', detail: { email: 'a@demo.cm' } },

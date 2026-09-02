@@ -84,7 +84,27 @@ de la même base : ils ne touchent jamais aux données de développement.
   `UPDATE`, `DELETE` et `TRUNCATE` sont refusés, y compris en SQL direct
 - Connexions et consultations tracées
 
-L'ingestion (contrat §3 de `CLAUDE.md`) et le simulateur arrivent en S2.
+## Ce qui est en place (S2, en cours)
+
+L'ingestion du contrat §3 est implémentée. La capture dépose la paire
+wav + json dans le sous-répertoire du locataire :
+
+```
+INGEST_DIR/<slug>/20260901-143012_16778001_1001_699112233.wav
+INGEST_DIR/<slug>/20260901-143012_16778001_1001_699112233.json
+```
+
+L'api balaie `INGEST_DIR` toutes les `INGEST_POLL_MS` millisecondes et, pour
+chaque paire complète : vérifie le nom, les métadonnées, l'en-tête WAV, la
+taille et la durée, calcule le SHA-256, range l'audio sous
+`STORAGE_DIR/<tenantId>/<yyyy>/<mm>/` et crée l'enregistrement en base.
+
+Tout ce qui ne passe pas ces contrôles part en `QUARANTINE_DIR` avec un
+événement d'audit — un dépôt visant un locataire inconnu ou désactivé
+compris, car l'ingestion ne crée jamais de locataire. Rien n'est jamais
+supprimé silencieusement, et un re-dépôt identique est un no-op tracé.
+
+Le simulateur (`tools/simulator`, §4) reste à construire.
 
 ## Documentation
 
