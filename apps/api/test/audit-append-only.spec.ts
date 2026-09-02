@@ -1,5 +1,5 @@
 import type { PrismaClient } from '@prisma/client';
-import { createTestPrisma, resetTestData } from './helpers/database';
+import { createTestPrisma, resetTestData, testSchema } from './helpers/database';
 
 /**
  * Le journal d'audit est append-only (CLAUDE.md §5). C'est l'argument
@@ -60,12 +60,12 @@ describe('journal d’audit append-only', () => {
 
   it('refuse un UPDATE en SQL direct', async () => {
     await expect(
-      prisma.$executeRawUnsafe("UPDATE test.audit_events SET action = 'PURGE'"),
+      prisma.$executeRawUnsafe(`UPDATE ${testSchema()}.audit_events SET action = 'PURGE'`),
     ).rejects.toThrow(/append-only/);
   });
 
   it('refuse un TRUNCATE, qui contournerait les déclencheurs par ligne', async () => {
-    await expect(prisma.$executeRawUnsafe('TRUNCATE test.audit_events')).rejects.toThrow(
+    await expect(prisma.$executeRawUnsafe(`TRUNCATE ${testSchema()}.audit_events`)).rejects.toThrow(
       /append-only/,
     );
   });
