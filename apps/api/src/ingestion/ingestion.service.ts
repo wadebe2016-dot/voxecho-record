@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { mkdir, open, readdir, readFile, rename, rm, stat } from 'node:fs/promises';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join } from 'node:path';
 import { pipeline } from 'node:stream/promises';
 import { Injectable, Logger } from '@nestjs/common';
 import type { Source } from '@prisma/client';
@@ -19,6 +19,7 @@ import {
   type IngestMetadata,
 } from '@voxecho/shared';
 import { AuditService } from '../audit/audit.service';
+import { resoudreCheminDeDonnees } from '../config/chemins';
 import { AppConfig } from '../config/config.module';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -61,9 +62,9 @@ export class IngestionService {
     private readonly audit: AuditService,
     config: AppConfig,
   ) {
-    this.ingestDir = resolve(config.get('INGEST_DIR'));
-    this.storageDir = resolve(config.get('STORAGE_DIR'));
-    this.quarantineDir = resolve(config.get('QUARANTINE_DIR'));
+    this.ingestDir = resoudreCheminDeDonnees(config.get('INGEST_DIR'));
+    this.storageDir = resoudreCheminDeDonnees(config.get('STORAGE_DIR'));
+    this.quarantineDir = resoudreCheminDeDonnees(config.get('QUARANTINE_DIR'));
     this.orphanMs = config.get('INGEST_ORPHAN_MIN') * 60_000;
   }
 
