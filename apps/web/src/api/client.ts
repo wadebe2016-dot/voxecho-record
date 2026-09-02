@@ -1,4 +1,5 @@
 import type {
+  ListenTicketResponse,
   LoginRequest,
   Page,
   ProfileResponse,
@@ -113,4 +114,23 @@ export const api = {
 
   enregistrements: (query: RecordingListQuery): Promise<Page<RecordingListItem>> =>
     appeler('/recordings', { query: query as Record<string, string | number | undefined> }),
+
+  /**
+   * Ouvre une écoute. C'est cet appel qui inscrit l'`AuditEvent LISTEN` —
+   * il n'est donc émis que lorsque l'auditeur demande à entendre l'appel,
+   * jamais à l'ouverture d'une fiche.
+   */
+  ouvrirEcoute: (id: string): Promise<ListenTicketResponse> =>
+    appeler(`/recordings/${id}/listen`, { method: 'POST' }),
 };
+
+/**
+ * Source du lecteur audio. Le billet voyage dans l'url parce qu'un `<audio>`
+ * ne peut porter aucun en-tête (CLAUDE.md §9.4) ; il ne vaut que pour cet
+ * enregistrement et pour une demi-heure.
+ */
+export function urlAudio(id: string, ticket: string): string {
+  const url = new URL(`${BASE}/api/recordings/${id}/audio`, window.location.origin);
+  url.searchParams.set('ticket', ticket);
+  return url.toString();
+}
