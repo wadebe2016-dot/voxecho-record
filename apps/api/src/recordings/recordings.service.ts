@@ -1,17 +1,46 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { stat } from 'node:fs/promises';
+import { join, resolve, sep } from 'node:path';
+import {
+  BadRequestException,
+  GoneException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import type { Prisma, Recording } from '@prisma/client';
-import { dayRangeToInstants, type Page, type RecordingListItem } from '@voxecho/shared';
+import {
+  dayRangeToInstants,
+  type ListenTicketResponse,
+  type Page,
+  type RecordingListItem,
+} from '@voxecho/shared';
 import { AuditService } from '../audit/audit.service';
+import { AppConfig } from '../config/config.module';
 import { PrismaService } from '../prisma/prisma.service';
 import type { AuthUser } from '../auth/auth.types';
 import { ListRecordingsDto } from './dto/list-recordings.dto';
+import { ListenTicketService, type ListenTicket } from './listen-ticket.service';
+
+/** Fichier prêt à être servi, mesuré : la taille commande les plages. */
+export interface FluxAudio {
+  chemin: string;
+  taille: number;
+  nomFichier: string;
+}
 
 @Injectable()
 export class RecordingsService {
+  private readonly logger = new Logger(RecordingsService.name);
+  private readonly storageDir: string;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
-  ) {}
+    private readonly billets: ListenTicketService,
+    config: AppConfig,
+  ) {
+    this.storageDir = resolve(config.get('STORAGE_DIR'));
+  }
 
   /**
    * Liste paginée, toujours restreinte au locataire du jeton. Chaque
@@ -59,6 +88,86 @@ export class RecordingsService {
       pageSize: query.pageSize,
       pageCount: total === 0 ? 0 : Math.ceil(total / query.pageSize),
     };
+  }
+
+  /**
+   * Ouvre une écoute — CLAUDE.md §6. C'est **ici** que le journal enregistre
+   * la consultation, une fois, pour l'acte de l'auditeur : le lecteur enverra
+   * ensuite autant de requêtes `Range` qu'il lui faut, et aucune ne sera
+   * tracée. Une écoute au journal correspond donc à un auditeur qui a demandé
+   * à entendre un appel, pas à un aléa de mise en mémoire tampon.
+   */
+  async ouvrirEcoute(
+    user: AuthUser,
+    recordingId: string,
+    ip: string | null,
+  ): Promise<ListenTicketResponse> {
+    const recording = await this.prisma.recording.findFirst({
+      where: { id: recordingId, tenantId: user.tenantId },
+      select: { id: true, status: true, sha256: true, durationSec: true, refci: true },
+    });
+    // Introuvable et « appartient à un autre locataire » se répondent
+    // pareil : une réponse distincte confirmerait l'existence de l'appel.
+    if (!recording) throw new NotFoundException('Enregistrement introuvable.');
+    if (recording.status === 'purged') {
+      throw new GoneException('Enregistrement purgé : l’audio n’existe plus.');
+    }
+
+    await this.audit.record({
+      tenantId: user.tenantId,
+      userId: user.userId,
+      action: 'LISTEN',
+      recordingId: recording.id,
+      ip,
+      detail: {
+        refci: recording.refci,
+        sha256: recording.sha256,
+        durationSec: recording.durationSec,
+      },
+    });
+
+    return this.billets.issue({
+      userId: user.userId,
+      tenantId: user.tenantId,
+      recordingId: recording.id,
+    });
+  }
+
+  /**
+   * Localise le fichier d'un enregistrement pour le billet présenté. Le
+   * cloisonnement est revérifié ici : un billet ne dispense pas de vérifier
+   * que l'appel est bien celui d'un locataire du porteur.
+   */
+  async ouvrirFlux(billet: ListenTicket): Promise<FluxAudio> {
+    const recording = await this.prisma.recording.findFirst({
+      where: { id: billet.recordingId, tenantId: billet.tenantId },
+      select: { filePath: true, status: true },
+    });
+    if (!recording) throw new NotFoundException('Enregistrement introuvable.');
+    if (recording.status === 'purged') {
+      throw new GoneException('Enregistrement purgé : l’audio n’existe plus.');
+    }
+
+    const chemin = resolve(join(this.storageDir, recording.filePath));
+    // Le chemin vient de la base, donc de l'ingestion — mais une preuve ne se
+    // sert que depuis son coffre, et cela se vérifie plutôt que cela ne se
+    // suppose.
+    if (chemin !== this.storageDir && !chemin.startsWith(this.storageDir + sep)) {
+      this.logger.error(`Chemin hors STORAGE_DIR refusé : ${recording.filePath}`);
+      throw new NotFoundException('Enregistrement introuvable.');
+    }
+
+    let taille: number;
+    try {
+      taille = (await stat(chemin)).size;
+    } catch {
+      // La base connaît l'appel, le disque ne l'a plus : c'est un incident
+      // d'intégrité, pas une requête malformée. On le dit haut et fort.
+      this.logger.error(`Fichier absent du stockage : ${recording.filePath}`);
+      throw new NotFoundException('Fichier audio introuvable dans le stockage.');
+    }
+
+    return { chemin, taille, nomFichier: recording.filePath.split('/').pop() ?? 'appel.wav' };
   }
 
   /**

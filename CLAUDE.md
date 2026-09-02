@@ -255,3 +255,44 @@ opaques devient hostile. La réponse n'est pas de renommer les répertoires,
 mais d'ajouter la correspondance là où elle ne coûte rien : un index
 `slug → tenantId` exporté à côté du stockage, ou une commande
 d'administration qui résout un chemin. Les fichiers rangés ne bougent pas.
+
+### 9.4 Le lecteur audio présente un billet, pas le jeton de session (S3)
+
+Le §6 demande un lecteur en flux avec `Range` et un `AuditEvent LISTEN` à
+chaque lecture. Un `<audio src="…">` réclame lui-même le fichier, par une
+suite de requêtes que le portail ne fabrique pas : il ne peut y joindre aucun
+en-tête `Authorization`. Il fallait donc décider comment cette route
+s'authentifie.
+
+Retenu : l'écoute s'ouvre en deux temps. Le portail appelle
+`POST /api/recordings/:id/listen` avec son jeton habituel ; l'api inscrit
+l'`AuditEvent LISTEN` et rend un **billet d'écoute** — un JWT court
+(`LISTEN_TICKET_TTL`, 30 min par défaut) qui ne vaut que pour un compte, un
+locataire et un enregistrement. Le lecteur le passe ensuite en paramètre de
+`GET /api/recordings/:id/audio`, qui ne trace rien.
+
+Deux conséquences, toutes deux voulues :
+
+- **Une entrée au journal par écoute, pas par requête HTTP.** Un appel de
+  dix minutes provoque une trace, non les trente requêtes `Range` qu'un
+  navigateur envoie pour le charger et s'y déplacer. Le journal reste ce
+  qu'un contrôleur peut lire : la liste des consultations, pas celle des
+  aléas de mise en mémoire tampon. Rouvrir la même écoute une heure plus
+  tard produit une nouvelle trace, ce qui est exact.
+- **Le billet est signé avec un secret dérivé de `JWT_ACCESS_SECRET`**, et
+  non avec lui. Un billet présenté en `Bearer` ne s'authentifie donc pas :
+  la séparation est structurelle et ne dépend d'aucun champ qu'on pourrait
+  oublier de vérifier. C'est testé.
+
+Écartés : passer le jeton d'accès en paramètre d'URL (un identifiant de
+session complet dans les journaux de serveurs et l'historique du
+navigateur) ; charger l'audio par `fetch` autorisé puis le lire depuis un
+`blob:` (le portail téléchargerait dix minutes d'audio avant la première
+seconde entendue, et le `Range` du §6 ne servirait plus à rien) ; tracer
+chaque requête `Range` (le journal deviendrait illisible).
+
+**Réserve** — un billet reste un porteur d'accès glissé dans une URL. Tant
+que le portail et l'api partagent une origine, il ne quitte pas la machine
+de l'auditeur. Le jour où l'audio serait servi par un tiers (CDN, stockage
+objet signé), il faudra le raccourcir nettement et le lier à l'adresse IP
+du demandeur ; le point d'inscription au journal, lui, ne bouge pas.

@@ -105,3 +105,12 @@ avec la même graine est reconnu comme identique et retiré sans doublon.
   `slug`. Le chemin d'une preuve ne doit dépendre d'aucune donnée renommable —
   une fusion ou un changement de raison sociale ne doit jamais obliger à
   déplacer des fichiers déjà conservés.
+- Réécoute du §6 côté api : `GET /api/recordings/:id/audio` sert le WAV en
+  flux, `Range` compris (`206`, `Content-Range`, `416` avec la taille réelle),
+  sans jamais mettre une pièce probante en cache.
+- `POST /api/recordings/:id/listen` ouvre l'écoute et inscrit au journal
+  l'événement `LISTEN` — une entrée par écoute, pas par requête `Range`.
+  Décision et réserve en §9.4 de `CLAUDE.md`.
+- Fichier disparu du stockage : `404` et incident journalisé bruyamment ;
+  enregistrement purgé : `410`. Aucun des deux ne se confond avec une requête
+  malformée.
