@@ -38,7 +38,9 @@ describe('liste des enregistrements', () => {
     afficher(<RecordingsPage />);
 
     expect(await screen.findByText('01/09/2026 14:30:12')).toBeInTheDocument();
-    expect(screen.getByText('Sortant')).toBeInTheDocument();
+    // « Sortant » figure aussi dans le sélecteur de sens du formulaire :
+    // ce test parle de la ligne du tableau, il vise donc la cellule.
+    expect(screen.getByRole('cell', { name: 'Sortant' })).toBeInTheDocument();
     expect(screen.getByText('3:03')).toBeInTheDocument();
     expect(screen.getByText('2,8 Mio')).toBeInTheDocument();
     expect(screen.getByText('Conservé')).toBeInTheDocument();

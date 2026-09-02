@@ -71,9 +71,24 @@ Sortie de jalon S1 atteinte : connexion, liste vide et tests verts.
   plusieurs locataires, `--spread-days` étale le lot sur plusieurs jours.
 - Le simulateur est vérifié avec les validateurs du contrat eux-mêmes : ce
   qu'il dépose est relu par `parseIngestMetadata`, `parseRadical` et
-  `readWavHeader`, ceux-là mêmes qu'appelle l'ingestion — 231 tests.
+  `readWavHeader`, ceux-là mêmes qu'appelle l'ingestion — 232 tests.
 
 Sortie de jalon S2 atteinte : `--batch 50` donne 50 enregistrements en base,
 50 empreintes distinctes, répertoire d'ingestion vidé. Un lot `--corrupt` de
 6 appels finit intégralement en quarantaine, tracé ; le même lot redéposé
 avec la même graine est reconnu comme identique et retiré sans doublon.
+
+### S3 — Portail
+
+- Recherche du §6 : par numéro (poste **ou** correspondant, correspondance
+  partielle), plage de dates, sens et durée min/max. Les critères se cumulent
+  et aucun ne peut élargir le périmètre au-delà du locataire du jeton.
+- Les bornes de dates sont saisies en date locale et interprétées sur la
+  journée d'Africa/Douala : un appel du 1er à 23 h 30 sort bien dans une
+  recherche sur le 1er, celui du 2 à 00 h 30 non — malgré leur date UTC
+  identique.
+- Chaque recherche est tracée avec ses critères (`AuditEvent SEARCH`), et le
+  portail ne cherche qu'à la validation du formulaire : chercher à la frappe
+  noierait le journal sous des recherches que personne n'a demandées.
+- Correctif CI : `pnpm/action-setup@v4` refusait que la version de pnpm soit
+  déclarée à la fois par le workflow et par `packageManager`.
