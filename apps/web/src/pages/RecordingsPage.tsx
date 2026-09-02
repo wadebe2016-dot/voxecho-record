@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { Page, RecordingListItem } from '@voxecho/shared';
+import type { Page, RecordingFilters, RecordingListItem } from '@voxecho/shared';
 import { ApiError, api } from '../api/client';
+import { RecordingsSearch } from '../components/RecordingsSearch';
 import {
   abregerEmpreinte,
   formatDuree,
@@ -12,17 +13,21 @@ import {
 
 const TAILLE_PAGE = 25;
 
+/** Aucun critère : la liste montre tout ce que le locataire a le droit de voir. */
+const AUCUN_FILTRE: RecordingFilters = {};
+
 export function RecordingsPage() {
   const [page, setPage] = useState(1);
+  const [filtres, setFiltres] = useState<RecordingFilters>(AUCUN_FILTRE);
   const [donnees, setDonnees] = useState<Page<RecordingListItem> | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   const [chargement, setChargement] = useState(true);
 
-  const charger = useCallback(async (numero: number) => {
+  const charger = useCallback(async (numero: number, criteres: RecordingFilters) => {
     setChargement(true);
     setErreur(null);
     try {
-      setDonnees(await api.enregistrements({ page: numero, pageSize: TAILLE_PAGE }));
+      setDonnees(await api.enregistrements({ ...criteres, page: numero, pageSize: TAILLE_PAGE }));
     } catch (e) {
       setErreur(e instanceof ApiError ? e.message : 'Le service est momentanément indisponible.');
     } finally {
@@ -31,8 +36,16 @@ export function RecordingsPage() {
   }, []);
 
   useEffect(() => {
-    void charger(page);
-  }, [charger, page]);
+    void charger(page, filtres);
+  }, [charger, page, filtres]);
+
+  /** Une nouvelle recherche repart de la première page. */
+  const rechercher = (criteres: RecordingFilters): void => {
+    setPage(1);
+    setFiltres(criteres);
+  };
+
+  const filtree = Object.keys(filtres).length > 0;
 
   return (
     <section>
@@ -41,9 +54,12 @@ export function RecordingsPage() {
         {donnees !== null && (
           <span className="text-sm text-ardoise-600">
             {donnees.total} {donnees.total > 1 ? 'appels' : 'appel'}
+            {filtree && ' correspondant aux critères'}
           </span>
         )}
       </header>
+
+      <RecordingsSearch valeur={filtres} onRechercher={rechercher} desactive={chargement} />
 
       {erreur !== null && (
         <p
@@ -97,9 +113,13 @@ export function RecordingsPage() {
             {!chargement && donnees?.items.length === 0 && (
               <tr>
                 <td colSpan={8} className="px-3 py-10 text-center">
-                  <p className="font-medium">Aucun enregistrement</p>
+                  <p className="font-medium">
+                    {filtree ? 'Aucun appel ne correspond' : 'Aucun enregistrement'}
+                  </p>
                   <p className="mt-1 text-sm text-ardoise-600">
-                    Aucun appel n’a encore été ingéré pour ce locataire.
+                    {filtree
+                      ? 'Aucun appel de ce locataire ne répond à ces critères.'
+                      : 'Aucun appel n’a encore été ingéré pour ce locataire.'}
                   </p>
                 </td>
               </tr>
