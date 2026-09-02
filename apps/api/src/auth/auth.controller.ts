@@ -1,9 +1,10 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Post, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Public } from '../common/decorators/public.decorator';
 import { AuthService } from './auth.service';
 import type { AuthUser, TokenPair } from './auth.types';
+import { LimitationConnexionGuard } from './limitation-connexion.guard';
 import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
 
@@ -12,13 +13,18 @@ export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
   @Public()
+  @UseGuards(LimitationConnexionGuard)
   @Post('login')
   @HttpCode(HttpStatus.OK)
   login(@Body() dto: LoginDto, @Req() request: Request): Promise<TokenPair> {
     return this.auth.login(dto.email, dto.password, adresse(request));
   }
 
+  // Le rafraîchissement est protégé par le même verdict d'adresse, mais ses
+  // échecs ne comptent pas : un jeton expiré est le quotidien d'une session,
+  // pas le signe d'un balayage.
   @Public()
+  @UseGuards(LimitationConnexionGuard)
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   refresh(@Body() dto: RefreshDto): Promise<TokenPair> {

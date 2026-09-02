@@ -4,6 +4,7 @@ import { AuditService } from '../audit/audit.service';
 import { AppConfig } from '../config/config.module';
 import { PrismaService } from '../prisma/prisma.service';
 import type { AuthUser, TokenPair } from './auth.types';
+import { LimitationConnexion } from './limitation-connexion.service';
 import { hashPassword, verifyPassword } from './password';
 import { TokensService } from './tokens.service';
 
@@ -22,6 +23,7 @@ export class AuthService {
     private readonly tokens: TokensService,
     private readonly audit: AuditService,
     private readonly config: AppConfig,
+    private readonly limitation: LimitationConnexion,
   ) {}
 
   async login(email: string, password: string, ip: string | null): Promise<TokenPair> {
@@ -30,6 +32,11 @@ export class AuthService {
 
     if (!user) {
       await verifyPassword(await LEURRE, password);
+      // Rien au journal d'audit : une adresse inconnue n'a ni compte ni
+      // locataire, et tracer chaque tentative offrirait à un inconnu le moyen
+      // de gonfler à volonté un journal que rien ne peut purger. C'est le
+      // blocage qui s'inscrit, une fois par épisode (§9.16).
+      this.limitation.signalerEchec(ip);
       this.logger.warn(`Échec de connexion : adresse inconnue (${normalise})`);
       throw new UnauthorizedException('Identifiants invalides.');
     }
@@ -42,6 +49,7 @@ export class AuthService {
         ip,
         detail: { resultat: 'verrouille', email: normalise },
       });
+      this.limitation.signalerEchec(ip);
       throw new ForbiddenException(
         'Compte temporairement verrouillé après plusieurs échecs de connexion.',
       );
@@ -58,6 +66,7 @@ export class AuthService {
         ip,
         detail: { resultat: verrouille ? 'verrouillage' : 'echec', email: normalise },
       });
+      this.limitation.signalerEchec(ip);
       throw new UnauthorizedException('Identifiants invalides.');
     }
 
@@ -69,6 +78,7 @@ export class AuthService {
         ip,
         detail: { resultat: 'compte_desactive', email: normalise },
       });
+      this.limitation.signalerEchec(ip);
       throw new ForbiddenException('Compte désactivé.');
     }
 

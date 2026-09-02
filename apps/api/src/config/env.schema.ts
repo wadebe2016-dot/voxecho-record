@@ -32,6 +32,30 @@ export const envSchema = z.object({
   AUTH_MAX_FAILED_ATTEMPTS: z.coerce.number().int().min(1).max(50).default(5),
   AUTH_LOCK_DURATION_MIN: z.coerce.number().int().min(1).max(1440).default(15),
 
+  // Limitation des tentatives par adresse (CLAUDE.md §9.16). Elle ne
+  // remplace pas le verrouillage de compte ci-dessus : l'un protège un
+  // compte nommé, l'autre freine le balayage de comptes.
+  AUTH_RATE_MAX: z.coerce.number().int().min(1).max(10_000).default(10),
+  AUTH_RATE_WINDOW_SEC: z.coerce.number().int().min(1).max(3600).default(60),
+  /** Nombre d'adresses suivies au plus : un balayage distribué ne doit pas
+   *  faire enfler la mémoire de l'api. Les plus anciennes sont oubliées. */
+  AUTH_RATE_MAX_ADRESSES: z.coerce.number().int().min(100).max(1_000_000).default(10_000),
+
+  /**
+   * Proxys dont on accepte l'en-tête `X-Forwarded-For` — adresses ou CIDR
+   * séparés par des virgules, ou `loopback`. **Vide par défaut** : sans
+   * cela, n'importe qui inscrirait l'adresse de son choix dans un journal
+   * d'audit qu'on ne peut pas corriger (§9.16).
+   */
+  TRUSTED_PROXIES: z.string().default(''),
+
+  /**
+   * L'api est-elle servie derrière une terminaison TLS ? Commande le seul
+   * en-tête qu'il serait malhonnête d'émettre en clair : HSTS promet au
+   * navigateur que le site est joignable en HTTPS.
+   */
+  API_BEHIND_TLS: booleen.default('false'),
+
   // Billet d'écoute : court, limité à un enregistrement et à son demandeur.
   // Sa durée borne aussi ce que dure « une écoute » au journal d'audit — le
   // lecteur qui redemande un billet ouvre une nouvelle consultation, tracée.

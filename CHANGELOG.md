@@ -296,3 +296,29 @@ démontrées bout en bout sur des données simulées.
 export horodaté, journal d'audit, tableau de bord, chiffrement au repos,
 sauvegarde et restauration — le tout joué en une fois, dans l'ordre d'un
 contrôle.
+
+### Durcissement (hors jalon)
+
+- **L'adresse inscrite au journal d'audit était fausse dès qu'on livrait** :
+  derrière le nginx du livrable, toutes les entrées portaient l'adresse du
+  conteneur qui relaie. `TRUSTED_PROXIES` déclare nommément les relais dont on
+  accepte le `X-Forwarded-For`, et reste vide par défaut — le croire sans
+  réserve laisserait n'importe qui choisir l'adresse inscrite à son nom dans un
+  journal qu'aucune route ne peut corriger.
+- Limitation des tentatives de connexion par adresse, sur les seules routes
+  d'authentification : une limitation générale casserait la réécoute, qui
+  s'appuie sur des dizaines de requêtes `Range`. Seuls les échecs comptent —
+  dans une banque, tout le personnel sort par une même adresse publique.
+- Le blocage s'inscrit au journal une fois par épisode, sans locataire ni
+  compte, plutôt qu'une entrée par tentative : un inconnu ne doit pas pouvoir
+  gonfler un journal que rien ne peut purger. Aucune action nouvelle au §5.
+- Politique de contenu du portail (`Content-Security-Policy` sans inline), et
+  en-têtes de l'api resserrés : `default-src 'none'`, `frame-ancestors 'none'`,
+  `Cross-Origin-Resource-Policy: same-origin`. HSTS n'est émis que derrière une
+  terminaison TLS déclarée (`API_BEHIND_TLS`) : le promettre en clair serait une
+  promesse qu'on ne tient pas.
+- La CSP est protégée par un vrai build : le test construit le portail et
+  vérifie qu'aucun `<script>` ni `<style>` en ligne n'est émis. Sans lui, le
+  portail casserait en production seulement, là où aucun test ne regarde.
+- Décisions et réserves en §9.16 — dont le compteur en mémoire, exact pour une
+  instance par client (§9.1) et à revoir le jour où il y en aurait deux.
