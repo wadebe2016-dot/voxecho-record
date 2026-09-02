@@ -4,16 +4,28 @@ import { config as loadEnv } from 'dotenv';
 import { PrismaClient } from '@prisma/client';
 
 /**
- * Les tests d'intégration travaillent dans un schéma PostgreSQL dédié
- * (`test`) de la même base : on ne touche jamais aux données de développement,
- * et aucune création de base n'est nécessaire en CI.
+ * Les tests d'intégration travaillent dans des schémas PostgreSQL dédiés de
+ * la même base : on ne touche jamais aux données de développement, et aucune
+ * création de base n'est nécessaire en CI.
+ *
+ * **Un schéma par worker Jest.** Les suites tournent en parallèle et
+ * `resetTestData` vide les tables entre les cas ; sur un schéma partagé, deux
+ * workers se détruisent mutuellement leurs données. Le symptôme — une
+ * contrainte d'unicité sur un nom de locataire, ou un enregistrement
+ * introuvable — n'apparaît qu'au-delà d'un worker, donc jamais sur une
+ * machine à deux cœurs et systématiquement sur un runner qui en a quatre.
  */
 const RACINE = join(__dirname, '..', '..', '..', '..');
-const SCHEMA_DE_TEST = 'test';
 
 loadEnv({ path: join(RACINE, '.env') });
 
-export function testDatabaseUrl(): string {
+/** Schéma du worker courant. Hors worker (setup global), c'est `test_1`. */
+export function testSchema(): string {
+  const worker = (process.env.JEST_WORKER_ID ?? '1').replace(/\D/g, '');
+  return `test_${worker || '1'}`;
+}
+
+export function testDatabaseUrl(schema: string = testSchema()): string {
   const brut = process.env.DATABASE_URL;
   if (!brut) {
     throw new Error(
@@ -21,15 +33,15 @@ export function testDatabaseUrl(): string {
     );
   }
   const url = new URL(brut);
-  url.searchParams.set('schema', SCHEMA_DE_TEST);
+  url.searchParams.set('schema', schema);
   return url.toString();
 }
 
-/** Applique les migrations au schéma de test (appelé une fois avant la suite). */
-export function migrateTestSchema(): void {
+/** Applique les migrations à un schéma de test (appelé par le setup global). */
+export function migrateTestSchema(schema: string): void {
   execFileSync('pnpm', ['exec', 'prisma', 'migrate', 'deploy'], {
     cwd: join(__dirname, '..', '..'),
-    env: { ...process.env, DATABASE_URL: testDatabaseUrl() },
+    env: { ...process.env, DATABASE_URL: testDatabaseUrl(schema) },
     stdio: 'pipe',
   });
 }
@@ -44,11 +56,12 @@ export function createTestPrisma(): PrismaClient {
  * ce que fait cette fonction réservée aux tests.
  */
 export async function resetTestData(prisma: PrismaClient): Promise<void> {
-  await prisma.$executeRawUnsafe('ALTER TABLE test.audit_events DISABLE TRIGGER USER');
+  const schema = testSchema();
+  await prisma.$executeRawUnsafe(`ALTER TABLE ${schema}.audit_events DISABLE TRIGGER USER`);
   try {
-    await prisma.$executeRawUnsafe('DELETE FROM test.audit_events');
+    await prisma.$executeRawUnsafe(`DELETE FROM ${schema}.audit_events`);
   } finally {
-    await prisma.$executeRawUnsafe('ALTER TABLE test.audit_events ENABLE TRIGGER USER');
+    await prisma.$executeRawUnsafe(`ALTER TABLE ${schema}.audit_events ENABLE TRIGGER USER`);
   }
   await prisma.legalHold.deleteMany();
   await prisma.retentionPolicy.deleteMany();

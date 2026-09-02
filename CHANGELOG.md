@@ -92,3 +92,7 @@ avec la même graine est reconnu comme identique et retiré sans doublon.
   noierait le journal sous des recherches que personne n'a demandées.
 - Correctif CI : `pnpm/action-setup@v4` refusait que la version de pnpm soit
   déclarée à la fois par le workflow et par `packageManager`.
+- Correctif CI : chaque worker Jest travaille désormais dans son propre schéma
+  PostgreSQL (`test_1`…`test_N`). Sur un schéma partagé, le vidage des tables
+  entre deux cas détruisait les données d'un autre worker — invisible sur une
+  machine à deux cœurs, systématique sur un runner qui en a quatre.
