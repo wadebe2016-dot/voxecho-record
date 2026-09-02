@@ -257,3 +257,19 @@ démontrées bout en bout sur des données simulées.
   valeur de `--empreinte` était prise pour un répertoire de sauvegarde.
 - L'image docker de l'api embarque `postgresql-client` : la sauvegarde doit
   pouvoir tourner là où tourne l'api, sans dépendre d'un poste tiers.
+
+- Constat d'après-restauration : `restauration:constater` confronte la base
+  qu'on vient de remonter au manifeste et à l'inventaire d'une prise —
+  migrations, locataires, et chaque enregistrement champ par champ. Il nomme ce
+  qui diffère (« empreinte a… au lieu de 9f… »), il ne se contente pas de dire
+  que quelque chose diffère.
+- Une base plus avancée que la prise n'est pas une anomalie : restaurer puis
+  appliquer les migrations parues depuis est une manœuvre saine. Une base en
+  retard ou d'une autre lignée de migrations, si. Décisions en §9.15.
+- Le constat se joue sur une **vraie** restauration en test : `pg_dump` puis
+  `pg_restore` dans une base à part, constat fidèle, puis une ligne retirée de
+  la base de secours que le constat signale.
+- Correctif (§9.14 et §9.15) : les listes d'anomalies étaient plafonnées à vingt
+  éléments et le rapport annonçait la longueur de la liste — cinq mille pièces
+  disparues se lisaient « 20 pièce(s) absente(s) ». Un constat compte désormais
+  tout, n'énumère que les premières, et dit combien il n'a pas énumérées.

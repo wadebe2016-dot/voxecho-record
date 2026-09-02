@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { resoudreCheminDeDonnees } from '../config/chemins';
 import { TAILLE_CLE } from '../storage/coffre';
 import { analyserArguments } from './arguments';
+import { lignesDe } from './constat';
 import { verifierSauvegarde, type RapportSauvegarde } from './verification.service';
 
 /**
@@ -56,18 +57,17 @@ function afficher(rapport: RapportSauvegarde): void {
       `  stockage   : ${s.verifiees}/${s.attendues} pièce(s) vérifiée(s) par empreinte` +
         `${s.sceauxNonVerifies > 0 ? `, ${s.sceauxNonVerifies} scellée(s) non ouverte(s)` : ''}`,
     );
-    const listes: [string, string[]][] = [
-      ['manquante(s)', s.manquantes],
-      ['divergente(s)', s.divergentes],
+    const listes: [string, typeof s.manquantes][] = [
+      ['manquante', s.manquantes],
+      ['divergente', s.divergentes],
       ['clé inconnue', s.clesInconnues],
       ['déclaration absente', s.declarationsAbsentes],
-      ['purgée(s) mais présente(s)', s.purgeesAvecFichier],
-      ['orpheline(s)', s.orphelins],
+      ['purgée mais présente', s.purgeesAvecFichier],
+      ['orpheline', s.orphelins],
     ];
-    for (const [intitule, liste] of listes) {
-      for (const element of liste) console.warn(`    ! ${intitule} : ${element}`);
+    for (const [intitule, constat] of listes) {
+      for (const ligne of lignesDe(constat, intitule)) console.warn(ligne);
     }
-    if (s.tronque) console.warn('    … listes tronquées : relancer après correction.');
   } else {
     console.warn('  stockage   : non vérifié (relancer avec --stockage)');
   }
