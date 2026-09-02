@@ -101,3 +101,7 @@ avec la même graine est reconnu comme identique et retiré sans doublon.
   effacés à la compilation ; la première valeur importée (`INGEST_DIRECTIONS`)
   a cassé la construction, Rollup ne sachant pas suivre un export nommé à
   travers une chaîne de `export *` en CommonJS.
+- CLAUDE.md §9.3 : le stockage range par `tenantId` quand l'ingestion lit le
+  `slug`. Le chemin d'une preuve ne doit dépendre d'aucune donnée renommable —
+  une fusion ou un changement de raison sociale ne doit jamais obliger à
+  déplacer des fichiers déjà conservés.

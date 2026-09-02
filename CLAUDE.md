@@ -224,3 +224,34 @@ Deux conséquences assumées :
 ne maîtrise pas (dépôt par un tiers, SIPREC mutualisé), le plan de
 numérotation redevient la bonne réponse : il se branche sans toucher au
 json, en résolvant le locataire depuis `near` au lieu du répertoire.
+
+### 9.3 Le stockage range par `tenantId`, l'ingestion lit le `slug` (S2)
+
+Le §3 écrit `STORAGE_DIR/<tenant>/<yyyy>/<mm>/` sans dire lequel des deux
+identifiants du locataire désigne ce répertoire. Retenu :
+`STORAGE_DIR/<tenantId>/<yyyy>/<mm>/`, alors que l'ingestion, elle, lit le
+`slug` dans `INGEST_DIR/<slug>/` (§9.2). L'asymétrie est voulue et tient à ce
+que chacun des deux chemins doit garantir.
+
+Le chemin d'une preuve ne doit jamais dépendre d'une donnée renommable. Un
+`slug` se renomme : changement de raison sociale, fusion de deux filiales,
+correction d'une coquille à l'administration. Le jour où cela arrive,
+`Recording.filePath` désignerait un répertoire qui n'existe plus, et une
+conservation probante se réparerait à coups de déplacements de fichiers et
+de mises à jour de colonnes — exactement le genre d'opération qu'un
+contrôleur COBAC est fondé à trouver suspecte. Le `tenantId` ne se renomme
+pas : il naît avec le locataire et meurt avec lui.
+
+Côté ingestion, l'exigence est inverse : c'est un humain qui configure le
+script post-enregistrement FreeSWITCH, et un `slug` lisible se vérifie d'un
+coup d'œil là où un identifiant opaque se recopie de travers. Le répertoire
+d'ingestion est un point de passage, pas un lieu de conservation : un `slug`
+qui change s'y répercute par une ligne de configuration, sans qu'aucune
+preuve ne bouge.
+
+**Réserve** — si un jour un opérateur doit retrouver un enregistrement dans
+`STORAGE_DIR` sans passer par le portail, l'arborescence en identifiants
+opaques devient hostile. La réponse n'est pas de renommer les répertoires,
+mais d'ajouter la correspondance là où elle ne coûte rien : un index
+`slug → tenantId` exporté à côté du stockage, ou une commande
+d'administration qui résout un chemin. Les fichiers rangés ne bougent pas.
