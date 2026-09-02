@@ -73,11 +73,12 @@ un domaine tiers. L'api applique les migrations à son démarrage.
 
 Exploitation (dans `apps/api`, via `pnpm --filter @voxecho/api run …`) :
 
-| Commande              | Effet                                                           |
-| --------------------- | --------------------------------------------------------------- |
-| `storage:sceller`     | Scelle les pièces déjà rangées en clair (simulation par défaut) |
-| `sauvegarde:creer`    | Dump de la base + inventaire du stockage + manifeste (§9.14)    |
-| `sauvegarde:verifier` | Vérifie une prise ; `--stockage` recalcule chaque empreinte     |
+| Commande                 | Effet                                                              |
+| ------------------------ | ------------------------------------------------------------------ |
+| `storage:sceller`        | Scelle les pièces déjà rangées en clair (simulation par défaut)    |
+| `sauvegarde:creer`       | Dump de la base + inventaire du stockage + manifeste (§9.14)       |
+| `sauvegarde:verifier`    | Vérifie une prise ; `--stockage` recalcule chaque empreinte        |
+| `restauration:constater` | Confronte la base restaurée au manifeste et à l'inventaire (§9.15) |
 
 La sauvegarde ne recopie pas les fichiers audio : ils se sauvegardent par les
 moyens de l'exploitant, et `sauvegarde:verifier --stockage` prouve que la copie
@@ -97,7 +98,7 @@ de la même base : ils ne touchent jamais aux données de développement.
   `UPDATE`, `DELETE` et `TRUNCATE` sont refusés, y compris en SQL direct
 - Connexions et consultations tracées
 
-## Ce qui est en place (S2, en cours)
+## Ce qui est en place (S2)
 
 L'ingestion du contrat §3 est implémentée. La capture dépose la paire
 wav + json dans le sous-répertoire du locataire :
@@ -134,6 +135,27 @@ pnpm --filter @voxecho/simulator simulate -- --help
 
 `--seed <n>` rejoue une démonstration à l'identique ; `--spread-days <n>`
 étale le lot sur plusieurs jours pour peupler le tableau de bord.
+
+## Ce qui est en place (S3 et S4)
+
+- **Portail** : recherche (numéro, dates, sens, durée, catégorie d'opération),
+  fiche d'appel, réécoute en flux avec `Range`, export horodaté, journal
+  d'audit et tableau de bord — en français, heures d'Africa/Douala
+- **Habilitations** : entendre une conversation de client n'est pas un droit
+  d'exploitation. Réécoute, export et journal sont réservés à `AUDITOR` et
+  `ADMIN` ; le `SUPERVISOR` garde la recherche, les métadonnées, l'empreinte et
+  le tableau de bord (§9.9, §9.11, §9.12)
+- **Conservation** : politique par locataire (730 jours par défaut), dérogation
+  motivée sous le plancher, conservation forcée qui prime toujours sur
+  l'échéance, purge autorisée sur rapport figé et jamais automatique
+- **Preuve** : empreinte relevée à l'ingestion, recalculée et confrontée à
+  chaque export, chiffrement au repos par trames de 64 Kio, sauvegarde
+  vérifiable et constat d'après-restauration
+
+Le scénario de contrôle qui les met bout à bout — `apps/api/test/controle-cobac.spec.ts`
+— se rejoue à chaque CI : la téléphonie dépose, le portail range et scelle, un
+contrôleur interroge le périmètre, l'intégrité, les habilitations, les
+destructions, le journal, puis la capacité à restaurer.
 
 ## Documentation
 
