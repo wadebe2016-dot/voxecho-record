@@ -1,0 +1,28 @@
+# dépendances
+node_modules/
+.pnpm-store/
+
+# build
+dist/
+build/
+*.tsbuildinfo
+
+# tests / couverture
+coverage/
+.vitest/
+
+# environnement — jamais de secret dans le dépôt
+.env
+.env.*
+!.env.example
+
+# données locales (audio ingéré, quarantaine)
+/data/
+var/
+
+# éditeurs / OS
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.log
