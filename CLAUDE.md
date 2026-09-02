@@ -323,3 +323,53 @@ encore. À la première mise en service réelle, un lien qui ne mène nulle part
 n'est plus une promesse mais un défaut : si le S4 devait glisser au-delà d'une
 mise en service, le lien se désactive (visible, mais inerte et annoncé comme
 « à venir ») plutôt que de rediriger silencieusement.
+
+### 9.6 La conservation se décide, se déroge, et se trace (S4)
+
+Le §5 pose `RetentionPolicy` et `LegalHold` sans dire qui arbitre quand les
+deux se contredisent, ni ce qui empêche de ramener une rétention à trente
+jours un vendredi soir. Trois choix ont été faits en ouvrant le S4.
+
+**Le défaut est de 730 jours, et il y a un plancher.** Deux ans est la durée
+d'usage bancaire retenue pour la zone CEMAC ; *la référence réglementaire
+précise reste à confirmer* et n'est volontairement citée nulle part dans le
+produit — une référence inventée dans un document de conformité vaut moins que
+pas de référence du tout. La valeur est réglable par locataire. En dessous du
+plancher de l'instance (`RETENTION_MIN_DAYS`, 730 par défaut), l'api refuse la
+politique **sauf motif écrit d'au moins dix caractères**, conservé sur la
+politique en vigueur (`RetentionPolicy.belowFloorReason`) et inscrit au
+journal. « Jamais moins sans décision explicite » suppose que la décision
+existe quelque part de lisible : ici, un contrôleur voit du premier coup d'œil
+qu'il lit une politique dérogatoire, et le journal lui dit qui a dérogé.
+
+Le motif est exigé *uniquement* en dessous du plancher, et refusé au-dessus :
+faire justifier un allongement transformerait la prudence en corvée, et un
+motif de dérogation accroché à une politique qui ne déroge à rien ferait
+croire à une dérogation qu'il n'y a pas.
+
+**`AuditAction` gagne `RETENTION_SET`** — écart au §5. Raccourcir une
+conservation, c'est programmer la destruction de preuves à terme ; sans cette
+action, l'acte le plus lourd du produit était le seul à ne rien laisser au
+journal. La trace porte l'avant, l'après, le plancher, le motif éventuel, et
+si la durée a été raccourcie.
+
+**`RecordingStatus.hold` n'est pas utilisé** — écart au §5 également. Une
+conservation forcée est une ligne non levée de `LegalHold`, et c'est la seule
+source de vérité ; `Recording.status` continue de décrire le fichier
+(`stored`, `archived`, `purged`). Deux représentations du même fait finissent
+toujours par diverger, et le jour où elles divergeraient, c'est la purge qui
+arbitrerait — au pire moment, sur la pièce qu'on cherchait justement à
+protéger. Le portail affiche le hold à côté du statut, jamais à sa place.
+
+Poser et lever sont ouverts à l'ADMIN et au SUPERVISOR, l'AUDITOR consulte
+l'historique sans y toucher : il constate, il n'ordonne pas. La levée se
+motive comme la pose — elle rend l'appel purgeable, c'est une destruction
+différée.
+
+**Réserve** — le plancher est un garde-fou d'instance, pas une règle de droit.
+Le jour où la référence réglementaire sera établie, deux choses changent : la
+valeur par défaut s'aligne sur le texte, et la dérogation cesse d'être une
+simple ligne de motif pour devenir une décision datée et nominative, à
+présenter en cas de contrôle. Si une offre mutualisée voit le jour (§9.1), le
+plancher devra en outre devenir propre à chaque locataire : deux clients d'une
+même instance peuvent relever de régimes différents.

@@ -3,7 +3,7 @@
 // vérifié par middleware et par tests.
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
   // Cible explicite : dans une image slim, Prisma détecte mal la version
   // d'OpenSSL et génère un client dont le moteur ne se charge pas.
   binaryTargets = ["native", "debian-openssl-3.0.x"]
@@ -29,7 +29,7 @@ enum Direction {
 
 /// Origine de la capture (contrat §3).
 enum Source {
-  cucm_bib @map("cucm-bib")
+  cucm_bib  @map("cucm-bib")
   siprec
   simulator
 }
@@ -53,6 +53,10 @@ enum AuditAction {
   PURGE
   HOLD_SET
   HOLD_RELEASE
+  /// Changement de la durée de conservation d'un locataire (CLAUDE.md §9.6).
+  /// Raccourcir une rétention détruit des preuves à terme : l'acte doit se
+  /// lire au journal comme n'importe quelle autre destruction.
+  RETENTION_SET
 }
 
 model Tenant {
@@ -94,10 +98,11 @@ model User {
   lockedUntil         DateTime? @map("locked_until")
   lastLoginAt         DateTime? @map("last_login_at")
 
-  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  auditEvents   AuditEvent[]
-  refreshTokens RefreshToken[]
-  legalHoldsSet LegalHold[]    @relation("LegalHoldSetBy")
+  tenant             Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  auditEvents        AuditEvent[]
+  refreshTokens      RefreshToken[]
+  legalHoldsSet      LegalHold[]    @relation("LegalHoldSetBy")
+  legalHoldsReleased LegalHold[]    @relation("LegalHoldReleasedBy")
 
   @@index([tenantId])
   @@map("users")
@@ -191,12 +196,22 @@ model AuditEvent {
   @@map("audit_events")
 }
 
+/// Durée de conservation d'un locataire. Le défaut d'un nouveau locataire est
+/// de 730 jours ; l'api refuse de descendre sous le plancher `RETENTION_MIN_DAYS`
+/// sans dérogation motivée (CLAUDE.md §9.6).
 model RetentionPolicy {
   id        String   @id @default(uuid()) @db.Uuid
   tenantId  String   @map("tenant_id") @db.Uuid
   days      Int
   appliesTo String   @map("applies_to")
   createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  /// Motif écrit d'une rétention inférieure au plancher réglementaire. Nul
+  /// tant que la durée reste au-dessus. Ce n'est pas un doublon du journal :
+  /// le journal dit qui a dérogé et quand, cette colonne dit que la politique
+  /// **en vigueur** est une dérogation — ce qu'un contrôleur lit d'abord.
+  belowFloorReason String? @map("below_floor_reason")
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
@@ -205,6 +220,9 @@ model RetentionPolicy {
 }
 
 /// Conservation forcée : la purge respecte les holds (§5).
+/// Conservation forcée : la purge respecte les holds (§5). Un hold actif est
+/// une ligne dont `releasedAt` est nul — c'est la seule source de vérité, le
+/// statut de l'enregistrement n'en porte pas de copie (CLAUDE.md §9.6).
 model LegalHold {
   id          String    @id @default(uuid()) @db.Uuid
   tenantId    String    @map("tenant_id") @db.Uuid
@@ -214,10 +232,19 @@ model LegalHold {
   at          DateTime  @default(now())
   releasedAt  DateTime? @map("released_at")
 
-  recording Recording @relation(fields: [recordingId], references: [id], onDelete: Cascade)
-  setByUser User      @relation("LegalHoldSetBy", fields: [setBy], references: [id])
+  /// Lever un hold rend l'appel purgeable : l'acte est aussi lourd que la
+  /// pose, et se trace comme elle.
+  releasedBy    String? @map("released_by") @db.Uuid
+  releaseReason String? @map("release_reason")
+
+  recording      Recording @relation(fields: [recordingId], references: [id], onDelete: Cascade)
+  setByUser      User      @relation("LegalHoldSetBy", fields: [setBy], references: [id])
+  releasedByUser User?     @relation("LegalHoldReleasedBy", fields: [releasedBy], references: [id], onDelete: Restrict)
 
   @@index([tenantId])
   @@index([recordingId])
+  /// Recherche du hold actif d'un enregistrement, et de tous les holds actifs
+  /// d'un locataire au moment de la purge.
+  @@index([tenantId, releasedAt])
   @@map("legal_holds")
 }

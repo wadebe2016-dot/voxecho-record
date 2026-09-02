@@ -18,6 +18,7 @@ import { AuditService } from '../audit/audit.service';
 import { resoudreCheminDeDonnees } from '../config/chemins';
 import { AppConfig } from '../config/config.module';
 import { PrismaService } from '../prisma/prisma.service';
+import { LegalHoldsService } from '../retention/legal-holds.service';
 import type { AuthUser } from '../auth/auth.types';
 import { ListRecordingsDto } from './dto/list-recordings.dto';
 import { ListenTicketService, type ListenTicket } from './listen-ticket.service';
@@ -38,6 +39,7 @@ export class RecordingsService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly billets: ListenTicketService,
+    private readonly holds: LegalHoldsService,
     config: AppConfig,
   ) {
     this.storageDir = resoudreCheminDeDonnees(config.get('STORAGE_DIR'));
@@ -82,8 +84,15 @@ export class RecordingsService {
       },
     });
 
+    // Un seul aller-retour pour toute la page : marquer chaque ligne
+    // séparément ferait vingt-cinq requêtes pour vingt-cinq appels.
+    const sousHold = await this.holds.idsSousHold(
+      user.tenantId,
+      rows.map((row) => row.id),
+    );
+
     return {
-      items: rows.map(versListItem),
+      items: rows.map((row) => versListItem(row, sousHold.has(row.id))),
       total,
       page: query.page,
       pageSize: query.pageSize,
@@ -229,7 +238,7 @@ function critereTrace(query: ListRecordingsDto): Record<string, unknown> {
  * base (un fichier peut dépasser l'entier signé 32 bits) mais tient
  * largement dans un nombre JavaScript exact.
  */
-function versListItem(row: Recording): RecordingListItem {
+function versListItem(row: Recording, underHold: boolean): RecordingListItem {
   return {
     id: row.id,
     refci: row.refci,
@@ -242,5 +251,6 @@ function versListItem(row: Recording): RecordingListItem {
     sizeBytes: Number(row.sizeBytes),
     source: row.source === 'cucm_bib' ? 'cucm-bib' : row.source,
     status: row.status,
+    underHold,
   };
 }

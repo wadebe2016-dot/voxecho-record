@@ -1,4 +1,5 @@
 import { PrismaClient, Role } from '@prisma/client';
+import { RETENTION_DAYS_DEFAULT } from '@voxecho/shared';
 import { hashPassword } from '../src/auth/password';
 
 /**
@@ -21,7 +22,13 @@ interface GraineLocataire {
   /** Sous-répertoire surveillé par l'ingestion : `INGEST_DIR/<slug>/`. */
   slug: string;
   users: GraineUtilisateur[];
-  retentionDays: number;
+  /**
+   * Conservation du locataire. Omise, c'est le défaut du produit qui
+   * s'applique — 730 jours, deux ans (CLAUDE.md §9.6). Les deux locataires de
+   * démonstration gardent des durées plus longues : elles montrent que la
+   * valeur se règle par locataire, et elles restent au-dessus du plancher.
+   */
+  retentionDays?: number;
 }
 
 const LOCATAIRES: GraineLocataire[] = [
@@ -70,14 +77,15 @@ async function main(): Promise<void> {
       });
     }
 
+    const jours = graine.retentionDays ?? RETENTION_DAYS_DEFAULT;
     await prisma.retentionPolicy.upsert({
       where: { tenantId_appliesTo: { tenantId: tenant.id, appliesTo: 'all' } },
-      update: { days: graine.retentionDays },
-      create: { tenantId: tenant.id, days: graine.retentionDays, appliesTo: 'all' },
+      update: { days: jours },
+      create: { tenantId: tenant.id, days: jours, appliesTo: 'all' },
     });
 
     console.warn(
-      `Locataire « ${graine.name} » : ${graine.users.length} compte(s), rétention ${graine.retentionDays} j`,
+      `Locataire « ${graine.name} » : ${graine.users.length} compte(s), rétention ${jours} j`,
     );
   }
 

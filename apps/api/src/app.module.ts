@@ -10,6 +10,7 @@ import { HealthModule } from './health/health.module';
 import { IngestionModule } from './ingestion/ingestion.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { RecordingsModule } from './recordings/recordings.module';
+import { RetentionModule } from './retention/retention.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { RecordingsModule } from './recordings/recordings.module';
     AuthModule,
     IngestionModule,
     RecordingsModule,
+    RetentionModule,
     HealthModule,
   ],
   providers: [
