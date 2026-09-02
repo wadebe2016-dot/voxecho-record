@@ -217,3 +217,16 @@ démontrées bout en bout sur des données simulées.
   dessinés à zéro — un graphe qui saute les journées vides dessine une
   activité continue là où le service a chômé. Les mêmes données sont données
   en chiffres juste en dessous.
+- Chiffrement au repos (§8) : les pièces audio sont scellées en AES-256-GCM
+  par **trames de 64 Kio**, chacune authentifiée avec l'en-tête et son propre
+  rang. Un fichier scellé d'un bloc aurait interdit la lecture par plages du
+  §6 ; en trames, le `Range` et le billet du §9.4 survivent sans changement.
+- Une trame déplacée, transplantée depuis un autre fichier, ou un en-tête
+  retouché sont refusés — un chiffrement qui n'empêche pas la permutation ne
+  protège rien.
+- Clé par fichier dérivée en HKDF de la clé maître, d'un sel et de
+  l'identifiant de l'enregistrement ; `keyRef` retient la génération de clé.
+  La base continue de porter l'empreinte et la taille du **clair**.
+- Activation progressive : l'api lit les deux formats, et `storage:sceller`
+  rattrape l'existant — en simulation par défaut, empreinte vérifiée avant
+  toute réécriture. Décisions et réserves en §9.13.

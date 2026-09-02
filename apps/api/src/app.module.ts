@@ -11,6 +11,7 @@ import { ExportModule } from './export/export.module';
 import { HealthModule } from './health/health.module';
 import { IngestionModule } from './ingestion/ingestion.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { StorageModule } from './storage/storage.module';
 import { PurgeModule } from './purge/purge.module';
 import { RecordingsModule } from './recordings/recordings.module';
 import { RetentionModule } from './retention/retention.module';
@@ -19,6 +20,7 @@ import { RetentionModule } from './retention/retention.module';
   imports: [
     AppConfigModule,
     PrismaModule,
+    StorageModule,
     AuditModule,
     AuthModule,
     IngestionModule,

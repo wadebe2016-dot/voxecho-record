@@ -22,6 +22,7 @@ import {
 import { AuditService } from '../audit/audit.service';
 import { resoudreCheminDeDonnees } from '../config/chemins';
 import { AppConfig } from '../config/config.module';
+import { StorageService } from '../storage/storage.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 /** Compte rendu d'un balayage, utilisé par les tests et par la journalisation. */
@@ -61,6 +62,7 @@ export class IngestionService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly stockage: StorageService,
     config: AppConfig,
   ) {
     this.ingestDir = resoudreCheminDeDonnees(config.get('INGEST_DIR'));
@@ -259,6 +261,18 @@ export class IngestionService {
         select: { id: true },
       });
 
+      // Le scellement vient après la création de la ligne : la clé du fichier
+      // dérive de l'identifiant de l'enregistrement, qui n'existe qu'ici. Le
+      // SHA-256 déjà calculé reste celui du **clair** — c'est l'empreinte de
+      // la preuve, pas celle de son emballage (§9.13).
+      const coffre = await this.stockage.ranger(destination, recording.id);
+      if (coffre.encrypted) {
+        await this.prisma.recording.update({
+          where: { id: recording.id },
+          data: { encrypted: true, keyRef: coffre.keyRef },
+        });
+      }
+
       await this.audit.record({
         tenantId: tenant.id,
         action: 'INGEST',
@@ -271,6 +285,8 @@ export class IngestionService {
           durationSec: meta.durationSec,
           source: meta.source,
           categorie: meta.category ?? INGEST_OPERATION_CATEGORY_DEFAULT,
+          chiffre: coffre.encrypted,
+          ...(coffre.keyRef === null ? {} : { cle: coffre.keyRef }),
         },
       });
       report.ingested += 1;

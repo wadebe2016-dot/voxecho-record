@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
+import { stat } from 'node:fs/promises';
 import { basename, join, resolve, sep } from 'node:path';
 import { GoneException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import JSZip from 'jszip';
@@ -17,6 +17,7 @@ import { AppConfig } from '../config/config.module';
 import { PrismaService } from '../prisma/prisma.service';
 import type { AuthUser } from '../auth/auth.types';
 import { LegalHoldsService } from '../retention/legal-holds.service';
+import { StorageService } from '../storage/storage.service';
 
 const PRODUIT = 'VoxEcho Record';
 const MENTION =
@@ -39,6 +40,7 @@ export class ExportService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly holds: LegalHoldsService,
+    private readonly stockage: StorageService,
     config: AppConfig,
   ) {
     this.storageDir = resoudreCheminDeDonnees(config.get('STORAGE_DIR'));
@@ -70,9 +72,19 @@ export class ExportService {
 
     let audio: Buffer;
     try {
-      audio = await readFile(chemin);
-    } catch {
-      this.logger.error(`Fichier absent du stockage : ${recording.filePath}`);
+      await stat(chemin);
+      // Le clair, que la pièce soit scellée sur le disque ou non : ce qui
+      // sort du produit est toujours le wav ingéré (§9.13).
+      audio = await this.stockage.lireEntier({
+        recordingId: recording.id,
+        chemin,
+        encrypted: recording.encrypted,
+      });
+    } catch (erreur) {
+      this.logger.error(
+        `Lecture impossible pour l'export de ${recording.filePath}`,
+        erreur instanceof Error ? erreur.stack : String(erreur),
+      );
       throw new NotFoundException('Fichier audio introuvable dans le stockage.');
     }
 
