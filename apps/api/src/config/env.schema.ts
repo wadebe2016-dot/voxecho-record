@@ -32,6 +32,11 @@ export const envSchema = z.object({
   AUTH_MAX_FAILED_ATTEMPTS: z.coerce.number().int().min(1).max(50).default(5),
   AUTH_LOCK_DURATION_MIN: z.coerce.number().int().min(1).max(1440).default(15),
 
+  // Billet d'écoute : court, limité à un enregistrement et à son demandeur.
+  // Sa durée borne aussi ce que dure « une écoute » au journal d'audit — le
+  // lecteur qui redemande un billet ouvre une nouvelle consultation, tracée.
+  LISTEN_TICKET_TTL: duration.default('30m'),
+
   INGEST_DIR: z.string().min(1).default('./data/ingest'),
   STORAGE_DIR: z.string().min(1).default('./data/storage'),
   QUARANTINE_DIR: z.string().min(1).default('./data/quarantine'),
