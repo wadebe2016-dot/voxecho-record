@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
 import type { RecordingListItem } from '@voxecho/shared';
 import { ApiError, api, telecharger, urlAudio } from '../api/client';
+import { useAuth } from '../auth/auth-context';
+import { peut } from '../lib/permissions';
 import {
   formatDuree,
   formatHorodatage,
   formatTaille,
+  libelleCategorie,
   libelleDirection,
   libelleStatut,
 } from '../lib/format';
@@ -23,6 +26,13 @@ interface Props {
  * geste-là qui s'inscrit au journal.
  */
 export function RecordingDetail({ appel, onFermer }: Props) {
+  const { profil } = useAuth();
+  /**
+   * L'écoute et l'export partagent la même habilitation (§9.9) : une archive
+   * contient l'audio. Le masquage n'est qu'un confort — l'api refuse de toute
+   * façon — mais montrer un bouton qui rendra 403 n'aide personne.
+   */
+  const peutEcouter = peut(profil?.role, 'ecouterEnregistrements');
   const [source, setSource] = useState<string | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   const [ouverture, setOuverture] = useState(false);
@@ -110,6 +120,10 @@ export function RecordingDetail({ appel, onFermer }: Props) {
         <Champ intitule="Source" valeur={appel.source} />
         <Champ intitule="Statut" valeur={libelleStatut(appel.status)} />
         <Champ intitule="Référence PBX" valeur={appel.refci} />
+        <Champ
+          intitule="Catégorie d’opération"
+          valeur={libelleCategorie(appel.operationCategory)}
+        />
       </dl>
 
       <div className="mt-3 border-t border-ardoise-100 pt-3">
@@ -122,7 +136,12 @@ export function RecordingDetail({ appel, onFermer }: Props) {
       </div>
 
       <div className="mt-4">
-        {source === null ? (
+        {!peutEcouter ? (
+          <p className="text-sm text-ardoise-600">
+            Votre rôle donne accès aux métadonnées de l’appel, pas à son contenu : la réécoute et
+            l’export sont réservés aux habilitations de conformité et d’audit.
+          </p>
+        ) : source === null ? (
           <button
             type="button"
             onClick={() => void ecouter()}
@@ -154,37 +173,39 @@ export function RecordingDetail({ appel, onFermer }: Props) {
         )}
       </div>
 
-      <div className="mt-4 border-t border-ardoise-100 pt-3">
-        <button
-          type="button"
-          onClick={() => void exporter()}
-          disabled={exportEnCours || appel.status === 'purged'}
-          className="rounded border border-ardoise-300 px-3 py-1.5 text-sm disabled:opacity-50"
-        >
-          {exportEnCours ? 'Préparation de l’archive…' : 'Exporter (audio + fiche)'}
-        </button>
-        <p className="mt-2 text-xs text-ardoise-600">
-          Archive ZIP : le fichier audio, une fiche PDF et une fiche JSON portant l’empreinte
-          SHA-256, le demandeur et l’horodatage. Cet export est inscrit au journal d’audit.
-        </p>
-
-        {integrite === 'concordante' && (
-          <p role="status" className="mt-2 text-xs text-emerald-800">
-            Empreinte vérifiée au moment de l’export : elle concorde avec celle relevée à
-            l’ingestion.
-          </p>
-        )}
-        {integrite === 'divergente' && (
-          <p
-            role="alert"
-            className="mt-2 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900"
+      {peutEcouter && (
+        <div className="mt-4 border-t border-ardoise-100 pt-3">
+          <button
+            type="button"
+            onClick={() => void exporter()}
+            disabled={exportEnCours || appel.status === 'purged'}
+            className="rounded border border-ardoise-300 px-3 py-1.5 text-sm disabled:opacity-50"
           >
-            <span className="font-medium">Empreinte divergente.</span> Le fichier exporté ne porte
-            plus l’empreinte relevée à son ingestion : il ne peut pas être présenté comme une pièce
-            intacte. L’écart est consigné au journal d’audit.
+            {exportEnCours ? 'Préparation de l’archive…' : 'Exporter (audio + fiche)'}
+          </button>
+          <p className="mt-2 text-xs text-ardoise-600">
+            Archive ZIP : le fichier audio, une fiche PDF et une fiche JSON portant l’empreinte
+            SHA-256, le demandeur et l’horodatage. Cet export est inscrit au journal d’audit.
           </p>
-        )}
-      </div>
+
+          {integrite === 'concordante' && (
+            <p role="status" className="mt-2 text-xs text-emerald-800">
+              Empreinte vérifiée au moment de l’export : elle concorde avec celle relevée à
+              l’ingestion.
+            </p>
+          )}
+          {integrite === 'divergente' && (
+            <p
+              role="alert"
+              className="mt-2 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900"
+            >
+              <span className="font-medium">Empreinte divergente.</span> Le fichier exporté ne porte
+              plus l’empreinte relevée à son ingestion : il ne peut pas être présenté comme une
+              pièce intacte. L’écart est consigné au journal d’audit.
+            </p>
+          )}
+        </div>
+      )}
     </section>
   );
 }

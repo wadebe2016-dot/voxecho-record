@@ -18,7 +18,12 @@ import { ExportService } from './export.service';
 export class ExportController {
   constructor(private readonly exports: ExportService) {}
 
-  @Roles('ADMIN', 'SUPERVISOR', 'AUDITOR')
+  /**
+   * Même habilitation que l'écoute (§9.9) : une archive contient l'audio, donc
+   * l'exporter revient à pouvoir l'entendre. Ouvrir l'export à qui n'a pas
+   * l'écoute rendrait la restriction décorative.
+   */
+  @Roles('ADMIN', 'AUDITOR')
   @Post(':id/export')
   @HttpCode(HttpStatus.OK)
   async exporter(

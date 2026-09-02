@@ -18,6 +18,29 @@ export type IngestDirection = (typeof INGEST_DIRECTIONS)[number];
 export const INGEST_SOURCES = ['cucm-bib', 'siprec', 'simulator'] as const;
 export type IngestSource = (typeof INGEST_SOURCES)[number];
 
+/**
+ * Catégorie d'opération bancaire à laquelle se rattache l'appel — CLAUDE.md
+ * §3 et §9.10.
+ *
+ * Elle ne décrit pas l'appel (cela, c'est `direction`), elle décrit ce qui s'y
+ * joue. Une confirmation de chèque et un ordre de change ne relèvent pas des
+ * mêmes obligations, et n'auront donc pas nécessairement la même durée de
+ * conservation.
+ *
+ * Le champ est **facultatif** dans le json : un producteur qui l'ignore reste
+ * conforme au schéma 1, et son dépôt est rangé en `autre`. C'est ce qui permet
+ * d'introduire la notion sans casser le script post-enregistrement du §7, S5.
+ */
+export const INGEST_OPERATION_CATEGORIES = [
+  'confirmation_cheque',
+  'operation_change',
+  'autre',
+] as const;
+export type IngestOperationCategory = (typeof INGEST_OPERATION_CATEGORIES)[number];
+
+/** Catégorie retenue quand le producteur n'en déclare aucune. */
+export const INGEST_OPERATION_CATEGORY_DEFAULT: IngestOperationCategory = 'autre';
+
 /** Identifiant téléphonique : chiffres, lettres et séparateurs usuels. */
 const phoneLike = z
   .string()
@@ -47,6 +70,13 @@ export const ingestMetadataSchema = z.object({
   startedAt: isoWithOffset,
   durationSec: z.number().int().nonnegative().max(86_400),
   source: z.enum(INGEST_SOURCES),
+  /**
+   * Facultative. Une valeur hors de la liste connue n'est pas ignorée : elle
+   * met le dépôt en quarantaine. Une catégorie que personne n'a déclarée est
+   * une faute de frappe jusqu'à preuve du contraire, et l'ingestion ne crée
+   * jamais rien implicitement (§3).
+   */
+  category: z.enum(INGEST_OPERATION_CATEGORIES).optional(),
 });
 
 export type IngestMetadata = z.infer<typeof ingestMetadataSchema>;

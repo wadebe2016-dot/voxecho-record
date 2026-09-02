@@ -56,6 +56,7 @@ export async function construireFichePdf(manifest: ExportManifest): Promise<Buff
     ['Durée', `${manifest.appel.dureeSec} s`],
     ['Source de capture', manifest.appel.source],
     ['Statut', manifest.appel.statut],
+    ['Catégorie d’opération', manifest.appel.categorieOperation],
     ['Conservation forcée', manifest.appel.sousConservationForcee ? 'oui, mesure active' : 'non'],
   ]);
 

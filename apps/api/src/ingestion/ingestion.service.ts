@@ -17,6 +17,7 @@ import {
   readWavHeader,
   storageRelativePath,
   type IngestMetadata,
+  INGEST_OPERATION_CATEGORY_DEFAULT,
 } from '@voxecho/shared';
 import { AuditService } from '../audit/audit.service';
 import { resoudreCheminDeDonnees } from '../config/chemins';
@@ -251,6 +252,9 @@ export class IngestionService {
           sha256,
           sizeBytes: BigInt(audio.sizeBytes),
           source: sourcePrisma(meta.source),
+          // Facultative au contrat : un producteur qui l'ignore reste
+          // conforme, son dépôt est rangé en « autre » (§9.10).
+          operationCategory: meta.category ?? INGEST_OPERATION_CATEGORY_DEFAULT,
         },
         select: { id: true },
       });
@@ -266,6 +270,7 @@ export class IngestionService {
           sizeBytes: audio.sizeBytes,
           durationSec: meta.durationSec,
           source: meta.source,
+          categorie: meta.category ?? INGEST_OPERATION_CATEGORY_DEFAULT,
         },
       });
       report.ingested += 1;

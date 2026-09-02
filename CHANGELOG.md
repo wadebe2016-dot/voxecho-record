@@ -182,3 +182,17 @@ démontrées bout en bout sur des données simulées.
 - Une divergence n'empêche pas l'export, elle l'annote : avertissement en tête
   du PDF, `integrite: "divergente"` dans le JSON, alerte au portail, écart
   consigné. Le produit ne refuse pas de livrer, il refuse de mentir (§9.8).
+- Fondement réglementaire reformulé : « exigences réglementaires bancaires »,
+  la COBAC étant le premier cadre d'application et non le seul horizon. La cote
+  de texte reste à établir et n'est citée nulle part dans le produit (§9.9).
+- Habilitation d'écoute resserrée : entendre une conversation de client n'est
+  pas un droit d'exploitation. Réécoute et export réservés à AUDITOR et ADMIN ;
+  le SUPERVISOR garde la recherche, les métadonnées et l'empreinte. L'export
+  suit l'écoute — une archive contient l'audio.
+- `Recording.operationCategory` : ce qui se joue dans l'appel, non ce qu'il est
+  (`confirmation_cheque`, `operation_change`, `autre`). Filtrable en recherche,
+  porté par la fiche d'appel et les deux fiches d'export, prêt à recevoir des
+  rétentions différenciées.
+- Contrat §3 amendé sans changer la version de schéma : `category` y est
+  facultatif, un producteur qui l'ignore reste conforme et son dépôt est rangé
+  en `autre`. Une valeur inconnue part en quarantaine (§9.10).

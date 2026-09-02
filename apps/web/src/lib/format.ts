@@ -73,6 +73,17 @@ const ROLES: Record<string, string> = {
   AUDITOR: 'Auditeur',
 };
 
+/** Catégories d'opération bancaire — CLAUDE.md §9.10. */
+const CATEGORIES: Record<string, string> = {
+  confirmation_cheque: 'Confirmation de chèque',
+  operation_change: 'Opération de change',
+  autre: 'Autre',
+};
+
+export function libelleCategorie(categorie: string): string {
+  return CATEGORIES[categorie] ?? categorie;
+}
+
 export function libelleRole(role: string): string {
   return ROLES[role] ?? role;
 }

@@ -16,6 +16,7 @@ const APPEL: RecordingListItem = {
   sizeBytes: 2_928_000,
   source: 'cucm-bib',
   status: 'stored',
+  operationCategory: 'autre',
   underHold: false,
 };
 

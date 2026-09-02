@@ -205,6 +205,8 @@ export class RecordingsService {
 
     if (query.direction) where.direction = query.direction;
 
+    if (query.category) where.operationCategory = query.category;
+
     if (query.minDurationSec !== undefined || query.maxDurationSec !== undefined) {
       const min = query.minDurationSec;
       const max = query.maxDurationSec;
@@ -228,6 +230,7 @@ function critereTrace(query: ListRecordingsDto): Record<string, unknown> {
   if (query.from) criteres.du = query.from;
   if (query.to) criteres.au = query.to;
   if (query.direction) criteres.sens = query.direction;
+  if (query.category) criteres.categorie = query.category;
   if (query.minDurationSec !== undefined) criteres.dureeMin = query.minDurationSec;
   if (query.maxDurationSec !== undefined) criteres.dureeMax = query.maxDurationSec;
   return Object.keys(criteres).length > 0 ? { criteres } : {};
@@ -251,6 +254,7 @@ function versListItem(row: Recording, underHold: boolean): RecordingListItem {
     sizeBytes: Number(row.sizeBytes),
     source: row.source === 'cucm_bib' ? 'cucm-bib' : row.source,
     status: row.status,
+    operationCategory: row.operationCategory as RecordingListItem['operationCategory'],
     underHold,
   };
 }

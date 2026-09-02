@@ -319,12 +319,17 @@ describe('export d’un enregistrement', () => {
     await request(app.getHttpServer()).post(`/api/recordings/${appelId}/export`).expect(401);
   });
 
-  it.each(['admin@a.cm', 'superviseur@a.cm', 'auditeur@a.cm'])(
-    'est ouvert à %s : sortir une pièce fait partie du métier, la trace est le contrôle',
+  it.each(['admin@a.cm', 'auditeur@a.cm'])(
+    'est ouvert à %s : sortir une pièce fait partie du métier d’audit, la trace est le contrôle',
     async (email) => {
       await exporter(await jeton(email)).expect(200);
     },
   );
+
+  it('est fermé au SUPERVISOR : l’archive contient l’audio (§9.9)', async () => {
+    await exporter(await jeton('superviseur@a.cm')).expect(403);
+    expect(await prisma.auditEvent.count({ where: { action: 'EXPORT' } })).toBe(0);
+  });
 
   it('compte un export par demande', async () => {
     await exporter(await jeton('auditeur@a.cm')).expect(200);

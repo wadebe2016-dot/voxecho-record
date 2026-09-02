@@ -1,4 +1,8 @@
-import type { IngestDirection, IngestSource } from '../ingestion/contract.js';
+import type {
+  IngestDirection,
+  IngestOperationCategory,
+  IngestSource,
+} from '../ingestion/contract.js';
 import type { RecordingStatus } from '../domain/enums.js';
 
 /**
@@ -17,6 +21,12 @@ export interface RecordingListItem {
   sizeBytes: number;
   source: IngestSource;
   status: RecordingStatus;
+  /**
+   * Ce qui se joue dans l'appel, et non ce qu'il est : une confirmation de
+   * chèque et un ordre de change ne relèvent pas des mêmes obligations
+   * (§9.10). Porte les politiques de rétention différenciées à venir.
+   */
+  operationCategory: IngestOperationCategory;
   /**
    * L'appel est-il sous conservation forcée ? Dérivé de la table
    * `LegalHold` — un hold actif est une ligne non levée — et non recopié
@@ -50,6 +60,8 @@ export interface RecordingFilters {
   /** Dernier jour retenu, inclus. */
   to?: string;
   direction?: IngestDirection;
+  /** Catégorie d'opération bancaire (§9.10). */
+  category?: IngestOperationCategory;
   minDurationSec?: number;
   maxDurationSec?: number;
 }
