@@ -1,4 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
+import { Public } from '../common/decorators/public.decorator';
 
 /**
  * Sonde de vie, sans authentification et sans information sensible :
@@ -6,6 +7,7 @@ import { Controller, Get } from '@nestjs/common';
  */
 @Controller('health')
 export class HealthController {
+  @Public()
   @Get()
   check(): { status: 'ok'; service: string; time: string } {
     return {

@@ -30,5 +30,13 @@ export default tseslint.config(
       eqeqeq: ['error', 'smart'],
     },
   },
+  {
+    // NestJS résout ses dépendances via `emitDecoratorMetadata`, qui a besoin
+    // d'imports de valeur : forcer `import type` casserait l'injection.
+    files: ['apps/api/**/*.ts'],
+    rules: {
+      '@typescript-eslint/consistent-type-imports': 'off',
+    },
+  },
   prettier,
 );
