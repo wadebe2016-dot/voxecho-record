@@ -19,3 +19,10 @@ Format : une entrée par session de travail, en français.
   compte ou d'un enregistrement tracé refusée (`onDelete: Restrict`).
 - Mots de passe en Argon2id, `docker compose up -d db`, seed de deux
   locataires pour rendre le cloisonnement visible dès le premier lancement.
+- Authentification JWT : connexion, rafraîchissement avec rotation et
+  révocation, déconnexion, `/api/auth/me`. Verrouillage du compte après cinq
+  échecs, réponse identique pour une adresse inconnue et un mot de passe
+  erroné, connexions tracées au journal d'audit.
+- Gardes globaux : toute route est authentifiée sauf `@Public()`, les rôles
+  sont appliqués côté api, et toute tentative de désigner un autre locataire
+  que celui du jeton est refusée.
