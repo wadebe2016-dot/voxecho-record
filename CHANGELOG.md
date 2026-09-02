@@ -172,3 +172,13 @@ démontrées bout en bout sur des données simulées.
   et durée subsistent, la recherche continue de le montrer et l'écoute rend
   `410`. Un `PURGE` par enregistrement détruit, portant le motif, le rapport
   et le SHA-256 de ce qui vient de disparaître. Décisions en §9.7.
+- Export horodaté : archive ZIP contenant l'audio, une `fiche.pdf` d'une page
+  et une `fiche.json` de même contenu — métadonnées, empreinte en entier,
+  demandeur, horodatage. `EXPORT` tracé, bouton sur la fiche d'appel.
+- L'empreinte est **recalculée sur le fichier au moment de l'export** et
+  confrontée à celle de l'ingestion : la fiche vérifie l'intégrité au lieu de
+  l'affirmer d'après la base. Les deux empreintes et le verdict vont au
+  journal.
+- Une divergence n'empêche pas l'export, elle l'annote : avertissement en tête
+  du PDF, `integrite: "divergente"` dans le JSON, alerte au portail, écart
+  consigné. Le produit ne refuse pas de livrer, il refuse de mentir (§9.8).

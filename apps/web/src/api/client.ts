@@ -1,4 +1,5 @@
 import type {
+  ExportIntegrite,
   ListenTicketResponse,
   LoginRequest,
   Page,
@@ -122,7 +123,66 @@ export const api = {
    */
   ouvrirEcoute: (id: string): Promise<ListenTicketResponse> =>
     appeler(`/recordings/${id}/listen`, { method: 'POST' }),
+
+  /**
+   * Demande l'archive d'export et la rend telle quelle.
+   *
+   * Contrairement à l'écoute (§9.4), rien ne passe par l'url : c'est le
+   * portail qui réclame le fichier, avec son jeton en en-tête, et non un
+   * `<audio>` incapable d'en porter un. Un export est un aller simple — on
+   * attend le fichier entier de toute façon, la lecture par plages n'aurait
+   * ici aucun sens.
+   */
+  exporterAppel: async (id: string): Promise<ArchiveExportee> => {
+    const url = new URL(`${BASE}/api/recordings/${id}/export`, window.location.origin);
+    const acces = jetons.acces();
+    const reponse = await fetch(url.toString(), {
+      method: 'POST',
+      headers: acces ? { Authorization: `Bearer ${acces}` } : {},
+    });
+
+    if (!reponse.ok) {
+      const charge: unknown = await reponse.json().catch(() => null);
+      throw new ApiError(reponse.status, messageDErreur(charge, reponse.status));
+    }
+
+    return {
+      contenu: await reponse.blob(),
+      nomFichier: nomDeFichier(reponse.headers.get('Content-Disposition')) ?? `export-${id}.zip`,
+      integrite:
+        reponse.headers.get('X-Export-Integrite') === 'divergente' ? 'divergente' : 'concordante',
+    };
+  },
 };
+
+/** Archive telle que le portail la reçoit, avant de la remettre au navigateur. */
+export interface ArchiveExportee {
+  contenu: Blob;
+  nomFichier: string;
+  integrite: ExportIntegrite;
+}
+
+/** Nom proposé par le serveur dans `Content-Disposition`. */
+function nomDeFichier(entete: string | null): string | null {
+  const trouve = /filename="([^"]+)"/.exec(entete ?? '');
+  return trouve?.[1] ?? null;
+}
+
+/**
+ * Remet l'archive au navigateur. L'url d'objet est révoquée aussitôt : elle
+ * garderait sinon en mémoire tout le contenu d'un appel de dix minutes,
+ * pour rien.
+ */
+export function telecharger(archive: ArchiveExportee): void {
+  const url = URL.createObjectURL(archive.contenu);
+  const lien = document.createElement('a');
+  lien.href = url;
+  lien.download = archive.nomFichier;
+  document.body.appendChild(lien);
+  lien.click();
+  lien.remove();
+  URL.revokeObjectURL(url);
+}
 
 /**
  * Source du lecteur audio. Le billet voyage dans l'url parce qu'un `<audio>`
