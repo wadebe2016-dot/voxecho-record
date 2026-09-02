@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { RecordingListItem } from '@voxecho/shared';
-import { ApiError, api, urlAudio } from '../api/client';
+import { ApiError, api, telecharger, urlAudio } from '../api/client';
 import {
   formatDuree,
   formatHorodatage,
@@ -26,12 +26,15 @@ export function RecordingDetail({ appel, onFermer }: Props) {
   const [source, setSource] = useState<string | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   const [ouverture, setOuverture] = useState(false);
+  const [exportEnCours, setExportEnCours] = useState(false);
+  const [integrite, setIntegrite] = useState<'concordante' | 'divergente' | null>(null);
 
   // Changer d'appel referme le lecteur : le billet précédent ne vaut que pour
   // l'enregistrement pour lequel il a été délivré.
   useEffect(() => {
     setSource(null);
     setErreur(null);
+    setIntegrite(null);
   }, [appel.id]);
 
   const ecouter = async (): Promise<void> => {
@@ -44,6 +47,26 @@ export function RecordingDetail({ appel, onFermer }: Props) {
       setErreur(e instanceof ApiError ? e.message : 'La réécoute est momentanément indisponible.');
     } finally {
       setOuverture(false);
+    }
+  };
+
+  /**
+   * L'export emporte l'audio et sa fiche. L'empreinte est recalculée côté
+   * serveur au moment où le fichier quitte le coffre : si elle a divergé, le
+   * portail le dit ici, en plus de la fiche et du journal.
+   */
+  const exporter = async (): Promise<void> => {
+    setExportEnCours(true);
+    setErreur(null);
+    setIntegrite(null);
+    try {
+      const archive = await api.exporterAppel(appel.id);
+      telecharger(archive);
+      setIntegrite(archive.integrite);
+    } catch (e) {
+      setErreur(e instanceof ApiError ? e.message : 'L’export est momentanément indisponible.');
+    } finally {
+      setExportEnCours(false);
     }
   };
 
@@ -127,6 +150,38 @@ export function RecordingDetail({ appel, onFermer }: Props) {
         {erreur !== null && (
           <p role="alert" className="mt-2 text-sm text-red-800">
             {erreur}
+          </p>
+        )}
+      </div>
+
+      <div className="mt-4 border-t border-ardoise-100 pt-3">
+        <button
+          type="button"
+          onClick={() => void exporter()}
+          disabled={exportEnCours || appel.status === 'purged'}
+          className="rounded border border-ardoise-300 px-3 py-1.5 text-sm disabled:opacity-50"
+        >
+          {exportEnCours ? 'Préparation de l’archive…' : 'Exporter (audio + fiche)'}
+        </button>
+        <p className="mt-2 text-xs text-ardoise-600">
+          Archive ZIP : le fichier audio, une fiche PDF et une fiche JSON portant l’empreinte
+          SHA-256, le demandeur et l’horodatage. Cet export est inscrit au journal d’audit.
+        </p>
+
+        {integrite === 'concordante' && (
+          <p role="status" className="mt-2 text-xs text-emerald-800">
+            Empreinte vérifiée au moment de l’export : elle concorde avec celle relevée à
+            l’ingestion.
+          </p>
+        )}
+        {integrite === 'divergente' && (
+          <p
+            role="alert"
+            className="mt-2 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900"
+          >
+            <span className="font-medium">Empreinte divergente.</span> Le fichier exporté ne porte
+            plus l’empreinte relevée à son ingestion : il ne peut pas être présenté comme une pièce
+            intacte. L’écart est consigné au journal d’audit.
           </p>
         )}
       </div>

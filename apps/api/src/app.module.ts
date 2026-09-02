@@ -6,6 +6,7 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { TenantGuard } from './common/guards/tenant.guard';
 import { AppConfigModule } from './config/config.module';
+import { ExportModule } from './export/export.module';
 import { HealthModule } from './health/health.module';
 import { IngestionModule } from './ingestion/ingestion.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -23,6 +24,7 @@ import { RetentionModule } from './retention/retention.module';
     RecordingsModule,
     RetentionModule,
     PurgeModule,
+    ExportModule,
     HealthModule,
   ],
   providers: [

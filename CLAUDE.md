@@ -428,3 +428,52 @@ l'échéance en continu, un rapport pourrait devenir inexécutable avant d'avoir
 été lu. Si cela se produit, la réponse est de figer l'ensemble par les
 identifiants énumérés plutôt que par un recensement rejoué — pas d'assouplir
 la vérification.
+
+### 9.8 L'export vérifie l'empreinte au lieu de l'affirmer (S4)
+
+Le §6 demande « wav + fiche PDF/JSON horodatée (métadonnées, sha256,
+demandeur) ». Un export est ce qui **sort** du produit : il circulera par
+courriel, sur une clé, dans un dossier de contrôle, loin du portail qui l'a
+produit. Il doit donc se suffire à lui-même. Trois choix en découlent.
+
+**Une archive ZIP, trois pièces** : le fichier audio sous le nom que lui donne
+le contrat §3, une `fiche.pdf` d'une page, une `fiche.json` de même contenu.
+Le PDF pour l'humain qui l'agrafe à son dossier, le JSON pour ce qui viendra
+le relire. La fiche porte l'empreinte **en entier** : tronquée, elle ne
+servirait à rien, puisqu'elle n'est là que pour être comparée. Aucune police
+n'est embarquée — Helvetica et Courier sont garanties par le format, et un
+export ne doit dépendre d'aucun fichier présent sur la machine qui l'a produit.
+
+**L'empreinte est recalculée sur le fichier au moment de l'export**, puis
+confrontée à celle relevée à l'ingestion. C'est tout l'intérêt de la manœuvre :
+la fiche n'affirme pas que la pièce est intacte parce que la base le dit, elle
+le vérifie et le date. Le journal reçoit les deux empreintes et le résultat de
+la comparaison — c'est ce qui permettra un jour de dater le moment où une
+pièce a commencé à diverger.
+
+**Une divergence n'empêche pas l'export, elle l'annote.** Le fichier sort, mais
+la fiche PDF s'ouvre sur un avertissement, le JSON porte
+`integrite: "divergente"`, le portail le dit à l'écran et le journal le
+consigne. Refuser l'export était l'autre option : elle a été écartée parce
+qu'elle empêcherait de sortir la pièce pour enquêter précisément sur ce qui lui
+est arrivé, et parce qu'un `410` se lit « l'outil est cassé » alors qu'un
+avertissement se lit « cette pièce est suspecte ». Le principe retenu : le
+produit ne refuse pas de livrer, il refuse de mentir.
+
+**Pas de billet d'écoute ici**, contrairement au §9.4. Le billet n'existe que
+parce qu'un `<audio>` ne peut porter aucun en-tête ; l'export, lui, est demandé
+par le portail lui-même, qui joint son jeton et reçoit l'archive en réponse.
+Rien ne passe donc par l'url. Et la lecture par plages n'aurait aucun sens sur
+un aller simple : on attend le fichier entier de toute façon.
+
+L'export est ouvert aux trois rôles. Sortir une pièce fait partie du métier
+d'un auditeur ; ce qui protège n'est pas l'interdiction, c'est la trace.
+
+**Réserve** — l'archive est fabriquée en mémoire. À 16 000 octets par seconde
+d'audio, un appel de dix minutes pèse une dizaine de mégaoctets : c'est sans
+conséquence pour une pièce à la fois. Le jour où un export de masse sera
+demandé — « tous les appels de ce compte sur le trimestre » — il faudra un
+flux et un travail de fond avec notification, pas cette route. Par ailleurs,
+l'avertissement de divergence ne protège que tant que la fiche accompagne
+l'audio : séparés, le wav circule sans rien qui le signale. Si cela devient un
+risque réel, la réponse est de signer l'archive, pas d'alourdir la fiche.
