@@ -37,5 +37,8 @@ Format : une entrée par session de travail, en français.
   pas de CORS), PostgreSQL. L'api applique les migrations à son démarrage.
 - CI GitHub Actions : formatage, lint, types, migrations, 144 tests,
   construction des paquets et des deux images.
+- CLAUDE.md §9 « Décisions actées » : l'unicité globale de l'adresse e-mail
+  est assumée (une instance par client) et documentée avec sa réserve —
+  bascule vers `@@unique([tenantId, email])` si une offre mutualisée arrive.
 
 Sortie de jalon S1 atteinte : connexion, liste vide et tests verts.

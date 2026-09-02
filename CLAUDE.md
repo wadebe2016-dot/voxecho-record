@@ -134,3 +134,38 @@ Script TypeScript qui fabrique des appels réalistes sans téléphonie :
   clé maître hors dépôt) est prévu en S4 ; concevoir le stockage pour
   qu'il s'insère sans migration lourde (champ `encrypted` + `keyRef`
   déjà présents dans Recording, nullable)
+
+## 9. Décisions actées
+
+Écarts et choix d'implémentation retenus en cours de route, avec leur
+réserve. Une entrée par décision ; ce qui est acté ici ne se rediscute
+pas sans raison nouvelle, mais la réserve dit à quelle condition rouvrir.
+
+### 9.1 Adresse e-mail unique globalement (S1)
+
+`User.email` porte une contrainte d'unicité **globale**, pas par
+locataire (`@unique` et non `@@unique([tenantId, email])`). Une même
+adresse ne peut donc pas ouvrir de compte chez deux locataires. C'est
+volontaire et testé (`apps/api/test/model.spec.ts`, « refuse deux
+comptes avec la même adresse, même sur des locataires différents ») :
+la connexion se fait par adresse seule, sans choix préalable de
+locataire — pas de sélecteur, pas d'adresse ambiguë au moment de
+l'authentification, donc pas de doute sur l'identité au journal d'audit.
+
+Le modèle de déploiement le permet : une instance par client, en nuage
+ou sur site, le multi-locataire servant au cloisonnement interne
+(filiales, réseaux de MFI) et aux jeux de démonstration.
+
+**Réserve** — si une offre mutualisée voit le jour (plusieurs clients
+sur une même instance, un auditeur externe intervenant pour deux
+banques), il faut basculer vers l'unicité par locataire :
+
+- migration Prisma : remplacer `@unique` par `@@unique([tenantId, email])`
+- la connexion devient une résolution en deux temps (locataire puis
+  identifiants) — sous-domaine, code client ou sélection explicite ;
+  jamais un choix implicite fait par l'api
+- les tests de cloisonnement existants restent la référence : ils doivent
+  passer sans être assouplis, et un cas « même adresse, deux locataires,
+  deux sessions distinctes » vient s'y ajouter
+
+Tant que ce besoin n'est pas exprimé, on ne paie pas cette complexité.

@@ -69,10 +69,10 @@ describe('garde de cloisonnement', () => {
   });
 
   it.each([
-    ['paramètre de route', { params: { tenantId: 't-autre' }, query: {}, body: {} }],
-    ['chaîne de requête', { params: {}, query: { tenantId: 't-autre' }, body: {} }],
-    ['corps de requête', { params: {}, query: {}, body: { tenantId: 't-autre' } }],
-  ])('refuse un autre locataire revendiqué dans le %s', (_libelle, requete) => {
+    ['le paramètre de route', { params: { tenantId: 't-autre' }, query: {}, body: {} }],
+    ['la chaîne de requête', { params: {}, query: { tenantId: 't-autre' }, body: {} }],
+    ['le corps de requête', { params: {}, query: {}, body: { tenantId: 't-autre' } }],
+  ])('refuse un autre locataire revendiqué dans %s', (_libelle, requete) => {
     expect(() => guard.canActivate(contexte({ user: AUDITEUR, ...requete }))).toThrow(
       ForbiddenException,
     );
