@@ -140,3 +140,20 @@ avec la même graine est reconnu comme identique et retiré sans doublon.
 
 Sortie de jalon S3 atteinte : recherche, réécoute streamée et écoutes tracées,
 démontrées bout en bout sur des données simulées.
+
+### S4 — Conformité
+
+- Rétention par locataire : défaut 730 jours (deux ans), réglable, avec un
+  plancher d'instance (`RETENTION_MIN_DAYS`). Descendre en dessous exige un
+  motif écrit, conservé sur la politique en vigueur et inscrit au journal —
+  un contrôleur voit qu'il lit une dérogation, et par qui elle a été décidée.
+- Nouvelle action au journal, `RETENTION_SET` : l'acte le plus lourd du
+  produit — programmer la destruction de preuves à terme — ne laissait jusque
+  là aucune trace. Écart au §5 assumé en §9.6 de `CLAUDE.md`.
+- Conservation forcée : pose et levée motivées, tracées (`HOLD_SET`,
+  `HOLD_RELEASE`), historique consultable. Un hold actif est une ligne non
+  levée de `LegalHold` — source unique, `RecordingStatus.hold` reste
+  inutilisé pour que rien ne puisse diverger au moment de la purge.
+- Le portail marque les appels sous conservation forcée dans la liste et sur
+  la fiche, à côté du statut du fichier et jamais à sa place. Poser ou lever
+  une mesure reste une opération d'api à ce stade.

@@ -20,6 +20,7 @@ const APPEL: RecordingListItem = {
   sizeBytes: 2_928_000,
   source: 'cucm-bib',
   status: 'stored',
+  underHold: false,
 };
 
 const LISTE = () => reponse(200, { items: [APPEL], total: 1, page: 1, pageSize: 25, pageCount: 1 });

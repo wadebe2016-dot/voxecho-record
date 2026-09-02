@@ -37,6 +37,11 @@ export const envSchema = z.object({
   // lecteur qui redemande un billet ouvre une nouvelle consultation, tracée.
   LISTEN_TICKET_TTL: duration.default('30m'),
 
+  // Plancher de conservation de l'instance. L'api refuse une politique plus
+  // courte sans motif écrit : « jamais moins sans décision explicite »
+  // suppose que la décision existe quelque part de lisible (CLAUDE.md §9.6).
+  RETENTION_MIN_DAYS: z.coerce.number().int().min(1).max(7300).default(730),
+
   INGEST_DIR: z.string().min(1).default('./data/ingest'),
   STORAGE_DIR: z.string().min(1).default('./data/storage'),
   QUARANTINE_DIR: z.string().min(1).default('./data/quarantine'),

@@ -17,6 +17,13 @@ export interface RecordingListItem {
   sizeBytes: number;
   source: IngestSource;
   status: RecordingStatus;
+  /**
+   * L'appel est-il sous conservation forcée ? Dérivé de la table
+   * `LegalHold` — un hold actif est une ligne non levée — et non recopié
+   * dans `status` : deux représentations du même fait finissent par diverger,
+   * et le jour où elles divergent, c'est la purge qui arbitre (§9.6).
+   */
+  underHold: boolean;
 }
 
 export const RECORDING_SORT_FIELDS = ['startedAt', 'durationSec'] as const;

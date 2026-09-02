@@ -154,7 +154,17 @@ export function RecordingsPage() {
                   <td className="px-3 py-1.5 font-mono text-xs" title={item.sha256}>
                     {abregerEmpreinte(item.sha256)}
                   </td>
-                  <td className="px-3 py-1.5">{libelleStatut(item.status)}</td>
+                  <td className="px-3 py-1.5 whitespace-nowrap">
+                    {libelleStatut(item.status)}
+                    {item.underHold && (
+                      <span
+                        className="ml-1.5 rounded border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-xs text-amber-900"
+                        title="Soustrait à la purge automatique jusqu’à la levée de la mesure"
+                      >
+                        conservation forcée
+                      </span>
+                    )}
+                  </td>
                   <td className="px-3 py-1.5 text-right">
                     <button
                       type="button"

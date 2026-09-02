@@ -65,6 +65,19 @@ export function RecordingDetail({ appel, onFermer }: Props) {
         </button>
       </header>
 
+      {appel.underHold && (
+        /* Une conservation forcée change ce que devient l'appel : elle le
+           soustrait à la rétention jusqu'à sa levée. Un auditeur qui consulte
+           la fiche doit le voir sans avoir à le deviner. */
+        <p
+          className="mb-3 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900"
+          role="status"
+        >
+          <span className="font-medium">Sous conservation forcée.</span> Cet appel est soustrait à
+          la purge automatique jusqu’à la levée de la mesure.
+        </p>
+      )}
+
       <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:grid-cols-4">
         <Champ intitule="Sens" valeur={libelleDirection(appel.direction)} />
         <Champ intitule="Poste enregistré" valeur={appel.near} />
