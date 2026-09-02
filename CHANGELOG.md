@@ -119,3 +119,10 @@ avec la même graine est reconnu comme identique et retiré sans doublon.
   inscrite au nom de qui vient seulement la relever. L'écoute commence au
   bouton « Écouter cet appel », et le portail annonce à l'auditeur qu'elle
   est tracée.
+- Démo bout-en-bout jouée comme un test : le vrai simulateur dépose un lot à
+  graine fixée, l'ingestion le range, un auditeur cherche, écoute, et le
+  journal rend compte. Elle se rejoue à chaque CI plutôt que de dépendre de
+  quelqu'un qui se souvient des commandes.
+
+Sortie de jalon S3 atteinte : recherche, réécoute streamée et écoutes tracées,
+démontrées bout en bout sur des données simulées.
