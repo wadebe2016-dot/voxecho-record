@@ -158,6 +158,11 @@ Script TypeScript qui fabrique des appels réalistes sans téléphonie :
   l'appliquer silencieusement
 - Chaque session de travail se termine par : tests verts, lint propre,
   CHANGELOG.md mis à jour de 2-3 lignes en français
+- Deux lots techniquement soudés — le second n'ayant de sens que si le
+  premier est là, comme 06 (chiffrement) et 07 (sauvegarde, qui doit savoir
+  reconnaître la clé) — peuvent s'enchaîner sans attendre : l'annoncer en une
+  ligne avant d'ouvrir le second, et rendre les deux ensemble. Deux lots
+  indépendants, eux, restent au feu vert : on finit, on montre, on attend
 - Le chiffrement au repos des fichiers audio (AES-256-GCM par fichier,
   clé maître hors dépôt) est prévu en S4 ; concevoir le stockage pour
   qu'il s'insère sans migration lourde (champ `encrypted` + `keyRef`
