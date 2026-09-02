@@ -10,7 +10,8 @@
     "baseUrl": ".",
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
-    "strictPropertyInitialization": false
+    "strictPropertyInitialization": false,
+    "tsBuildInfoFile": "./node_modules/.tmp/api.tsbuildinfo"
   },
   "include": ["src/**/*.ts", "test/**/*.ts"]
 }
