@@ -1,4 +1,3 @@
-import { createReadStream } from 'node:fs';
 import {
   Controller,
   Get,
@@ -108,7 +107,9 @@ export class RecordingsController {
       return;
     }
 
-    const lecture = createReadStream(flux.chemin, { start: debut, end: fin });
+    // Le contrôleur ne sait pas si la pièce est scellée : il demande des
+    // octets de clair (§9.13).
+    const lecture = flux.ouvrir(debut, fin);
     // L'auditeur qui ferme l'onglet coupe la connexion en pleine lecture :
     // c'est banal, cela ne doit ni fuir un descripteur ni polluer les
     // journaux.

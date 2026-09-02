@@ -42,6 +42,18 @@ export const envSchema = z.object({
   // suppose que la décision existe quelque part de lisible (CLAUDE.md §9.6).
   RETENTION_MIN_DAYS: z.coerce.number().int().min(1).max(7300).default(730),
 
+  // Chiffrement au repos des pièces audio (CLAUDE.md §8, §9.13).
+  // La clé maître vit hors du dépôt : montée en secret, en variable
+  // d'environnement, ou fournie par un coffre. Elle n'a pas de valeur par
+  // défaut — un chiffrement à clé connue de tous ne chiffre rien.
+  STORAGE_ENCRYPTION_ENABLED: booleen.default('false'),
+  STORAGE_MASTER_KEY: z.string().default(''),
+  /** Référence de la clé en service, inscrite sur chaque pièce scellée. */
+  STORAGE_KEY_REF: z
+    .string()
+    .regex(/^[a-z0-9][a-z0-9._-]{0,31}$/, 'référence de clé : minuscules, chiffres, . _ -')
+    .default('k1'),
+
   INGEST_DIR: z.string().min(1).default('./data/ingest'),
   STORAGE_DIR: z.string().min(1).default('./data/storage'),
   QUARANTINE_DIR: z.string().min(1).default('./data/quarantine'),
@@ -76,6 +88,16 @@ export function validateEnv(raw: Record<string, unknown>): Env {
     throw new Error(
       'Configuration invalide : JWT_ACCESS_SECRET et JWT_REFRESH_SECRET doivent différer.',
     );
+  }
+  if (env.STORAGE_ENCRYPTION_ENABLED) {
+    // Mieux vaut ne pas démarrer que ranger des preuves derrière une clé
+    // absente ou trop courte, en croyant les avoir chiffrées.
+    const cle = Buffer.from(env.STORAGE_MASTER_KEY, 'base64');
+    if (cle.length !== 32) {
+      throw new Error(
+        'Configuration invalide : STORAGE_ENCRYPTION_ENABLED exige une STORAGE_MASTER_KEY de 32 octets en base64 (openssl rand -base64 32).',
+      );
+    }
   }
   return env;
 }

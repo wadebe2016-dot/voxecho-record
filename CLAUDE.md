@@ -653,3 +653,56 @@ représentent quelques milliers de lignes. Au-delà, la réponse est une table
 d'agrégats entretenue à l'ingestion, pas un cache devant cette route : un
 chiffre de conformité doit rester recalculable à la demande, et un cache
 introduit une fenêtre pendant laquelle l'écran ment.
+
+### 9.13 Le chiffrement scelle par trames pour que la lecture par plages survive (S4)
+
+Le §8 prévoit « AES-256-GCM par fichier, clé maître hors dépôt », et un
+stockage conçu pour que l'activation n'impose pas de migration lourde.
+L'implémentation retenue précise trois points.
+
+**Un fichier scellé d'un seul tenant ne se lit pas par plages.** Il faudrait
+tout déchiffrer à chaque requête d'un lecteur audio, et le `Range` du §6 comme
+le billet du §9.4 perdraient leur raison d'être. Le clair est donc découpé en
+**trames de 64 Kio**, chacune scellée séparément : même algorithme, même
+garantie, mais un octet quelconque se retrouve en ouvrant une seule trame.
+Toutes les trames sauf la dernière étant pleines, la position de chacune se
+calcule — c'est ce qui rend la lecture par plages possible.
+
+**L'en-tête et l'indice de la trame entrent dans les données authentifiées.**
+Sans cela, chaque trame serait authentique isolément et le fichier resterait
+falsifiable par simple permutation : on pourrait réordonner une conversation
+sans qu'aucun sceau ne proteste. Une trame déplacée, transplantée depuis un
+autre fichier, ou un en-tête retouché sont refusés ; c'est testé.
+
+**La clé maître ne chiffre jamais directement.** Chaque fichier a la sienne,
+dérivée en HKDF de la clé maître, d'un sel tiré au hasard et de l'identifiant
+de l'enregistrement. Deux pièces ne partagent donc aucune clé, et une pièce ne
+s'ouvre pas au nom d'un autre appel. `Recording.keyRef` retient quelle clé
+maître a servi, ce qui permettra à deux générations de coexister le jour d'une
+rotation.
+
+**Ce que la base retient reste le clair.** `sha256` est l'empreinte du wav
+ingéré, pas celle du conteneur — c'est la valeur qu'un contrôleur compare à sa
+propre copie — et `sizeBytes` est la taille du wav. C'est pour cela que
+`Content-Length`, `Content-Range` et le `416` du §6 n'ont pas eu à changer : le
+reste de l'api demande des octets de clair et en reçoit, sans savoir si la
+pièce est scellée.
+
+**L'activation est progressive.** `STORAGE_ENCRYPTION_ENABLED` ne concerne que
+les pièces à venir ; l'api lit indifféremment les deux formats, reconnus à leur
+en-tête. La commande `storage:sceller` rattrape l'existant, en simulation par
+défaut — une commande qui réécrit des preuves ne doit pas pouvoir partir d'une
+faute de frappe. Elle **vérifie l'empreinte avant de sceller** : sceller une
+pièce déjà altérée figerait l'altération sous un sceau qui la rendrait ensuite
+« authentique ».
+
+**Réserve** — la perte de la clé maître rend le stockage définitivement
+illisible : c'est la propriété recherchée, et c'est aussi le risque. Sa garde
+et sa sauvegarde sortent du produit, et devront être traitées avec la
+sauvegarde de la base (lot 07) plutôt qu'à côté — une base restaurée sans sa
+clé ne rend rien. Par ailleurs le scellement charge le fichier entier en
+mémoire : sans conséquence sur des appels de quelques mégaoctets, à revoir en
+flux si des enregistrements bien plus longs devaient apparaître. Enfin, la
+rotation de clé n'est pas outillée : `keyRef` permet aux générations de
+coexister, mais rechiffrer un stockage entier demandera une commande dédiée,
+et elle devra pouvoir être interrompue et reprise.

@@ -1,4 +1,5 @@
 import { stat } from 'node:fs/promises';
+import type { Readable } from 'node:stream';
 import { join, resolve, sep } from 'node:path';
 import {
   BadRequestException,
@@ -19,15 +20,25 @@ import { resoudreCheminDeDonnees } from '../config/chemins';
 import { AppConfig } from '../config/config.module';
 import { PrismaService } from '../prisma/prisma.service';
 import { LegalHoldsService } from '../retention/legal-holds.service';
+import { StorageService } from '../storage/storage.service';
 import type { AuthUser } from '../auth/auth.types';
 import { ListRecordingsDto } from './dto/list-recordings.dto';
 import { ListenTicketService, type ListenTicket } from './listen-ticket.service';
 
-/** Fichier prêt à être servi, mesuré : la taille commande les plages. */
+/**
+ * Pièce prête à être servie, mesurée : la taille commande les plages.
+ *
+ * `taille` est toujours celle du **clair** — donc celle du wav ingéré, qu'il
+ * soit scellé sur le disque ou non. C'est ce qui fait que `Content-Length`,
+ * `Content-Range` et le `416` du §6 n'ont pas eu à changer avec le
+ * chiffrement.
+ */
 export interface FluxAudio {
   chemin: string;
   taille: number;
   nomFichier: string;
+  /** Ouvre une plage de clair, bornes incluses. */
+  ouvrir: (debut: number, fin: number) => Readable;
 }
 
 @Injectable()
@@ -40,6 +51,7 @@ export class RecordingsService {
     private readonly audit: AuditService,
     private readonly billets: ListenTicketService,
     private readonly holds: LegalHoldsService,
+    private readonly stockage: StorageService,
     config: AppConfig,
   ) {
     this.storageDir = resoudreCheminDeDonnees(config.get('STORAGE_DIR'));
@@ -151,7 +163,7 @@ export class RecordingsService {
   async ouvrirFlux(billet: ListenTicket): Promise<FluxAudio> {
     const recording = await this.prisma.recording.findFirst({
       where: { id: billet.recordingId, tenantId: billet.tenantId },
-      select: { filePath: true, status: true },
+      select: { id: true, filePath: true, status: true, encrypted: true, sizeBytes: true },
     });
     if (!recording) throw new NotFoundException('Enregistrement introuvable.');
     if (recording.status === 'purged') {
@@ -169,7 +181,12 @@ export class RecordingsService {
 
     let taille: number;
     try {
-      taille = (await stat(chemin)).size;
+      // La taille servie est celle du **clair**. Sur une pièce scellée, le
+      // conteneur pèse plus lourd que le wav : lire la taille du fichier
+      // décalerait toutes les plages d'un lecteur. On mesure quand même le
+      // fichier, pour que sa disparition se voie.
+      const surDisque = (await stat(chemin)).size;
+      taille = recording.encrypted ? Number(recording.sizeBytes) : surDisque;
     } catch {
       // La base connaît l'appel, le disque ne l'a plus : c'est un incident
       // d'intégrité, pas une requête malformée. On le dit haut et fort.
@@ -177,7 +194,17 @@ export class RecordingsService {
       throw new NotFoundException('Fichier audio introuvable dans le stockage.');
     }
 
-    return { chemin, taille, nomFichier: recording.filePath.split('/').pop() ?? 'appel.wav' };
+    const piece = {
+      recordingId: recording.id,
+      chemin,
+      encrypted: recording.encrypted,
+    };
+    return {
+      chemin,
+      taille,
+      nomFichier: recording.filePath.split('/').pop() ?? 'appel.wav',
+      ouvrir: (debut, fin) => this.stockage.fluxPartiel(piece, debut, fin),
+    };
   }
 
   /**
