@@ -61,9 +61,17 @@ radical** :
   "direction": "outbound",      // outbound | inbound | internal
   "startedAt": "2026-09-01T14:30:12+01:00",
   "durationSec": 183,
-  "source": "cucm-bib"          // cucm-bib | siprec | simulator
+  "source": "cucm-bib",         // cucm-bib | siprec | simulator
+  "category": "confirmation_cheque"  // FACULTATIF — confirmation_cheque |
+                                //   operation_change | autre (§9.10)
 }
 ```
+
+Le champ `category` est **facultatif** et n'emporte pas de changement de
+version : un producteur qui l'ignore reste conforme au schéma 1, et son dépôt
+est rangé en `autre`. Une valeur hors de la liste connue, en revanche, part en
+quarantaine — une catégorie que personne n'a déclarée est une faute de frappe
+jusqu'à preuve du contraire.
 
 Règles d'ingestion (service `ingestion` de l'api) :
 - détection du couple wav+json complet (le json arrive en dernier)
@@ -331,10 +339,10 @@ deux se contredisent, ni ce qui empêche de ramener une rétention à trente
 jours un vendredi soir. Trois choix ont été faits en ouvrant le S4.
 
 **Le défaut est de 730 jours, et il y a un plancher.** Deux ans est la durée
-d'usage bancaire retenue pour la zone CEMAC ; *la référence réglementaire
-précise reste à confirmer* et n'est volontairement citée nulle part dans le
-produit — une référence inventée dans un document de conformité vaut moins que
-pas de référence du tout. La valeur est réglable par locataire. En dessous du
+retenue au titre des exigences réglementaires bancaires (voir §9.9 pour le
+fondement et sa portée) ; *la cote de texte reste à préciser* et n'est
+volontairement citée nulle part dans le produit — une référence inventée dans
+un document de conformité vaut moins que pas de référence du tout. La valeur est réglable par locataire. En dessous du
 plancher de l'instance (`RETENTION_MIN_DAYS`, 730 par défaut), l'api refuse la
 politique **sauf motif écrit d'au moins dix caractères**, conservé sur la
 politique en vigueur (`RetentionPolicy.belowFloorReason`) et inscrit au
@@ -477,3 +485,86 @@ flux et un travail de fond avec notification, pas cette route. Par ailleurs,
 l'avertissement de divergence ne protège que tant que la fiche accompagne
 l'audio : séparés, le wav circule sans rien qui le signale. Si cela devient un
 risque réel, la réponse est de signer l'archive, pas d'alourdir la fiche.
+
+### 9.9 Fondement réglementaire, et qui a le droit d'entendre (S4)
+
+Deux points de doctrine confirmés par le terrain, qui commandent le reste.
+
+**Le fondement est « les exigences réglementaires bancaires »**, formulé ainsi
+et pas autrement. Le produit vise au-delà de la zone CEMAC ; la COBAC en est le
+premier cadre d'application, non le seul horizon. La cote de texte précise
+reste à établir et ne doit être citée nulle part — ni dans l'interface, ni dans
+une fiche d'export, ni dans un commentaire — tant qu'elle n'est pas vérifiée.
+Une référence approximative dans un produit de conformité est pire qu'une
+absence de référence : elle se recopie, et elle finit dans un dossier de
+contrôle sous la signature de quelqu'un d'autre.
+
+Concrètement : les durées et les seuils sont des paramètres assumés, pas des
+citations. §9.6 s'appuie sur ce fondement pour ses 730 jours.
+
+**Entendre une conversation de client n'est pas un droit d'exploitation.**
+L'écoute est réservée aux habilitations d'audit et de conformité — `AUDITOR` et
+`ADMIN`. Le `SUPERVISOR` conserve tout le reste : il cherche, il consulte les
+métadonnées, il relève l'empreinte, il constate l'intégrité. Il n'entend pas.
+La distinction est celle entre surveiller un service et écouter des clients ;
+elle est ce qui rend l'outil acceptable dans une banque.
+
+**L'export suit la même habilitation.** Une archive contient l'audio :
+l'exporter revient à pouvoir l'entendre, en pire, puisque le fichier quitte
+alors le bâtiment. Ouvrir l'export à qui n'a pas l'écoute aurait rendu la
+restriction décorative. C'est un resserrement par rapport au S3, où l'export
+était ouvert aux trois rôles.
+
+Le portail masque ce que le rôle ne permet pas et **dit pourquoi** plutôt que
+de laisser un vide : un superviseur qui ne trouve pas le bouton d'écoute doit
+comprendre qu'il s'agit d'une habilitation, non d'une panne. L'api refuse de
+toute façon — le masquage n'est qu'un confort d'affichage, et c'est le refus
+côté serveur qui est testé.
+
+**Réserve** — les trois rôles du §5 confondent aujourd'hui deux axes :
+l'administration de l'instance et l'habilitation métier. `ADMIN` est à la fois
+celui qui règle la rétention et celui qui écoute, ce qui va tant que
+l'administrateur *est* le responsable conformité — le modèle de déploiement du
+§9.1, une instance par client, le garantit à peu près. Le jour où un
+exploitant technique aura besoin d'un accès sans habilitation d'écoute, il
+faudra séparer les deux axes : un rôle d'administration et une habilitation
+d'écoute portée à part, plutôt qu'un quatrième rôle qui recouperait mal les
+trois autres.
+
+### 9.10 La catégorie d'opération, ajoutée au contrat sans le rompre (S4)
+
+`Recording` gagne une `operationCategory`. Elle ne décrit pas l'appel — cela,
+c'est `direction` — mais **ce qui s'y joue** : une confirmation de chèque et un
+ordre de change n'engagent pas la banque de la même façon et ne relèvent pas
+nécessairement des mêmes durées de conservation. Valeurs initiales :
+`confirmation_cheque`, `operation_change`, `autre`.
+
+**Le contrat §3 est amendé, la version de schéma ne bouge pas.** Le champ
+`category` du json est facultatif : un script post-enregistrement écrit avant
+cette évolution reste conforme, et son dépôt est rangé en `autre`. C'était la
+condition pour ne pas contredire le §7, S5 — « AUCUN changement attendu dans
+apps/ » vaut aussi dans l'autre sens : aucun changement exigé de la capture.
+
+**Une valeur inconnue part en quarantaine.** `confirmation_chèque` avec son
+accent n'est pas une nouvelle catégorie, c'est une faute de frappe ; l'accepter
+créerait un catalogue par accident. C'est la même règle qu'au §3 pour les
+locataires : l'ingestion ne crée jamais rien implicitement.
+
+**C'est une chaîne, pas une énumération en base.** Le catalogue doit pouvoir
+s'étendre par locataire — une banque et une microfinance n'ont pas les mêmes
+opérations — et une énumération PostgreSQL imposerait une migration à chaque
+ajout. Le point d'extension prévu est une table `OperationCategory` portant
+`tenantId`, qui remplacera la liste fixe du contrat comme référentiel de
+validation. Tant qu'elle n'existe pas, la liste fixe *est* le catalogue.
+
+La catégorie est filtrable en recherche, exposée dans la liste, portée par la
+fiche d'appel et par les deux fiches d'export.
+
+**Réserve** — le champ est prêt à porter des politiques de rétention
+différenciées, il ne les porte pas encore. `RetentionPolicy.appliesTo` vaut
+`all` aujourd'hui ; c'est là que la catégorie viendra se brancher, une
+politique par catégorie l'emportant sur la politique générale. Deux points
+seront à trancher à ce moment : ce qu'il advient d'un appel dont la catégorie
+change après coup, et laquelle des deux durées s'applique quand elles
+divergent — la plus longue, sauf décision contraire, puisqu'en conservation
+c'est le doute qui doit profiter à la preuve.

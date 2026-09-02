@@ -3,12 +3,18 @@ import { IsIn, IsInt, IsOptional, IsString, Matches, Max, MaxLength, Min } from 
 import { EstJourCalendaire } from '../../common/validators/jour-calendaire';
 import {
   INGEST_DIRECTIONS,
+  INGEST_OPERATION_CATEGORIES,
   PAGE_SIZE_DEFAULT,
   PAGE_SIZE_MAX,
   RECORDING_SORT_FIELDS,
   SORT_ORDERS,
 } from '@voxecho/shared';
-import type { IngestDirection, RecordingSortField, SortOrder } from '@voxecho/shared';
+import type {
+  IngestDirection,
+  IngestOperationCategory,
+  RecordingSortField,
+  SortOrder,
+} from '@voxecho/shared';
 
 /**
  * Pagination, tri et filtres de recherche (CLAUDE.md §6).
@@ -71,6 +77,11 @@ export class ListRecordingsDto {
   @IsOptional()
   @IsIn(INGEST_DIRECTIONS)
   direction?: IngestDirection;
+
+  /** Catégorie d'opération bancaire — CLAUDE.md §9.10. */
+  @IsOptional()
+  @IsIn(INGEST_OPERATION_CATEGORIES)
+  category?: IngestOperationCategory;
 
   @IsOptional()
   @Type(() => Number)

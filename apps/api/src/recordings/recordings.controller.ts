@@ -46,8 +46,12 @@ export class RecordingsController {
   /**
    * Ouvre une écoute et rend le billet qui la porte. C'est cet appel — un par
    * écoute — qui inscrit l'`AuditEvent LISTEN`.
+   *
+   * Habilitation restreinte (CLAUDE.md §9.9) : entendre une conversation de
+   * client n'est pas un droit d'exploitation. Le SUPERVISOR voit les appels et
+   * leurs métadonnées, il ne les écoute pas.
    */
-  @Roles('ADMIN', 'SUPERVISOR', 'AUDITOR')
+  @Roles('ADMIN', 'AUDITOR')
   @Post(':id/listen')
   @HttpCode(HttpStatus.OK)
   ouvrirEcoute(

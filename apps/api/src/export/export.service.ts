@@ -110,6 +110,7 @@ export class ExportService {
         dureeSec: recording.durationSec,
         source: recording.source === 'cucm_bib' ? 'cucm-bib' : recording.source,
         statut: recording.status,
+        categorieOperation: recording.operationCategory,
         sousConservationForcee: sousHold.has(recording.id),
       },
       preuve: {

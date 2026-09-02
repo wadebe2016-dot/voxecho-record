@@ -144,6 +144,12 @@ model Recording {
   status      RecordingStatus @default(stored)
   createdAt   DateTime        @default(now()) @map("created_at")
 
+  /// Catégorie d'opération bancaire (contrat §3, CLAUDE.md §9.10). Décrit ce
+  /// qui se joue dans l'appel, non ce qu'il est. Volontairement une chaîne et
+  /// non une énumération : le catalogue doit pouvoir s'étendre par locataire
+  /// sans migration. `autre` quand le producteur n'en déclare aucune.
+  operationCategory String @default("autre") @map("operation_category")
+
   // Chiffrement au repos prévu en S4 : les colonnes existent déjà pour que
   // l'activation n'impose pas de migration lourde (CLAUDE.md §8).
   encrypted Boolean @default(false)
@@ -162,6 +168,9 @@ model Recording {
   @@index([tenantId, far])
   @@index([tenantId, status])
   @@index([tenantId, sha256])
+  /// Recherche par catégorie, et futures politiques de rétention par
+  /// catégorie (`RetentionPolicy.appliesTo`).
+  @@index([tenantId, operationCategory])
   @@map("recordings")
 }
 

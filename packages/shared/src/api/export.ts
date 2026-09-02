@@ -55,6 +55,8 @@ export interface ExportManifest {
     dureeSec: number;
     source: string;
     statut: string;
+    /** Catégorie d'opération bancaire (§9.10). */
+    categorieOperation: string;
     sousConservationForcee: boolean;
   };
   preuve: {

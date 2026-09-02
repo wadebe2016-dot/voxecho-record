@@ -1,6 +1,10 @@
 import { useState, type FormEvent } from 'react';
-import { INGEST_DIRECTIONS, type RecordingFilters } from '@voxecho/shared';
-import { libelleDirection } from '../lib/format';
+import {
+  INGEST_DIRECTIONS,
+  INGEST_OPERATION_CATEGORIES,
+  type RecordingFilters,
+} from '@voxecho/shared';
+import { libelleCategorie, libelleDirection } from '../lib/format';
 
 /**
  * Formulaire de recherche — CLAUDE.md §6.
@@ -25,6 +29,7 @@ const BROUILLON_VIDE: Brouillon = {
   from: '',
   to: '',
   direction: '',
+  category: '',
   minDurationSec: '',
   maxDurationSec: '',
 };
@@ -60,7 +65,7 @@ export function RecordingsSearch({ valeur, onRechercher, desactive = false }: Pr
       aria-label="Recherche d’enregistrements"
       className="mb-4 rounded border border-ardoise-200 bg-ardoise-50 px-3 py-3"
     >
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-7">
         <div className="lg:col-span-2">
           <label className={ETIQUETTE} htmlFor="recherche-numero">
             Numéro (poste ou correspondant)
@@ -121,6 +126,26 @@ export function RecordingsSearch({ valeur, onRechercher, desactive = false }: Pr
             {INGEST_DIRECTIONS.map((sens) => (
               <option key={sens} value={sens}>
                 {libelleDirection(sens)}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className={ETIQUETTE} htmlFor="recherche-categorie">
+            Catégorie d’opération
+          </label>
+          <select
+            id="recherche-categorie"
+            className={CHAMP}
+            value={brouillon.category}
+            disabled={desactive}
+            onChange={(e) => modifier('category', e.target.value)}
+          >
+            <option value="">Toutes</option>
+            {INGEST_OPERATION_CATEGORIES.map((categorie) => (
+              <option key={categorie} value={categorie}>
+                {libelleCategorie(categorie)}
               </option>
             ))}
           </select>
@@ -189,6 +214,7 @@ function versBrouillon(filtres: RecordingFilters): Brouillon {
     from: filtres.from ?? '',
     to: filtres.to ?? '',
     direction: filtres.direction ?? '',
+    category: filtres.category ?? '',
     minDurationSec: filtres.minDurationSec?.toString() ?? '',
     maxDurationSec: filtres.maxDurationSec?.toString() ?? '',
   };
@@ -205,6 +231,9 @@ function versFiltres(brouillon: Brouillon): RecordingFilters {
   if (brouillon.to) filtres.to = brouillon.to;
   if (brouillon.direction) {
     filtres.direction = brouillon.direction as RecordingFilters['direction'];
+  }
+  if (brouillon.category) {
+    filtres.category = brouillon.category as RecordingFilters['category'];
   }
   const min = Number.parseInt(brouillon.minDurationSec, 10);
   if (Number.isFinite(min)) filtres.minDurationSec = min;
