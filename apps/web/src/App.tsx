@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { AppShell } from './components/AppShell';
 import { AuthProvider } from './auth/AuthProvider';
 import { useAuth } from './auth/auth-context';
+import { JournalPage } from './pages/JournalPage';
 import { LoginPage } from './pages/LoginPage';
 import { RecordingsPage } from './pages/RecordingsPage';
 
@@ -34,6 +35,7 @@ function Portail() {
     <AppShell>
       <Routes>
         <Route path="/enregistrements" element={<RecordingsPage />} />
+        <Route path="/journal" element={<JournalPage />} />
         <Route path="*" element={<Navigate to="/enregistrements" replace />} />
       </Routes>
     </AppShell>
