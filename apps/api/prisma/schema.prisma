@@ -56,8 +56,20 @@ enum AuditAction {
 }
 
 model Tenant {
-  id        String   @id @default(uuid()) @db.Uuid
-  name      String   @unique
+  id   String @id @default(uuid()) @db.Uuid
+  name String @unique
+
+  /// Identifiant stable et sûr en chemin : c'est le nom du sous-répertoire
+  /// que surveille l'ingestion, `INGEST_DIR/<slug>/` (contrat §3). Le nom
+  /// commercial peut changer, le slug non — il est écrit dans l'arborescence
+  /// que la capture alimente.
+  slug String @unique
+
+  /// Un locataire désactivé n'ingère plus : les dépôts trouvés dans son
+  /// sous-répertoire partent en quarantaine (contrat §3). On ne supprime pas
+  /// un locataire dont le journal n'est pas vide, on le désactive.
+  active Boolean @default(true)
+
   createdAt DateTime @default(now()) @map("created_at")
 
   users             User[]
@@ -146,8 +158,16 @@ model Recording {
 /// Journal d'audit — append-only. Aucune route d'update ni de delete, et un
 /// garde-fou en base (déclencheur SQL) refuse toute modification.
 model AuditEvent {
-  id          String      @id @default(uuid()) @db.Uuid
-  tenantId    String      @map("tenant_id") @db.Uuid
+  id String @id @default(uuid()) @db.Uuid
+
+  /// Nul pour les seuls événements que l'instance ne peut rattacher à
+  /// personne : un dépôt trouvé dans un sous-répertoire d'ingestion qui ne
+  /// correspond à aucun locataire actif (contrat §3). Le journal reste
+  /// cloisonné — une requête d'un locataire ne voit que ses propres
+  /// événements — et ces événements système ne sont lisibles que par un
+  /// ADMIN de l'instance.
+  tenantId String? @map("tenant_id") @db.Uuid
+
   userId      String?     @map("user_id") @db.Uuid
   action      AuditAction
   recordingId String?     @map("recording_id") @db.Uuid
@@ -160,7 +180,7 @@ model AuditEvent {
   // laissé une trace est refusé. Un compte se désactive (`User.active`), un
   // enregistrement se purge (`RecordingStatus.purged`) — ni l'un ni l'autre
   // ne s'efface.
-  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  tenant    Tenant?    @relation(fields: [tenantId], references: [id], onDelete: Restrict)
   user      User?      @relation(fields: [userId], references: [id], onDelete: Restrict)
   recording Recording? @relation(fields: [recordingId], references: [id], onDelete: Restrict)
 

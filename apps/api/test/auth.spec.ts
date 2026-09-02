@@ -29,8 +29,8 @@ describe('authentification', () => {
 
   beforeEach(async () => {
     await resetTestData(prisma);
-    banque = (await prisma.tenant.create({ data: { name: 'Banque A' } })).id;
-    microfinance = (await prisma.tenant.create({ data: { name: 'MFI B' } })).id;
+    banque = (await prisma.tenant.create({ data: { name: 'Banque A', slug: 'banque-a' } })).id;
+    microfinance = (await prisma.tenant.create({ data: { name: 'MFI B', slug: 'mfi-b' } })).id;
     await prisma.user.create({
       data: { tenantId: banque, email: 'auditeur@a.cm', passwordHash, role: 'AUDITOR' },
     });

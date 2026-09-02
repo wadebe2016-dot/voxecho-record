@@ -3,7 +3,12 @@ import type { AuditAction, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 export interface AuditEntry {
-  tenantId: string;
+  /**
+   * Nul pour un événement que l'instance ne peut rattacher à aucun locataire :
+   * un dépôt d'ingestion tombé dans un sous-répertoire inconnu ou désactivé.
+   * Tout le reste porte son locataire.
+   */
+  tenantId: string | null;
   action: AuditAction;
   userId?: string | null;
   recordingId?: string | null;
@@ -26,7 +31,7 @@ export class AuditService {
     try {
       await this.prisma.auditEvent.create({
         data: {
-          tenantId: entry.tenantId,
+          tenantId: entry.tenantId ?? null,
           userId: entry.userId ?? null,
           action: entry.action,
           recordingId: entry.recordingId ?? null,
@@ -38,7 +43,7 @@ export class AuditService {
       // Une trace perdue est un incident : on la remonte bruyamment, sans
       // faire échouer l'action de l'utilisateur déjà réalisée.
       this.logger.error(
-        `Échec d'écriture au journal d'audit (${entry.action}, locataire ${entry.tenantId})`,
+        `Échec d'écriture au journal d'audit (${entry.action}, locataire ${entry.tenantId ?? 'système'})`,
         error instanceof Error ? error.stack : String(error),
       );
     }

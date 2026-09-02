@@ -37,8 +37,18 @@ La capture (FreeSWITCH, hors de ce dépôt) et le portail ne communiquent
 QUE par ceci. Rien du portail ne doit importer quoi que ce soit de la
 capture.
 
-Répertoire surveillé : `INGEST_DIR` (env). Pour chaque appel terminé, le
-producteur y dépose **deux fichiers de même radical** :
+Répertoire surveillé : `INGEST_DIR` (env). Le json ne porte pas le
+locataire : c'est **l'arborescence qui le désigne**. Le producteur dépose
+dans le sous-répertoire du locataire qu'il alimente, nommé d'après le
+`slug` du locataire (minuscules, chiffres, tirets) :
+
+```
+INGEST_DIR/<slug>/<radical>.wav
+INGEST_DIR/<slug>/<radical>.json
+```
+
+Pour chaque appel terminé, le producteur y dépose **deux fichiers de même
+radical** :
 
 ```
 20260901-143012_16778001_1001_699112233.wav      # audio mixé, WAV PCM 8kHz
@@ -63,7 +73,17 @@ Règles d'ingestion (service `ingestion` de l'api) :
 - création de l'enregistrement en base, statut `stored`
 - json invalide ou wav manquant → répertoire `quarantine/` + événement
   d'audit ; jamais de suppression silencieuse
-- idempotent (re-dépôt du même fichier = no-op tracé)
+- **un dépôt dans un sous-répertoire ne correspondant à aucun locataire
+  actif part en quarantaine avec un AuditEvent `QUARANTINE`.** L'ingestion
+  ne crée **jamais** de locataire implicitement : un locataire naît d'un
+  acte d'administration, jamais d'un répertoire apparu sur un disque.
+  Idem pour un locataire désactivé (`Tenant.active = false`) et pour un
+  fichier déposé à la racine d'`INGEST_DIR`. Ces événements sont les seuls
+  du journal dont le `tenantId` est nul : il n'y a précisément personne à
+  qui les attribuer, et ils ne sont lisibles que par un ADMIN de l'instance
+- idempotent (re-dépôt du même fichier = no-op tracé) ; un fichier redéposé
+  sous le même nom mais de **SHA-256 différent** n'est pas un doublon, c'est
+  un conflit : quarantaine, jamais d'écrasement de la preuve déjà rangée
 
 ## 4. Le simulateur (à construire au sprint 2, dans `tools/simulator`)
 
@@ -169,3 +189,38 @@ banques), il faut basculer vers l'unicité par locataire :
   deux sessions distinctes » vient s'y ajouter
 
 Tant que ce besoin n'est pas exprimé, on ne paie pas cette complexité.
+
+### 9.2 Le locataire se lit dans l'arborescence (S2)
+
+Le contrat §3 décrivait un `INGEST_DIR` plat alors que `Recording.tenantId`
+est obligatoire et que le stockage est rangé par locataire : rien ne disait
+à qui appartenait un fichier déposé. Le contrat est amendé plutôt que
+contourné — c'est le cas prévu au §7, S5 (« si un changement est
+nécessaire, c'est un bug du contrat, à corriger dans le contrat »).
+
+Retenu : un niveau de répertoire, `INGEST_DIR/<slug>/`. Le json ne change
+pas, la version de schéma reste 1, et le script post-enregistrement
+FreeSWITCH n'a qu'à écrire dans le bon répertoire. Écartés : un champ
+`tenant` dans le json (couple la capture au portail), un plan de
+numérotation `near` → locataire (à administrer, et un poste peut changer
+d'entité), un `INGEST_TENANT` par instance (l'ingestion cesserait d'être
+multi-locataire).
+
+Deux conséquences assumées :
+
+- `Tenant.slug` — identifiant stable et sûr en chemin, distinct du nom
+  commercial qui, lui, peut changer sans déplacer une arborescence que la
+  capture alimente.
+- `AuditEvent.tenantId` devient **nullable**, écart au §5. Tracer un dépôt
+  tombé dans un répertoire inconnu ou désactivé était impossible autrement :
+  il n'y a aucun locataire à qui l'attribuer. La seule alternative — un
+  faux locataire « système » — aurait pollué toutes les listes de
+  locataires pour éviter un `null` honnête. Le cloisonnement est
+  inchangé : une requête d'un locataire filtre sur son `tenantId` et ne
+  voit donc jamais ces événements ; ils sont réservés à l'ADMIN de
+  l'instance.
+
+**Réserve** — si la capture devait un jour alimenter un `INGEST_DIR` qu'elle
+ne maîtrise pas (dépôt par un tiers, SIPREC mutualisé), le plan de
+numérotation redevient la bonne réponse : il se branche sans toucher au
+json, en résolvant le locataire depuis `near` au lieu du répertoire.

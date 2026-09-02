@@ -29,7 +29,7 @@ describe('session : rafraîchissement, rotation, déconnexion', () => {
 
   beforeEach(async () => {
     await resetTestData(prisma);
-    banque = (await prisma.tenant.create({ data: { name: 'Banque A' } })).id;
+    banque = (await prisma.tenant.create({ data: { name: 'Banque A', slug: 'banque-a' } })).id;
     await prisma.user.create({
       data: { tenantId: banque, email: 'auditeur@a.cm', passwordHash, role: 'AUDITOR' },
     });

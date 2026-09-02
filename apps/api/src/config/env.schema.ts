@@ -8,6 +8,9 @@ import { z } from 'zod';
 
 const duration = z.string().regex(/^\d+[smhd]$/, 'durée attendue, ex. 15m ou 7d');
 
+/** `z.coerce.boolean()` accepte « false » comme vrai : on lit le mot. */
+const booleen = z.enum(['true', 'false']).transform((value) => value === 'true');
+
 const secret = z
   .string()
   .min(32, 'secret trop court (32 caractères minimum)')
@@ -32,6 +35,16 @@ export const envSchema = z.object({
   INGEST_DIR: z.string().min(1).default('./data/ingest'),
   STORAGE_DIR: z.string().min(1).default('./data/storage'),
   QUARANTINE_DIR: z.string().min(1).default('./data/quarantine'),
+
+  // Balayage périodique plutôt qu'inotify : un répertoire d'ingestion est
+  // souvent un volume monté ou un partage réseau, où les événements du
+  // système de fichiers se perdent. Un balayage rattrape aussi ce qui a été
+  // déposé pendant que l'api était arrêtée.
+  INGEST_POLL_ENABLED: booleen.default('true'),
+  INGEST_POLL_MS: z.coerce.number().int().min(250).max(600_000).default(5_000),
+  // Un wav sans son json passé ce délai n'est plus un dépôt en cours : il
+  // part en quarantaine plutôt que de rester indéfiniment en attente.
+  INGEST_ORPHAN_MIN: z.coerce.number().int().min(1).max(1440).default(10),
 });
 
 export type Env = z.infer<typeof envSchema>;

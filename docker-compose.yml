@@ -54,6 +54,9 @@ services:
       INGEST_DIR: /data/ingest
       STORAGE_DIR: /data/storage
       QUARANTINE_DIR: /data/quarantine
+      INGEST_POLL_ENABLED: ${INGEST_POLL_ENABLED:-true}
+      INGEST_POLL_MS: ${INGEST_POLL_MS:-5000}
+      INGEST_ORPHAN_MIN: ${INGEST_ORPHAN_MIN:-10}
     volumes:
       # Les enregistrements survivent au conteneur : c'est la rétention.
       - audio-data:/data
