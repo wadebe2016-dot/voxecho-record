@@ -114,3 +114,8 @@ avec la même graine est reconnu comme identique et retiré sans doublon.
 - Fichier disparu du stockage : `404` et incident journalisé bruyamment ;
   enregistrement purgé : `410`. Aucun des deux ne se confond avec une requête
   malformée.
+- Portail : fiche d'appel et lecteur. Consulter une fiche n'écoute rien —
+  l'empreinte SHA-256 s'y lit en entier, sans qu'aucune écoute ne soit
+  inscrite au nom de qui vient seulement la relever. L'écoute commence au
+  bouton « Écouter cet appel », et le portail annonce à l'auditeur qu'elle
+  est tracée.

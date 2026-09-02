@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { Page, RecordingFilters, RecordingListItem } from '@voxecho/shared';
 import { ApiError, api } from '../api/client';
+import { RecordingDetail } from '../components/RecordingDetail';
 import { RecordingsSearch } from '../components/RecordingsSearch';
 import {
   abregerEmpreinte,
@@ -22,6 +23,8 @@ export function RecordingsPage() {
   const [donnees, setDonnees] = useState<Page<RecordingListItem> | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   const [chargement, setChargement] = useState(true);
+  /** Appel dont la fiche est ouverte. L'ouvrir ne déclenche aucune écoute. */
+  const [consulte, setConsulte] = useState<RecordingListItem | null>(null);
 
   const charger = useCallback(async (numero: number, criteres: RecordingFilters) => {
     setChargement(true);
@@ -43,6 +46,9 @@ export function RecordingsPage() {
   const rechercher = (criteres: RecordingFilters): void => {
     setPage(1);
     setFiltres(criteres);
+    // La fiche ouverte ne survit pas à une nouvelle recherche : elle ne
+    // figure peut-être plus dans les résultats.
+    setConsulte(null);
   };
 
   const filtree = Object.keys(filtres).length > 0;
@@ -60,6 +66,8 @@ export function RecordingsPage() {
       </header>
 
       <RecordingsSearch valeur={filtres} onRechercher={rechercher} desactive={chargement} />
+
+      {consulte !== null && <RecordingDetail appel={consulte} onFermer={() => setConsulte(null)} />}
 
       {erreur !== null && (
         <p
@@ -99,12 +107,15 @@ export function RecordingsPage() {
               <th scope="col" className="px-3 py-2 font-medium">
                 Statut
               </th>
+              <th scope="col" className="px-3 py-2 font-medium">
+                <span className="sr-only">Consulter</span>
+              </th>
             </tr>
           </thead>
           <tbody>
             {chargement && (
               <tr>
-                <td colSpan={8} className="px-3 py-8 text-center text-ardoise-600">
+                <td colSpan={9} className="px-3 py-8 text-center text-ardoise-600">
                   Chargement…
                 </td>
               </tr>
@@ -112,7 +123,7 @@ export function RecordingsPage() {
 
             {!chargement && donnees?.items.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-3 py-10 text-center">
+                <td colSpan={9} className="px-3 py-10 text-center">
                   <p className="font-medium">
                     {filtree ? 'Aucun appel ne correspond' : 'Aucun enregistrement'}
                   </p>
@@ -144,6 +155,16 @@ export function RecordingsPage() {
                     {abregerEmpreinte(item.sha256)}
                   </td>
                   <td className="px-3 py-1.5">{libelleStatut(item.status)}</td>
+                  <td className="px-3 py-1.5 text-right">
+                    <button
+                      type="button"
+                      onClick={() => setConsulte(item)}
+                      aria-label={`Consulter l’appel ${item.refci} du ${formatHorodatage(item.startedAt)}`}
+                      className="rounded border border-ardoise-200 px-2 py-0.5 text-xs"
+                    >
+                      Consulter
+                    </button>
+                  </td>
                 </tr>
               ))}
           </tbody>
