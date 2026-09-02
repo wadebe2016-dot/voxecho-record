@@ -157,3 +157,18 @@ démontrées bout en bout sur des données simulées.
 - Le portail marque les appels sous conservation forcée dans la liste et sur
   la fiche, à côté du statut du fichier et jamais à sa place. Poser ou lever
   une mesure reste une opération d'api à ce stade.
+- Purge : aucune destruction automatique. Le produit énumère, un responsable
+  conformité valide, un ADMIN exécute. Un balayage qui détruirait de lui-même
+  des pièces probantes ferait de la conservation une affaire de `cron`.
+- Le rapport de purge est l'autorisation, pas un affichage : politique et
+  échéance figées, liste des appels échus avec leur poids, et ceux qu'une
+  conservation forcée épargne — motif du hold compris. Il se relit, se
+  filtre et s'annule.
+- L'exécution rejoue le rapport plutôt que de le recalculer, et le refuse si
+  l'ensemble énuméré a changé depuis : hold posé entre-temps, appel
+  nouvellement échu, conservation modifiée. Ce qui a été autorisé est
+  exactement ce qui est détruit.
+- Un appel purgé perd son fichier, garde sa ligne : empreinte, taille, chemin
+  et durée subsistent, la recherche continue de le montrer et l'écoute rend
+  `410`. Un `PURGE` par enregistrement détruit, portant le motif, le rapport
+  et le SHA-256 de ce qui vient de disparaître. Décisions en §9.7.
