@@ -4,6 +4,9 @@
 
 generator client {
   provider = "prisma-client-js"
+  // Cible explicite : dans une image slim, Prisma détecte mal la version
+  // d'OpenSSL et génère un client dont le moteur ne se charge pas.
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {

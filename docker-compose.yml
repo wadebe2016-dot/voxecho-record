@@ -1,5 +1,15 @@
 name: voxecho-record
 
+# Même composition en nuage (EC2) et sur site : l'api, le portail servi
+# statiquement par nginx, et PostgreSQL.
+#
+# Développement : `docker compose up -d db`, puis `pnpm dev`.
+# Livraison    : `docker compose up -d --build`, portail sur le port 8080.
+#
+# Les valeurs par défaut ci-dessous ne servent qu'au développement. L'api
+# refuse de démarrer si un secret est resté à sa valeur d'exemple, ce qui
+# rend une mise en production mal configurée impossible plutôt que discrète.
+
 services:
   db:
     image: postgres:16-alpine
@@ -20,5 +30,52 @@ services:
       timeout: 5s
       retries: 10
 
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: voxecho-api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      TZ: ${TZ:-Africa/Douala}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-voxecho}:${POSTGRES_PASSWORD:-changeme}@db:5432/${POSTGRES_DB:-voxecho}?schema=public
+      API_PORT: 3000
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-changeme-access-secret}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-changeme-refresh-secret}
+      JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-15m}
+      JWT_REFRESH_TTL: ${JWT_REFRESH_TTL:-7d}
+      AUTH_MAX_FAILED_ATTEMPTS: ${AUTH_MAX_FAILED_ATTEMPTS:-5}
+      AUTH_LOCK_DURATION_MIN: ${AUTH_LOCK_DURATION_MIN:-15}
+      INGEST_DIR: /data/ingest
+      STORAGE_DIR: /data/storage
+      QUARANTINE_DIR: /data/quarantine
+    volumes:
+      # Les enregistrements survivent au conteneur : c'est la rétention.
+      - audio-data:/data
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -fsS http://localhost:3000/api/health || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: voxecho-web
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - '${WEB_PORT:-8080}:80'
+
 volumes:
   db-data:
+  audio-data:
