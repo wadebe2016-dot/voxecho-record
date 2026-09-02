@@ -1,0 +1,18 @@
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
+import { App } from './App';
+import './index.css';
+
+const racine = document.getElementById('root');
+if (!racine) {
+  throw new Error('Élément racine introuvable.');
+}
+
+createRoot(racine).render(
+  <StrictMode>
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <App />
+    </BrowserRouter>
+  </StrictMode>,
+);

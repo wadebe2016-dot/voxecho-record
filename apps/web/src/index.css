@@ -1,0 +1,26 @@
+@import 'tailwindcss';
+
+/* Interface sobre et dense : ce que voit un contrôleur COBAC doit inspirer
+   confiance, pas impressionner. Palette neutre, une seule couleur d'accent. */
+@theme {
+  --color-ardoise-50: #f6f7f9;
+  --color-ardoise-100: #eceef2;
+  --color-ardoise-200: #d6dae2;
+  --color-ardoise-400: #8c96a8;
+  --color-ardoise-600: #4d576b;
+  --color-ardoise-800: #2a3141;
+  --color-ardoise-900: #1b2130;
+  --color-accent-600: #1f6f5c;
+  --color-accent-700: #17594a;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-ardoise-50 text-ardoise-900 antialiased;
+  font-feature-settings: 'tnum' 1;
+}

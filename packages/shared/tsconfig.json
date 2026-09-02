@@ -5,7 +5,8 @@
     "moduleResolution": "Node",
     "rootDir": ".",
     "outDir": "dist",
-    "types": ["node"]
+    "types": ["node"],
+    "tsBuildInfoFile": "./node_modules/.tmp/shared.tsbuildinfo"
   },
   "include": ["src/**/*.ts", "test/**/*.ts"]
 }
