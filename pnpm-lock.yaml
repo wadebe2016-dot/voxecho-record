@@ -198,6 +198,28 @@ importers:
         specifier: ^3.2.7
         version: 3.2.7(@types/node@22.20.1)(jiti@2.7.0)(jsdom@25.0.1)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.13)
 
+  tools/simulator:
+    dependencies:
+      '@voxecho/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+    devDependencies:
+      '@types/node':
+        specifier: ^22
+        version: 22.20.1
+      dotenv-cli:
+        specifier: ^8.0.0
+        version: 8.0.0
+      tsx:
+        specifier: ^4.19.2
+        version: 4.23.13
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.7
+        version: 3.2.7(@types/node@22.20.1)(jiti@2.7.0)(jsdom@25.0.1)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.13)
+
 packages:
 
   '@adobe/css-tools@4.5.0':

@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "rootDir": ".",
+    "outDir": "dist",
+    "types": ["node"],
+    "tsBuildInfoFile": "./node_modules/.tmp/simulator.tsbuildinfo"
+  },
+  "include": ["src/**/*.ts", "test/**/*.ts"]
+}

@@ -62,4 +62,18 @@ Sortie de jalon S1 atteinte : connexion, liste vide et tests verts.
 - `Tenant.slug` et `Tenant.active` ajoutés ; `AuditEvent.tenantId` devient
   nullable pour les seuls dépôts qu'aucun locataire ne réclame.
 - Lecture et fabrication d'en-têtes WAV PCM dans `packages/shared`, partagées
-  avec le simulateur à venir — 185 tests.
+  avec le simulateur.
+- `tools/simulator` : appels plausibles sans téléphonie — numéros camerounais,
+  heures ouvrées, durées de 15 s à 10 min penchant vers les appels courts,
+  audio en deux tonalités alternées. Modes `--one`, `--batch <n>`,
+  `--continuous <n>/min` et `--corrupt` (json malformé et wav tronqué en
+  alternance) ; `--seed` rejoue un lot à l'identique, `--tenant` vise un ou
+  plusieurs locataires, `--spread-days` étale le lot sur plusieurs jours.
+- Le simulateur est vérifié avec les validateurs du contrat eux-mêmes : ce
+  qu'il dépose est relu par `parseIngestMetadata`, `parseRadical` et
+  `readWavHeader`, ceux-là mêmes qu'appelle l'ingestion — 231 tests.
+
+Sortie de jalon S2 atteinte : `--batch 50` donne 50 enregistrements en base,
+50 empreintes distinctes, répertoire d'ingestion vidé. Un lot `--corrupt` de
+6 appels finit intégralement en quarantaine, tracé ; le même lot redéposé
+avec la même graine est reconnu comme identique et retiré sans doublon.
