@@ -40,9 +40,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Pas de `version:` ici : `pnpm/action-setup@v4` refuse que la version
+      # soit déclarée à deux endroits, et `packageManager` dans le
+      # package.json racine fait déjà foi — pour la CI comme pour un poste de
+      # développement.
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - uses: actions/setup-node@v4
         with:
