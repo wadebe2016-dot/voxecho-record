@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
 import { IsIn, IsInt, IsOptional, IsString, Matches, Max, MaxLength, Min } from 'class-validator';
+import { EstJourCalendaire } from '../../common/validators/jour-calendaire';
 import {
   INGEST_DIRECTIONS,
   PAGE_SIZE_DEFAULT,
@@ -50,12 +51,21 @@ export class ListRecordingsDto {
   @Matches(/^[A-Za-z0-9+.-]+$/, { message: 'numéro : caractères non autorisés' })
   phone?: string;
 
+  /**
+   * Jour de début, tel qu'un champ de date le produit. Le format ne suffit
+   * pas : le jour doit exister au calendrier, sans quoi la recherche porterait
+   * sur une autre journée que celle que le journal d'audit consignera.
+   */
   @IsOptional()
-  @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: 'du : date attendue au format aaaa-mm-jj' })
+  @EstJourCalendaire({
+    message: 'du : jour attendu au format aaaa-mm-jj, et existant au calendrier',
+  })
   from?: string;
 
   @IsOptional()
-  @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: 'au : date attendue au format aaaa-mm-jj' })
+  @EstJourCalendaire({
+    message: 'au : jour attendu au format aaaa-mm-jj, et existant au calendrier',
+  })
   to?: string;
 
   @IsOptional()

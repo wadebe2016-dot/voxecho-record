@@ -255,6 +255,11 @@ describe('recherche d’enregistrements', () => {
       ['date de début après la date de fin', '?from=2026-09-05&to=2026-09-01'],
       ['durée minimale supérieure à la maximale', '?minDurationSec=600&maxDurationSec=60'],
       ['date mal formée', '?from=01/09/2026'],
+      ['jour hors du mois', '?from=2026-09-32'],
+      ['jour zéro', '?from=2026-09-00'],
+      ['mois zéro', '?from=2026-00-10'],
+      ['treizième mois', '?from=2026-13-45'],
+      ['29 février d’une année non bissextile', '?to=2026-02-29'],
       ['sens inconnu', '?direction=sortant'],
       ['numéro à caractères interdits', '?phone=699%20112%20233'],
       ['durée négative', '?minDurationSec=-1'],
@@ -266,6 +271,31 @@ describe('recherche d’enregistrements', () => {
     it('ne trace aucune recherche quand les critères sont refusés', async () => {
       await chercher('?from=2026-09-05&to=2026-09-01').expect(400);
       expect(await prisma.auditEvent.count({ where: { action: 'SEARCH' } })).toBe(0);
+    });
+
+    /**
+     * Le cas dangereux n'est pas celui qui échoue bruyamment, c'est celui qui
+     * réussit de travers : « 2026-02-30 » a la bonne forme, et `new Date` le
+     * reportait au 1er mars. La recherche rendait alors un résultat d'allure
+     * normale, portant sur une journée que personne n'avait demandée — pendant
+     * que le journal d'audit consignait « du 2026-02-30 ». Un journal qui
+     * atteste d'une recherche qui n'a pas eu lieu ne vaut rien devant un
+     * contrôleur.
+     */
+    it.each([
+      ['30 février', '2026-02-30'],
+      ['31 avril', '2026-04-31'],
+      ['31 juin', '2026-06-31'],
+    ])('refuse %s au lieu de le reporter au jour suivant', async (_libelle, jour) => {
+      const reponse = await chercher(`?from=${jour}&to=${jour}`).expect(400);
+      expect(JSON.stringify(reponse.body)).toMatch(/calendrier/);
+      expect(await prisma.auditEvent.count({ where: { action: 'SEARCH' } })).toBe(0);
+    });
+
+    it('ne rend jamais une erreur serveur sur une date, quelle qu’elle soit', async () => {
+      for (const jour of ['2026-13-45', '2026-02-30', '2026-09-00', '0099-01-01']) {
+        await chercher(`?from=${jour}`).expect(400);
+      }
     });
   });
 

@@ -15,6 +15,7 @@ import {
   type RecordingListItem,
 } from '@voxecho/shared';
 import { AuditService } from '../audit/audit.service';
+import { resoudreCheminDeDonnees } from '../config/chemins';
 import { AppConfig } from '../config/config.module';
 import { PrismaService } from '../prisma/prisma.service';
 import type { AuthUser } from '../auth/auth.types';
@@ -39,7 +40,7 @@ export class RecordingsService {
     private readonly billets: ListenTicketService,
     config: AppConfig,
   ) {
-    this.storageDir = resolve(config.get('STORAGE_DIR'));
+    this.storageDir = resoudreCheminDeDonnees(config.get('STORAGE_DIR'));
   }
 
   /**
