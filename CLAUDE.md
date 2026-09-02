@@ -568,3 +568,49 @@ seront à trancher à ce moment : ce qu'il advient d'un appel dont la catégorie
 change après coup, et laquelle des deux durées s'applique quand elles
 divergent — la plus longue, sauf décision contraire, puisqu'en conservation
 c'est le doute qui doit profiter à la preuve.
+
+### 9.11 Le journal se lit, s'extrait, et ne s'écrit jamais par là (S4)
+
+Le §6 demande un journal « consultable par ADMIN/AUDITOR, filtrable, export
+CSV ». Il ferme aussi le premier fil laissé ouvert au §9.5 : l'entrée
+« Journal d'audit » de la barre de navigation mène désormais quelque part.
+
+**Deux services, pas un.** `AuditService` écrit, `AuditReadService` lit. La
+séparation n'est pas cosmétique : le journal est append-only, et une classe
+qui sait déjà écrire finit un jour par exposer une méthode qui écrit là où on
+croyait lire. Aucune route d'écriture n'existe, et le déclencheur en base
+refuse de toute façon.
+
+**Le SUPERVISOR n'y a pas accès**, conformément au §6 — et pour la même raison
+qu'il n'écoute pas (§9.9) : le journal dit qui a entendu quoi. Le donner à lire
+à qui n'a pas l'habilitation d'écoute reviendrait à lui livrer indirectement
+l'activité des auditeurs.
+
+**Lire le journal ne s'inscrit pas au journal, l'extraire si.** Consulter est
+l'usage normal de la pièce : tracer chaque page consultée noierait le journal
+sous des événements qui ne disent rien, exactement comme tracer chaque requête
+`Range` l'aurait noyé au §9.4. Un export CSV, lui, sort du produit : il devient
+une pièce autonome qui circulera, et il s'inscrit donc comme un `EXPORT`,
+portant l'objet, les critères, le nombre de lignes et le fait que l'extrait
+soit tronqué. Aucune action nouvelle n'a été ajoutée au §5 pour cela.
+
+**L'extrait dit s'il est incomplet.** Au-delà de 50 000 lignes, l'export est
+tronqué et l'annonce — en-tête de réponse et trace au journal. Un contrôleur
+qui croit tenir le journal entier tirerait des conclusions fausses d'un
+silence.
+
+**Le CSV est fait pour le tableur qui l'ouvrira.** Séparateur point-virgule,
+marque d'ordre d'octets en tête : sans elles, Excel en configuration française
+rend une colonne unique et des accents cassés. Les valeurs commençant par `=`,
+`+`, `-` ou `@` sont préfixées d'une apostrophe — un motif de conservation
+forcée est saisi par un humain, et un champ libre qui finit dans un tableur ne
+doit pas s'y exécuter.
+
+**Réserve** — le filtre par auteur porte sur un fragment d'adresse, ce qui
+suffit à un journal de quelques milliers de lignes et devient coûteux au-delà.
+Si le volume l'impose, ce sera une jointure sur un identifiant de compte
+choisi dans une liste, pas un index sur une recherche textuelle. Par ailleurs,
+la lecture non tracée vaut tant que le journal reste interne ; si un jour un
+auditeur externe obtient un accès, il faudra tracer ses consultations — et
+c'est alors la lecture *par un compte externe* qu'on inscrira, pas toute
+lecture.

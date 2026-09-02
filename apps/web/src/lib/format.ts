@@ -84,6 +84,24 @@ export function libelleCategorie(categorie: string): string {
   return CATEGORIES[categorie] ?? categorie;
 }
 
+/** Actions du journal d'audit, en clair — CLAUDE.md §6. */
+const ACTIONS: Record<string, string> = {
+  LOGIN: 'Connexion',
+  SEARCH: 'Recherche',
+  LISTEN: 'Écoute',
+  EXPORT: 'Export',
+  INGEST: 'Ingestion',
+  QUARANTINE: 'Quarantaine',
+  PURGE: 'Purge',
+  HOLD_SET: 'Conservation posée',
+  HOLD_RELEASE: 'Conservation levée',
+  RETENTION_SET: 'Rétention modifiée',
+};
+
+export function libelleAction(action: string): string {
+  return ACTIONS[action] ?? action;
+}
+
 export function libelleRole(role: string): string {
   return ROLES[role] ?? role;
 }

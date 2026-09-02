@@ -25,5 +25,6 @@ export const AUDIT_ACTIONS = [
   'PURGE',
   'HOLD_SET',
   'HOLD_RELEASE',
+  'RETENTION_SET',
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

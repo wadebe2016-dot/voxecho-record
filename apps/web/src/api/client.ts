@@ -1,4 +1,6 @@
 import type {
+  AuditEventItem,
+  AuditListQuery,
   ExportIntegrite,
   ListenTicketResponse,
   LoginRequest,
@@ -133,6 +135,30 @@ export const api = {
    * attend le fichier entier de toute façon, la lecture par plages n'aurait
    * ici aucun sens.
    */
+  journal: (query: AuditListQuery): Promise<Page<AuditEventItem>> =>
+    appeler('/audit', { query: query as Record<string, string | number | undefined> }),
+
+  /** Extrait CSV du journal. L'export s'inscrit lui-même au journal (§9.11). */
+  exporterJournal: async (query: AuditListQuery): Promise<ArchiveExportee> => {
+    const url = new URL(`${BASE}/api/audit/export.csv`, window.location.origin);
+    for (const [cle, valeur] of Object.entries(query)) {
+      if (valeur !== undefined && valeur !== '') url.searchParams.set(cle, String(valeur));
+    }
+    const acces = jetons.acces();
+    const reponse = await fetch(url.toString(), {
+      headers: acces ? { Authorization: `Bearer ${acces}` } : {},
+    });
+    if (!reponse.ok) {
+      const charge: unknown = await reponse.json().catch(() => null);
+      throw new ApiError(reponse.status, messageDErreur(charge, reponse.status));
+    }
+    return {
+      contenu: await reponse.blob(),
+      nomFichier: nomDeFichier(reponse.headers.get('Content-Disposition')) ?? 'journal-audit.csv',
+      integrite: 'concordante',
+    };
+  },
+
   exporterAppel: async (id: string): Promise<ArchiveExportee> => {
     const url = new URL(`${BASE}/api/recordings/${id}/export`, window.location.origin);
     const acces = jetons.acces();

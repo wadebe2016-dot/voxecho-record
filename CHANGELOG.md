@@ -196,3 +196,14 @@ démontrées bout en bout sur des données simulées.
 - Contrat §3 amendé sans changer la version de schéma : `category` y est
   facultatif, un producteur qui l'ignore reste conforme et son dépôt est rangé
   en `autre`. Une valeur inconnue part en quarantaine (§9.10).
+- Journal d'audit du §6 : `GET /api/audit` paginé et filtrable (action,
+  auteur, appel, plage de jours), écran dédié réservé à ADMIN et AUDITOR.
+  **L'entrée « Journal d'audit » de la barre mène enfin quelque part** — le
+  premier des deux fils du §9.5 est refermé.
+- Les événements qu'aucun locataire ne réclame restent réservés à l'ADMIN de
+  l'instance, et se distinguent à l'écran.
+- Export CSV du journal filtré, taillé pour un tableur français (point-virgule,
+  marque d'ordre d'octets, formules neutralisées). Lire le journal ne s'inscrit
+  pas au journal ; l'extraire si — un extrait qui sort est une pièce (§9.11).
+- `AUDIT_ACTIONS` partagé remis d'aplomb sur le schéma Prisma : `RETENTION_SET`
+  y manquait depuis le lot 01.
