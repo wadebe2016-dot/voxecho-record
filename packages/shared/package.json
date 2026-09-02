@@ -1,0 +1,33 @@
+{
+  "name": "@voxecho/shared",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Types partagés VoxEcho — dont le contrat d'ingestion (CLAUDE.md §3)",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc -p tsconfig.build.json --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src test --max-warnings 0",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8"
+  }
+}
