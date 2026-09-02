@@ -57,6 +57,9 @@ export const envSchema = z.object({
   INGEST_DIR: z.string().min(1).default('./data/ingest'),
   STORAGE_DIR: z.string().min(1).default('./data/storage'),
   QUARANTINE_DIR: z.string().min(1).default('./data/quarantine'),
+  // Sauvegardes (CLAUDE.md §9.14). Une prise par sous-répertoire daté ;
+  // les pièces audio n'y sont pas recopiées, seulement inventoriées.
+  BACKUP_DIR: z.string().min(1).default('./data/backups'),
 
   // Balayage périodique plutôt qu'inotify : un répertoire d'ingestion est
   // souvent un volume monté ou un partage réseau, où les événements du

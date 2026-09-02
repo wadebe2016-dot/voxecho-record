@@ -17,7 +17,9 @@
     "prisma:deploy": "prisma migrate deploy",
     "prisma:studio": "dotenv -e ../../.env -- prisma studio",
     "seed": "dotenv -e ../../.env -- tsx prisma/seed.ts",
-    "storage:sceller": "dotenv -e ../../.env -- tsx src/storage/sceller-existants.ts"
+    "storage:sceller": "dotenv -e ../../.env -- tsx src/storage/sceller-existants.ts",
+    "sauvegarde:creer": "dotenv -e ../../.env -- tsx src/backup/sauvegarde-creer.ts",
+    "sauvegarde:verifier": "dotenv -e ../../.env -- tsx src/backup/sauvegarde-verifier.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.4.15",

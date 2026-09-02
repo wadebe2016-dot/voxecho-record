@@ -71,6 +71,19 @@ un domaine tiers. L'api applique les migrations à son démarrage.
 | `pnpm build`        | Build de production de tous les paquets |
 | `pnpm format`       | Formatage Prettier                      |
 
+Exploitation (dans `apps/api`, via `pnpm --filter @voxecho/api run …`) :
+
+| Commande              | Effet                                                           |
+| --------------------- | --------------------------------------------------------------- |
+| `storage:sceller`     | Scelle les pièces déjà rangées en clair (simulation par défaut) |
+| `sauvegarde:creer`    | Dump de la base + inventaire du stockage + manifeste (§9.14)    |
+| `sauvegarde:verifier` | Vérifie une prise ; `--stockage` recalcule chaque empreinte     |
+
+La sauvegarde ne recopie pas les fichiers audio : ils se sauvegardent par les
+moyens de l'exploitant, et `sauvegarde:verifier --stockage` prouve que la copie
+est complète et intacte. La clé maître n'y est jamais écrite — seule son
+empreinte l'est, pour reconnaître la bonne clé le jour d'une restauration.
+
 Les tests d'intégration de l'api travaillent dans le schéma PostgreSQL `test`
 de la même base : ils ne touchent jamais aux données de développement.
 

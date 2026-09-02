@@ -267,3 +267,24 @@ export async function premiersOctets(chemin: string, combien = MAGIE.length): Pr
 export function memeCle(a: Buffer, b: Buffer): boolean {
   return a.length === b.length && timingSafeEqual(a, b);
 }
+
+/**
+ * Empreinte publique d'une clé maître — CLAUDE.md §9.14.
+ *
+ * Une sauvegarde ne contient jamais la clé : ce serait ranger le coffre avec
+ * sa combinaison scotchée dessus, alors qu'une copie de sauvegarde se
+ * duplique et s'emporte hors site. Elle en retient en revanche cette
+ * empreinte, qui permet de dire à la restauration « ce n'est pas la clé qui a
+ * scellé ces pièces » — au lieu de le découvrir des mois plus tard, à la
+ * première écoute demandée par un contrôleur.
+ *
+ * Elle est dérivée par HKDF sous un contexte qui lui est propre : elle ne
+ * peut donc servir ni à ouvrir un conteneur, ni à retrouver la clé.
+ */
+export function empreinteCleMaitre(cleMaitre: Buffer): string {
+  if (cleMaitre.length !== TAILLE_CLE) {
+    throw new Error(`clé maître de ${TAILLE_CLE} octets attendue`);
+  }
+  const contexte = 'voxecho-record:empreinte-cle-maitre:v1';
+  return Buffer.from(hkdfSync('sha256', cleMaitre, Buffer.alloc(0), contexte, 16)).toString('hex');
+}
