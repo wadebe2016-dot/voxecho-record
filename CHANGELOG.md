@@ -123,6 +123,9 @@ avec la même graine est reconnu comme identique et retiré sans doublon.
   graine fixée, l'ingestion le range, un auditeur cherche, écoute, et le
   journal rend compte. Elle se rejoue à chaque CI plutôt que de dépendre de
   quelqu'un qui se souvient des commandes.
+- CLAUDE.md §9.5 : l'écran du journal d'audit et le tableau de bord du §6 sont
+  arrimés à la fin du S4. L'entrée « Journal d'audit » de la barre de navigation
+  ne mène encore nulle part — le manque est assumé et daté plutôt que masqué.
 
 Sortie de jalon S3 atteinte : recherche, réécoute streamée et écoutes tracées,
 démontrées bout en bout sur des données simulées.

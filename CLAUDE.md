@@ -296,3 +296,30 @@ que le portail et l'api partagent une origine, il ne quitte pas la machine
 de l'auditeur. Le jour où l'audio serait servi par un tiers (CDN, stockage
 objet signé), il faudra le raccourcir nettement et le lier à l'adresse IP
 du demandeur ; le point d'inscription au journal, lui, ne bouge pas.
+
+### 9.5 Deux pans du §6 sont tenus jusqu'à la fin du S4 (S3)
+
+La revue de sortie du S3 constate deux manques par rapport au §6, tous deux
+connus et tous deux reportés à la **fin du S4**, après la rétention, le legal
+hold, la purge et l'export :
+
+- **Le journal d'audit n'a pas d'écran.** `AppShell` propose bien l'entrée
+  « Journal d'audit », masquée aux rôles qui n'y ont pas droit, mais aucune
+  route ne la sert : le portail redirige vers la liste des enregistrements.
+  Le §7 place cet écran en S4, et l'api n'expose pas encore de route de
+  lecture du journal — les données existent, la vue non.
+- **Le tableau de bord du §6** (volume par jour, durée totale, stockage
+  utilisé, dernières quarantaines) n'est rattaché à aucun jalon du §7. Il est
+  arrimé ici à la fin du S4.
+
+Le lien mort est assumé plutôt que retiré : il dit à l'auditeur, dès
+aujourd'hui, que le journal qu'on lui promet existe et lui sera ouvert. Le
+retirer pour le remettre en S4 coûterait deux modifications au lieu d'une et
+ferait disparaître de l'écran la seule trace visible d'un engagement produit.
+La contrepartie est qu'il ne doit pas survivre au S4 dans cet état.
+
+**Réserve** — cette tolérance vaut pour un portail qu'aucun client n'utilise
+encore. À la première mise en service réelle, un lien qui ne mène nulle part
+n'est plus une promesse mais un défaut : si le S4 devait glisser au-delà d'une
+mise en service, le lien se désactive (visible, mais inerte et annoncé comme
+« à venir ») plutôt que de rediriger silencieusement.
