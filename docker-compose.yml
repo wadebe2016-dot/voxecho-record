@@ -51,6 +51,14 @@ services:
       JWT_REFRESH_TTL: ${JWT_REFRESH_TTL:-7d}
       AUTH_MAX_FAILED_ATTEMPTS: ${AUTH_MAX_FAILED_ATTEMPTS:-5}
       AUTH_LOCK_DURATION_MIN: ${AUTH_LOCK_DURATION_MIN:-15}
+      # Le portail relaie /api : sans cette déclaration, toutes les entrées du
+      # journal d'audit porteraient l'adresse du conteneur nginx (§9.16). La
+      # plage est celle des réseaux bridge de docker ; la restreindre au
+      # besoin, mais ne jamais faire confiance à tout le monde.
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-172.16.0.0/12}
+      API_BEHIND_TLS: ${API_BEHIND_TLS:-false}
+      AUTH_RATE_MAX: ${AUTH_RATE_MAX:-10}
+      AUTH_RATE_WINDOW_SEC: ${AUTH_RATE_WINDOW_SEC:-60}
       INGEST_DIR: /data/ingest
       STORAGE_DIR: /data/storage
       QUARANTINE_DIR: /data/quarantine

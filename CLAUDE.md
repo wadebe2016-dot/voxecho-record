@@ -849,3 +849,72 @@ par la mémoire de celui qui l'a fait la dernière fois. Par ailleurs, le compte
 des enregistrements en trop se déduit d'une différence : il dit qu'il y en a,
 jamais lesquels, et une base de secours contenant deux jeux de données mêlés
 demanderait un examen à part.
+
+### 9.16 On ne croit une adresse que si l'on sait qui la rapporte (hors jalon)
+
+Premier lot du durcissement, ouvert après le S4 et avant toute mise en ligne.
+La réserve du §9.5 l'annonçait : les tolérances du portail valaient « tant
+qu'aucun client ne l'utilise ». Une démonstration publique est une mise en
+service.
+
+**L'adresse inscrite au journal était fausse dès qu'on livrait.** Le §5 veut
+une `ip` sur chaque événement ; derrière le nginx du livrable, `request.ip`
+vaut l'adresse du conteneur qui relaie, et toutes les entrées portaient donc la
+même. Express sait lire `X-Forwarded-For`, mais le lui demander sans réserve
+serait pire que le mal : cet en-tête est écrit par le client, et n'importe qui
+choisirait alors l'adresse inscrite à son nom dans un journal append-only
+qu'aucune route ne peut corriger — tout en se rendant invisible d'une
+limitation par adresse. La confiance est donc **nominative** : `TRUSTED_PROXIES`
+énumère les relais qu'on a soi-même installés, et **vide par défaut**. Une api
+exposée directement ne croit que sa socket.
+
+**La limitation par adresse ne compte que les échecs.** Dans une banque, tout
+le personnel sort par une même adresse publique : compter les tentatives
+réussies rationnerait un service entier au motif qu'il est nombreux. Un
+balayage, lui, produit des échecs — c'est cela qu'on mesure. Une connexion
+réussie ne remet rien à zéro, sans quoi un attaquant disposant d'un compte
+valide effacerait son compteur entre deux salves ; les échecs s'oublient
+d'eux-mêmes en sortant de la fenêtre.
+
+Elle ne remplace pas le verrouillage de compte du §5, elle le complète : l'un
+protège un compte nommé, l'autre freine celui qui essaie mille comptes à la
+suite. Le verrouillage seul laissait passer le balayage, et il est lui-même une
+arme — cinq erreurs volontaires suffisent à priver un auditeur de son accès un
+quart d'heure. La limitation ne corrige pas ce défaut-là ; elle en réduit la
+portée, et le fait qu'un compte se déverrouille tout seul le borne.
+
+**Elle est posée sur les routes d'authentification, jamais globalement.** La
+réécoute d'un appel de dix minutes provoque des dizaines de requêtes `Range`
+(§9.4) : une limitation générale casserait l'écoute au premier déplacement dans
+la conversation.
+
+**C'est le blocage qui s'inscrit au journal, pas la tentative.** Une entrée par
+épisode, sans locataire ni compte — on ne sait pas qui frappe, et c'est
+précisément ce qu'il faut consigner ; le précédent est au §9.2. Tracer chaque
+tentative offrirait à un inconnu le moyen de gonfler à volonté un journal que
+rien ne peut purger, ce qui serait un déni de service offert avec la
+protection. Aucune action n'est ajoutée au §5 : c'est un `LOGIN` dont le
+`resultat` vaut `bloque_par_limitation`.
+
+**La politique de contenu du portail est vérifiée par un build, pas par une
+relecture.** La CSP servie par nginx n'autorise aucun inline ; elle ne tient que
+tant que la construction n'émet ni `<script>` ni `<style>` dans la page. Le jour
+où un outil en émettrait un, le portail cesserait de fonctionner **en
+production seulement**, là où aucun test ne regarde. Le test construit donc
+pour de bon et relit le résultat.
+
+**HSTS n'est émis que derrière une terminaison TLS déclarée.** Il promet au
+navigateur que le domaine se joint en HTTPS et l'y contraint des mois durant :
+le promettre depuis une api en clair est une promesse qu'on ne tient pas.
+
+**Réserve** — le compteur vit en mémoire. C'est exact pour le modèle de
+déploiement du §9.1, une instance par client ; le jour où deux instances
+serviraient le même portail, chacune ne verrait qu'une part des échecs et la
+limitation deviendrait deux fois plus permissive qu'annoncée. Il faudra alors un
+magasin partagé, et c'est à ce moment qu'un paquet éprouvé se justifiera plutôt
+que ces quelques dizaines de lignes. Par ailleurs, la mémoire est bornée à
+`AUTH_RATE_MAX_ADRESSES` : au-delà, les adresses les moins récentes sont
+oubliées — oublier un attaquant discret est le prix à payer pour ne pas se
+laisser épuiser par un attaquant nombreux. Enfin, la terminaison TLS elle-même
+n'est pas dans ce lot : elle appartient au déploiement de `record.voxecho.cm`,
+et tant qu'elle n'est pas posée, `API_BEHIND_TLS` doit rester faux.

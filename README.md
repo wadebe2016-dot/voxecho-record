@@ -157,6 +157,17 @@ Le scénario de contrôle qui les met bout à bout — `apps/api/test/controle-c
 contrôleur interroge le périmètre, l'intégrité, les habilitations, les
 destructions, le journal, puis la capacité à restaurer.
 
+## Durcissement
+
+- L'adresse du demandeur n'est lue dans `X-Forwarded-For` que si le relais est
+  déclaré dans `TRUSTED_PROXIES` (vide par défaut). En livraison, le
+  docker-compose déclare le réseau du nginx.
+- Les tentatives de connexion sont limitées par adresse (`AUTH_RATE_MAX` échecs
+  par `AUTH_RATE_WINDOW_SEC`), en plus du verrouillage de compte. Le blocage est
+  inscrit au journal d'audit une fois par épisode.
+- `API_BEHIND_TLS=true` dès qu'une terminaison TLS est en place : c'est ce qui
+  autorise l'api à émettre HSTS.
+
 ## Documentation
 
 - `CLAUDE.md` — brief produit et décisions techniques (fait foi)

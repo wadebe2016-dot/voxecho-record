@@ -3,11 +3,13 @@ import { JwtModule } from '@nestjs/jwt';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { TokensService } from './tokens.service';
+import { LimitationConnexion } from './limitation-connexion.service';
+import { LimitationConnexionGuard } from './limitation-connexion.guard';
 
 @Module({
   imports: [JwtModule.register({})],
   controllers: [AuthController],
-  providers: [AuthService, TokensService],
+  providers: [AuthService, TokensService, LimitationConnexion, LimitationConnexionGuard],
   exports: [TokensService],
 })
 export class AuthModule {}

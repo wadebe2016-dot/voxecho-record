@@ -16,6 +16,15 @@ process.env.NODE_ENV = 'test';
 process.env.INGEST_POLL_ENABLED = 'false';
 
 /**
+ * Les suites enchaînent délibérément des échecs de connexion — c'est ainsi
+ * que se teste un verrouillage de compte. Le seuil par adresse est donc levé
+ * ici, sans quoi une suite bloquerait la suivante : elles partagent la même
+ * adresse d'origine. La limitation elle-même est éprouvée dans sa propre
+ * suite, sur une application montée avec un réglage serré (§9.16).
+ */
+process.env.AUTH_RATE_MAX = '10000';
+
+/**
  * Répertoires de travail propres à chaque fichier de test : l'ingestion
  * déplace de vrais fichiers, et deux suites qui partageraient un même
  * INGEST_DIR se voleraient leurs dépôts.
