@@ -207,3 +207,13 @@ démontrées bout en bout sur des données simulées.
   pas au journal ; l'extraire si — un extrait qui sort est une pièce (§9.11).
 - `AUDIT_ACTIONS` partagé remis d'aplomb sur le schéma Prisma : `RETENTION_SET`
   y manquait depuis le lot 01.
+- Tableau de bord du §6 : appels conservés, durée totale, stockage utilisé,
+  appels sous conservation forcée et appels purgés, conservation en vigueur,
+  volume quotidien sur trente jours et derniers dépôts écartés. **Le second
+  fil du §9.5 est refermé.**
+- Ouvert aux trois rôles, SUPERVISOR compris : il dit ce que pèse la
+  conservation et si la chaîne tourne, jamais qui a écouté quoi (§9.12).
+- Le graphe est mono-série et mono-teinte, sans légende, les jours creux
+  dessinés à zéro — un graphe qui saute les journées vides dessine une
+  activité continue là où le service a chômé. Les mêmes données sont données
+  en chiffres juste en dessous.

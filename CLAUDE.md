@@ -614,3 +614,42 @@ la lecture non tracée vaut tant que le journal reste interne ; si un jour un
 auditeur externe obtient un accès, il faudra tracer ses consultations — et
 c'est alors la lecture *par un compte externe* qu'on inscrira, pas toute
 lecture.
+
+### 9.12 Le tableau de bord dit l'exploitation, pas les personnes (S4)
+
+Le §6 demande « volume/jour, durée totale, stockage utilisé, dernières
+quarantaines ». Ce lot referme le second fil du §9.5.
+
+**Il est ouvert aux trois rôles, SUPERVISOR compris**, alors que le journal
+d'audit lui est fermé (§9.11). Ce n'est pas une incohérence, c'est la ligne :
+le tableau de bord dit *ce que pèse la conservation et si la chaîne tourne*,
+jamais *qui a écouté quoi*. Les quarantaines n'ont pas d'auteur humain, et le
+reste est du volume. Surveiller un service, c'est précisément le métier d'un
+superviseur.
+
+Les quarantaines affichées sont celles du locataire. Celles qu'aucun locataire
+ne réclame (§9.2) n'y figurent pas : elles restent réservées à l'ADMIN de
+l'instance, depuis le journal.
+
+**Le stockage utilisé ne compte que ce qui est sur le disque.** Un appel purgé
+garde sa fiche mais ne pèse plus rien ; il est compté à part, sous un intitulé
+qui dit que l'audio a été détruit et la fiche conservée — sans quoi un écart
+entre deux chiffres se lirait comme une perte de données.
+
+**Le graphe est mono-série, donc mono-teinte.** Une seule couleur, pas de
+légende — le titre nomme la série. Les jours creux sont dessinés à zéro et non
+omis : un graphe qui saute les journées vides dessine une activité continue là
+où le service a chômé, et c'est exactement le genre de courbe flatteuse qu'un
+produit de preuve ne doit pas produire. Un jour à zéro n'a donc aucune hauteur
+minimale « pour la visibilité » : zéro reste zéro.
+
+Les mêmes données figurent juste en dessous **en chiffres**. Un contrôleur
+recopie des valeurs, il ne mesure pas des barres à l'œil ; et la couleur ne
+doit jamais porter seule une information.
+
+**Réserve** — la fenêtre est de trente jours fixes et l'agrégation se fait à
+chaque appel. C'est sans conséquence sur les volumes visés, où trente jours
+représentent quelques milliers de lignes. Au-delà, la réponse est une table
+d'agrégats entretenue à l'ingestion, pas un cache devant cette route : un
+chiffre de conformité doit rester recalculable à la demande, et un cache
+introduit une fenêtre pendant laquelle l'écran ment.

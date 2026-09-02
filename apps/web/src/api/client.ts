@@ -1,6 +1,7 @@
 import type {
   AuditEventItem,
   AuditListQuery,
+  DashboardResponse,
   ExportIntegrite,
   ListenTicketResponse,
   LoginRequest,
@@ -135,6 +136,8 @@ export const api = {
    * attend le fichier entier de toute façon, la lecture par plages n'aurait
    * ici aucun sens.
    */
+  tableauDeBord: (): Promise<DashboardResponse> => appeler('/dashboard'),
+
   journal: (query: AuditListQuery): Promise<Page<AuditEventItem>> =>
     appeler('/audit', { query: query as Record<string, string | number | undefined> }),
 
