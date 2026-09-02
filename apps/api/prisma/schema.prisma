@@ -80,6 +80,7 @@ model Tenant {
   recordings        Recording[]
   auditEvents       AuditEvent[]
   retentionPolicies RetentionPolicy[]
+  purgeRuns         PurgeRun[]
 
   @@map("tenants")
 }
@@ -103,6 +104,9 @@ model User {
   refreshTokens      RefreshToken[]
   legalHoldsSet      LegalHold[]    @relation("LegalHoldSetBy")
   legalHoldsReleased LegalHold[]    @relation("LegalHoldReleasedBy")
+  purgeRunsCreated   PurgeRun[]     @relation("PurgeRunCreatedBy")
+  purgeRunsExecuted  PurgeRun[]     @relation("PurgeRunExecutedBy")
+  purgeRunsCancelled PurgeRun[]     @relation("PurgeRunCancelledBy")
 
   @@index([tenantId])
   @@map("users")
@@ -145,9 +149,10 @@ model Recording {
   encrypted Boolean @default(false)
   keyRef    String? @map("key_ref")
 
-  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  auditEvents AuditEvent[]
-  legalHolds  LegalHold[]
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  auditEvents   AuditEvent[]
+  legalHolds    LegalHold[]
+  purgeRunItems PurgeRunItem[]
 
   // Idempotence de l'ingestion : le nom du fichier est conservé, un
   // re-dépôt retombe donc sur le même chemin de destination (contrat §3).
@@ -199,6 +204,102 @@ model AuditEvent {
 /// Durée de conservation d'un locataire. Le défaut d'un nouveau locataire est
 /// de 730 jours ; l'api refuse de descendre sous le plancher `RETENTION_MIN_DAYS`
 /// sans dérogation motivée (CLAUDE.md §9.6).
+/// Cycle de vie d'un rapport de purge. Un rapport naît simulé : c'est une
+/// autorisation à demander, pas une destruction en cours.
+enum PurgeRunStatus {
+  simulated
+  executed
+  cancelled
+}
+
+/// Sort d'un enregistrement dans un rapport de purge.
+enum PurgeItemOutcome {
+  /// Candidat retenu par le rapport, pas encore détruit.
+  candidate
+  /// Détruit à l'exécution.
+  purged
+  /// Épargné : une conservation forcée était active.
+  blocked
+  /// Détruit en base, mais le fichier manquait déjà au stockage.
+  missing
+}
+
+/// Rapport de purge — CLAUDE.md §9.7.
+///
+/// Le rapport **est** l'autorisation : un responsable conformité le lit, puis
+/// l'exécution le désigne par son identifiant. Rien ne se détruit qui n'ait
+/// été énuméré, chiffré et daté d'abord.
+model PurgeRun {
+  id       String         @id @default(uuid()) @db.Uuid
+  tenantId String         @map("tenant_id") @db.Uuid
+  status   PurgeRunStatus @default(simulated)
+
+  /// Politique en vigueur au moment du rapport, et date d'échéance qui en
+  /// découle. Toutes deux figées : l'exécution rejoue le rapport, elle ne le
+  /// recalcule pas à la date du jour.
+  policyDays Int      @map("policy_days")
+  cutoff     DateTime
+
+  candidateCount Int    @map("candidate_count")
+  candidateBytes BigInt @map("candidate_bytes")
+  blockedCount   Int    @map("blocked_count")
+  blockedBytes   BigInt @map("blocked_bytes")
+
+  /// Empreinte de l'ensemble énuméré (identifiants triés, état de hold
+  /// compris). Si le monde a changé entre la lecture et l'exécution, elle ne
+  /// concorde plus et l'exécution est refusée : ce qui a été autorisé n'est
+  /// plus ce qui serait détruit.
+  fingerprint String
+
+  createdBy String   @map("created_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  executedBy  String?   @map("executed_by") @db.Uuid
+  executedAt  DateTime? @map("executed_at")
+  purgedCount Int?      @map("purged_count")
+  purgedBytes BigInt?   @map("purged_bytes")
+
+  cancelledBy String?   @map("cancelled_by") @db.Uuid
+  cancelledAt DateTime? @map("cancelled_at")
+
+  tenant          Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdByUser   User           @relation("PurgeRunCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  executedByUser  User?          @relation("PurgeRunExecutedBy", fields: [executedBy], references: [id], onDelete: Restrict)
+  cancelledByUser User?          @relation("PurgeRunCancelledBy", fields: [cancelledBy], references: [id], onDelete: Restrict)
+  items           PurgeRunItem[]
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, status])
+  @@map("purge_runs")
+}
+
+/// Une ligne du rapport. Les appels épargnés par une conservation forcée y
+/// figurent au même titre que les candidats : un rapport qui ne montrerait
+/// que ce qu'on détruit laisserait croire qu'il n'y avait rien à épargner.
+model PurgeRunItem {
+  id          String           @id @default(uuid()) @db.Uuid
+  tenantId    String           @map("tenant_id") @db.Uuid
+  purgeRunId  String           @map("purge_run_id") @db.Uuid
+  recordingId String           @map("recording_id") @db.Uuid
+  outcome     PurgeItemOutcome @default(candidate)
+
+  /// Copiés au moment du rapport : ils doivent rester lisibles tels qu'ils
+  /// étaient quand la décision a été prise.
+  sizeBytes BigInt   @map("size_bytes")
+  startedAt DateTime @map("started_at")
+
+  blocked        Boolean
+  blockingReason String? @map("blocking_reason")
+
+  purgeRun  PurgeRun  @relation(fields: [purgeRunId], references: [id], onDelete: Cascade)
+  recording Recording @relation(fields: [recordingId], references: [id], onDelete: Restrict)
+
+  @@unique([purgeRunId, recordingId])
+  @@index([tenantId])
+  @@index([purgeRunId, blocked])
+  @@map("purge_run_items")
+}
+
 model RetentionPolicy {
   id        String   @id @default(uuid()) @db.Uuid
   tenantId  String   @map("tenant_id") @db.Uuid

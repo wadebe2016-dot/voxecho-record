@@ -9,6 +9,7 @@ import { AppConfigModule } from './config/config.module';
 import { HealthModule } from './health/health.module';
 import { IngestionModule } from './ingestion/ingestion.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { PurgeModule } from './purge/purge.module';
 import { RecordingsModule } from './recordings/recordings.module';
 import { RetentionModule } from './retention/retention.module';
 
@@ -21,6 +22,7 @@ import { RetentionModule } from './retention/retention.module';
     IngestionModule,
     RecordingsModule,
     RetentionModule,
+    PurgeModule,
     HealthModule,
   ],
   providers: [

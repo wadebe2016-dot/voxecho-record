@@ -373,3 +373,58 @@ simple ligne de motif pour devenir une décision datée et nominative, à
 présenter en cas de contrôle. Si une offre mutualisée voit le jour (§9.1), le
 plancher devra en outre devenir propre à chaque locataire : deux clients d'une
 même instance peuvent relever de régimes différents.
+
+### 9.7 La purge s'autorise sur pièce, elle ne se déclenche pas toute seule (S4)
+
+Le §5 dit « la purge respecte les holds, chaque purge est un AuditEvent » sans
+dire qui la déclenche. Trois choix en découlent.
+
+**Aucune purge automatique.** Le produit énumère, un responsable conformité
+valide, un ADMIN exécute. Un balayage qui détruirait de lui-même des pièces
+probantes à l'échéance ferait de la conservation une affaire de `cron` : le
+jour où une rétention est mal réglée, personne n'aurait rien signé. La
+contrepartie est assumée — sans intervention humaine, rien n'est jamais purgé
+et le stockage croît. C'est le bon sens de ce produit : on préfère un disque
+plein à une preuve détruite par inadvertance.
+
+**Le rapport est l'autorisation, pas un affichage.** Une simulation crée un
+`PurgeRun` figé : la politique en vigueur, l'échéance qui en découle, la liste
+énumérée des appels échus, ce qu'ils pèsent, et ceux qu'une conservation forcée
+épargne — avec le motif du hold, pour que le rapport se lise sans autre source.
+L'exécution désigne ce rapport par son identifiant et le **rejoue** : même
+échéance, même politique, jamais recalculées à la date du jour.
+
+Une empreinte de l'ensemble énuméré (identifiants triés, état de hold compris)
+est conservée. Si la réalité ne lui correspond plus à l'exécution — un hold
+posé depuis, un appel qui a franchi l'échéance entre-temps, une politique
+modifiée — l'exécution est refusée et il faut établir un nouveau rapport. Ce
+qui a été autorisé doit être exactement ce qui est détruit ; une autorisation
+qui porte sur un ensemble mouvant n'autorise rien.
+
+**La simulation n'ajoute pas d'action au journal.** Le `PurgeRun` est
+lui-même la trace : daté, attribué, immuable, consultable, et il survit à
+l'exécution. Ajouter un `PURGE_SIMULATED` au §5 aurait dédoublé cette trace
+sans rien apprendre à personne. Le journal, lui, reçoit un `PURGE` **par
+enregistrement détruit**, portant le motif, l'identifiant du rapport, la
+politique appliquée, et l'empreinte SHA-256 de ce qui vient de disparaître.
+
+**Ce qui reste d'un appel purgé.** Le fichier est détruit ; la ligne subsiste
+en `purged` avec son empreinte, sa taille, son chemin et sa durée. Elle
+continue de sortir dans les recherches — l'écoute rend `410`, pas `404`. C'est
+volontaire : effacer la ligne effacerait la preuve qu'il y avait quelque chose
+à purger, et un contrôleur qui demande « qu'avez-vous détruit, et quand ? »
+doit trouver une réponse ailleurs que dans un silence. Un fichier déjà absent
+du stockage au moment de la purge n'interrompt pas l'opération : il est
+consigné comme tel (`fichierDejaAbsent`), car c'est un incident d'intégrité
+qui mérite une trace, pas un échec qui mérite un arrêt.
+
+**Réserve** — l'absence de purge automatique tiendra tant qu'un exploitant
+peut suivre le rythme. Le jour où un client gère des dizaines de locataires,
+il faudra une purge programmée ; elle ne devra pas court-circuiter le rapport
+mais l'établir automatiquement, notifier, et attendre une validation — la
+signature reste humaine. Par ailleurs, l'empreinte invalide un rapport dès
+qu'un seul appel change d'état : sur un gros volume où des appels franchissent
+l'échéance en continu, un rapport pourrait devenir inexécutable avant d'avoir
+été lu. Si cela se produit, la réponse est de figer l'ensemble par les
+identifiants énumérés plutôt que par un recensement rejoué — pas d'assouplir
+la vérification.

@@ -63,6 +63,10 @@ export async function resetTestData(prisma: PrismaClient): Promise<void> {
   } finally {
     await prisma.$executeRawUnsafe(`ALTER TABLE ${schema}.audit_events ENABLE TRIGGER USER`);
   }
+  // Les rapports de purge retiennent les enregistrements qu'ils énumèrent
+  // (`onDelete: Restrict`) : un appel cité dans un rapport ne s'efface pas.
+  await prisma.purgeRunItem.deleteMany();
+  await prisma.purgeRun.deleteMany();
   await prisma.legalHold.deleteMany();
   await prisma.retentionPolicy.deleteMany();
   await prisma.refreshToken.deleteMany();
