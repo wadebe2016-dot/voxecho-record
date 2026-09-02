@@ -1,0 +1,90 @@
+import { PrismaClient, Role } from '@prisma/client';
+import { hashPassword } from '../src/auth/password';
+
+/**
+ * Jeu de données de démarrage : deux locataires, pour que le cloisonnement
+ * soit visible dès le premier lancement, et un compte par rôle.
+ * Les mots de passe sont ceux d'un environnement de développement — ils
+ * n'ont pas vocation à exister ailleurs.
+ */
+const prisma = new PrismaClient();
+
+const MOT_DE_PASSE_DEMO = 'Demo!2026';
+
+interface GraineUtilisateur {
+  email: string;
+  role: Role;
+}
+
+interface GraineLocataire {
+  name: string;
+  users: GraineUtilisateur[];
+  retentionDays: number;
+}
+
+const LOCATAIRES: GraineLocataire[] = [
+  {
+    name: 'Banque de démonstration CEMAC',
+    retentionDays: 3650,
+    users: [
+      { email: 'admin@demo.cm', role: Role.ADMIN },
+      { email: 'superviseur@demo.cm', role: Role.SUPERVISOR },
+      { email: 'auditeur@demo.cm', role: Role.AUDITOR },
+    ],
+  },
+  {
+    name: 'Microfinance Témoin',
+    retentionDays: 1825,
+    users: [{ email: 'admin@temoin.cm', role: Role.ADMIN }],
+  },
+];
+
+async function main(): Promise<void> {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Le seed de démonstration ne doit pas être exécuté en production.');
+  }
+
+  const passwordHash = await hashPassword(MOT_DE_PASSE_DEMO);
+
+  for (const graine of LOCATAIRES) {
+    const tenant = await prisma.tenant.upsert({
+      where: { name: graine.name },
+      update: {},
+      create: { name: graine.name },
+    });
+
+    for (const utilisateur of graine.users) {
+      await prisma.user.upsert({
+        where: { email: utilisateur.email },
+        update: { tenantId: tenant.id, role: utilisateur.role, active: true },
+        create: {
+          tenantId: tenant.id,
+          email: utilisateur.email,
+          passwordHash,
+          role: utilisateur.role,
+        },
+      });
+    }
+
+    await prisma.retentionPolicy.upsert({
+      where: { tenantId_appliesTo: { tenantId: tenant.id, appliesTo: 'all' } },
+      update: { days: graine.retentionDays },
+      create: { tenantId: tenant.id, days: graine.retentionDays, appliesTo: 'all' },
+    });
+
+    console.warn(
+      `Locataire « ${graine.name} » : ${graine.users.length} compte(s), rétention ${graine.retentionDays} j`,
+    );
+  }
+
+  console.warn(`Mot de passe de démonstration pour tous les comptes : ${MOT_DE_PASSE_DEMO}`);
+}
+
+main()
+  .catch((error: unknown) => {
+    console.error(error);
+    process.exitCode = 1;
+  })
+  .finally(() => {
+    void prisma.$disconnect();
+  });

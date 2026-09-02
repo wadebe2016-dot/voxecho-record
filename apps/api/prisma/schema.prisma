@@ -1,0 +1,200 @@
+// Modèle de données VoxEcho Record — CLAUDE.md §5.
+// Règle transverse : `tenant_id` sur toutes les tables métier, cloisonnement
+// vérifié par middleware et par tests.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  SUPERVISOR
+  AUDITOR
+}
+
+/// Direction de l'appel, telle que déposée par la capture (contrat §3).
+enum Direction {
+  outbound
+  inbound
+  internal
+}
+
+/// Origine de la capture (contrat §3).
+enum Source {
+  cucm_bib @map("cucm-bib")
+  siprec
+  simulator
+}
+
+/// Cycle de vie d'un enregistrement.
+enum RecordingStatus {
+  stored
+  archived
+  purged
+  hold
+}
+
+/// Actions tracées. Le journal est append-only.
+enum AuditAction {
+  LOGIN
+  SEARCH
+  LISTEN
+  EXPORT
+  INGEST
+  QUARANTINE
+  PURGE
+  HOLD_SET
+  HOLD_RELEASE
+}
+
+model Tenant {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+
+  users             User[]
+  recordings        Recording[]
+  auditEvents       AuditEvent[]
+  retentionPolicies RetentionPolicy[]
+
+  @@map("tenants")
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         Role
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  // Verrouillage après échecs de connexion (§5).
+  failedLoginAttempts Int       @default(0) @map("failed_login_attempts")
+  lockedUntil         DateTime? @map("locked_until")
+  lastLoginAt         DateTime? @map("last_login_at")
+
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  auditEvents   AuditEvent[]
+  refreshTokens RefreshToken[]
+  legalHoldsSet LegalHold[]    @relation("LegalHoldSetBy")
+
+  @@index([tenantId])
+  @@map("users")
+}
+
+/// Jetons de rafraîchissement, stockés hachés pour permettre la révocation.
+model RefreshToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  tenantId  String    @map("tenant_id") @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, userId])
+  @@map("refresh_tokens")
+}
+
+model Recording {
+  id          String          @id @default(uuid()) @db.Uuid
+  tenantId    String          @map("tenant_id") @db.Uuid
+  refci       String
+  near        String
+  far         String
+  direction   Direction
+  startedAt   DateTime        @map("started_at")
+  durationSec Int             @map("duration_sec")
+  filePath    String          @map("file_path")
+  sha256      String
+  sizeBytes   BigInt          @map("size_bytes")
+  source      Source
+  status      RecordingStatus @default(stored)
+  createdAt   DateTime        @default(now()) @map("created_at")
+
+  // Chiffrement au repos prévu en S4 : les colonnes existent déjà pour que
+  // l'activation n'impose pas de migration lourde (CLAUDE.md §8).
+  encrypted Boolean @default(false)
+  keyRef    String? @map("key_ref")
+
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  auditEvents AuditEvent[]
+  legalHolds  LegalHold[]
+
+  // Idempotence de l'ingestion : le nom du fichier est conservé, un
+  // re-dépôt retombe donc sur le même chemin de destination (contrat §3).
+  @@unique([tenantId, filePath])
+  @@index([tenantId, startedAt])
+  @@index([tenantId, near])
+  @@index([tenantId, far])
+  @@index([tenantId, status])
+  @@index([tenantId, sha256])
+  @@map("recordings")
+}
+
+/// Journal d'audit — append-only. Aucune route d'update ni de delete, et un
+/// garde-fou en base (déclencheur SQL) refuse toute modification.
+model AuditEvent {
+  id          String      @id @default(uuid()) @db.Uuid
+  tenantId    String      @map("tenant_id") @db.Uuid
+  userId      String?     @map("user_id") @db.Uuid
+  action      AuditAction
+  recordingId String?     @map("recording_id") @db.Uuid
+  detail      Json?       @db.JsonB
+  ip          String?
+  at          DateTime    @default(now())
+
+  // Le journal étant append-only, aucune suppression en cascade ne peut le
+  // toucher : effacer un locataire, un compte ou un enregistrement qui a
+  // laissé une trace est refusé. Un compte se désactive (`User.active`), un
+  // enregistrement se purge (`RecordingStatus.purged`) — ni l'un ni l'autre
+  // ne s'efface.
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  user      User?      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  recording Recording? @relation(fields: [recordingId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, at])
+  @@index([tenantId, action])
+  @@index([tenantId, userId])
+  @@index([recordingId])
+  @@map("audit_events")
+}
+
+model RetentionPolicy {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  days      Int
+  appliesTo String   @map("applies_to")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, appliesTo])
+  @@map("retention_policies")
+}
+
+/// Conservation forcée : la purge respecte les holds (§5).
+model LegalHold {
+  id          String    @id @default(uuid()) @db.Uuid
+  tenantId    String    @map("tenant_id") @db.Uuid
+  recordingId String    @map("recording_id") @db.Uuid
+  setBy       String    @map("set_by") @db.Uuid
+  reason      String
+  at          DateTime  @default(now())
+  releasedAt  DateTime? @map("released_at")
+
+  recording Recording @relation(fields: [recordingId], references: [id], onDelete: Cascade)
+  setByUser User      @relation("LegalHoldSetBy", fields: [setBy], references: [id])
+
+  @@index([tenantId])
+  @@index([recordingId])
+  @@map("legal_holds")
+}
