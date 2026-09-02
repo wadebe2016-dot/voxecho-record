@@ -19,7 +19,8 @@
     "seed": "dotenv -e ../../.env -- tsx prisma/seed.ts",
     "storage:sceller": "dotenv -e ../../.env -- tsx src/storage/sceller-existants.ts",
     "sauvegarde:creer": "dotenv -e ../../.env -- tsx src/backup/sauvegarde-creer.ts",
-    "sauvegarde:verifier": "dotenv -e ../../.env -- tsx src/backup/sauvegarde-verifier.ts"
+    "sauvegarde:verifier": "dotenv -e ../../.env -- tsx src/backup/sauvegarde-verifier.ts",
+    "restauration:constater": "dotenv -e ../../.env -- tsx src/backup/restauration-constater.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.4.15",

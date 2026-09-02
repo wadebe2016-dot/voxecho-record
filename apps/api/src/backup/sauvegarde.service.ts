@@ -172,7 +172,7 @@ interface MigrationPrisma {
   migration_name: string;
 }
 
-async function etatDesMigrations(
+export async function etatDesMigrations(
   prisma: PrismaClient,
 ): Promise<{ derniere: string | null; total: number }> {
   // La restauration devra présenter une base au même point : une migration

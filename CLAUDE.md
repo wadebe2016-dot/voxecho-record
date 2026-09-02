@@ -788,3 +788,64 @@ documenté, et une commande maison qui l'enroberait ajouterait un intermédiaire
 au pire moment. C'est en revanche la procédure écrite — restaurer, remettre la
 clé, vérifier — qui devra être jouée pour de bon avant la première mise en
 service, comme on joue un exercice d'évacuation.
+
+### 9.15 Restaurer se constate, cela ne se déclare pas (S4)
+
+Le §9.14 s'arrêtait où s'arrête une sauvegarde : elle vérifiait la prise, le
+stockage et la clé, c'est-à-dire tout ce qu'on peut vérifier **sans**
+restaurer. Il y laissait le dernier pas, celui qui compte le jour d'un
+sinistre : la base qu'on vient de remonter rend-elle ce qui avait été
+sauvegardé ? `restauration:constater` le demande, sur la machine restaurée, à
+la base que désigne sa propre `DATABASE_URL`.
+
+**`pg_restore` dit qu'il a fini, pas qu'il a tout rendu.** Un `--schema` de
+travers, une table restaurée à moitié, un dump plus ancien qu'on ne croyait,
+une base de secours qui contenait déjà autre chose : rien de tout cela ne fait
+échouer une restauration, et tout cela se découvrirait des mois plus tard, à la
+première pièce réclamée par un contrôleur. Le manifeste et l'inventaire disent
+ce qui doit s'y trouver — autant le leur demander pendant que l'exploitant est
+encore devant sa console. Sont confrontés : l'état des migrations, les
+locataires et leur compte de pièces, et **chaque ligne de l'inventaire**, champ
+par champ, empreinte et taille comprises. Le constat nomme ce qui diffère
+(« empreinte a… au lieu de 9f… ») plutôt que de signaler qu'il diffère : sur une
+base de secours, savoir *quoi* est ce qui décide de la suite.
+
+**Une base plus avancée que la prise n'est pas une anomalie.** Restaurer un
+dump puis appliquer les migrations parues depuis est une manœuvre saine ;
+l'annoncer « divergente » ferait crier au sinistre sur une opération normale, et
+un outil qui crie pour rien finit par ne plus être lu. Sont des anomalies : une
+base **en retard** — elle ne peut pas porter ce qu'on y a restauré — et une
+**autre lignée** de migrations, qui n'est simplement pas cette instance-là.
+
+**Les enregistrements en trop se comptent sans s'énumérer.** Les nommer
+exigerait de tenir tout l'inventaire en mémoire, ce que la réserve du §9.14
+refuse déjà pour le stockage ; leur nombre suffit à savoir qu'on ne regarde pas
+la base qu'on croit. Ce n'est pas de la paresse : c'est la même règle que
+partout ailleurs — ne rien affirmer au-delà de ce qui a été constaté.
+
+**Un constat qui ne dit pas son total ne constate rien.** Les listes
+d'anomalies étaient plafonnées à vingt éléments et le rapport annonçait ensuite
+la longueur de cette liste : cinq mille pièces disparues se lisaient « 20
+pièce(s) absente(s) », et un sinistre passait pour un incident local. Un constat
+compte désormais **tout** et n'énumère que les premières, en disant combien il
+n'a pas énumérées. La correction vaut aussi pour la vérification du §9.14, où
+le même défaut dormait.
+
+**Ce que le constat ne fait pas** : il ne restaure pas. `pg_restore` est un
+outil standard, documenté, que les exploitants connaissent ; l'envelopper
+ajouterait un intermédiaire de notre fabrication au pire moment, et il faudrait
+le déboguer un soir de panne. Le produit fournit ce que `pg_restore` ne peut pas
+donner — la confrontation à ce qui avait été pris — et laisse la manœuvre à
+l'outil dont c'est le métier. La commande rappelle d'ailleurs, quand tout
+concorde, qu'une base seule ne fait pas une restauration : sans les fichiers
+elle ne rend que des fiches, et sans la clé elle ne rend rien d'audible.
+
+**Réserve** — le constat confronte la base à l'inventaire, donc à ce que la base
+disait d'elle-même au moment de la prise ; il ne rejoue pas les empreintes des
+fichiers, qui relèvent de `sauvegarde:verifier --stockage`. Les deux commandes
+sont complémentaires et devront un jour être enchaînées par une procédure
+d'exercice écrite — restaurer, remettre la clé, constater, vérifier — plutôt que
+par la mémoire de celui qui l'a fait la dernière fois. Par ailleurs, le compte
+des enregistrements en trop se déduit d'une différence : il dit qu'il y en a,
+jamais lesquels, et une base de secours contenant deux jeux de données mêlés
+demanderait un examen à part.

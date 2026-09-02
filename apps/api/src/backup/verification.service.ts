@@ -13,6 +13,7 @@ import {
   type Manifeste,
 } from './manifeste';
 import { parcourirInventaire, type LigneInventaire } from './inventaire';
+import { constatVide, noter, type Constat } from './constat';
 import { SIGNATURE_DUMP } from './pg-dump';
 
 /**
@@ -29,9 +30,6 @@ import { SIGNATURE_DUMP } from './pg-dump';
  * une vérification complète.
  */
 
-/** Au-delà, les listes d'anomalies sont comptées mais plus énumérées. */
-const MAX_DETAIL = 20;
-
 export interface RapportStockage {
   /** Pièces attendues sur le disque (les purgées ne le sont pas). */
   attendues: number;
@@ -39,17 +37,16 @@ export interface RapportStockage {
   verifiees: number;
   /** Pièces scellées constatées présentes, sceau non ouvert faute de clé. */
   sceauxNonVerifies: number;
-  manquantes: string[];
-  divergentes: string[];
+  manquantes: Constat;
+  divergentes: Constat;
   /** Pièces scellées avec une clé que le manifeste ne connaît pas. */
-  clesInconnues: string[];
+  clesInconnues: Constat;
   /** Fichiers présents sur le disque qu'aucune ligne de base ne réclame. */
-  orphelins: string[];
+  orphelins: Constat;
   /** Pièces dont la déclaration d'origine (le json du contrat §3) manque. */
-  declarationsAbsentes: string[];
+  declarationsAbsentes: Constat;
   /** Pièces purgées dont un fichier est pourtant revenu à sa place. */
-  purgeesAvecFichier: string[];
-  tronque: boolean;
+  purgeesAvecFichier: Constat;
 }
 
 export interface RapportSauvegarde {
@@ -191,21 +188,15 @@ async function verifierStockage(
     attendues: 0,
     verifiees: 0,
     sceauxNonVerifies: 0,
-    manquantes: [],
-    divergentes: [],
-    clesInconnues: [],
-    orphelins: [],
-    declarationsAbsentes: [],
-    purgeesAvecFichier: [],
-    tronque: false,
+    manquantes: constatVide(),
+    divergentes: constatVide(),
+    clesInconnues: constatVide(),
+    orphelins: constatVide(),
+    declarationsAbsentes: constatVide(),
+    purgeesAvecFichier: constatVide(),
   };
   const surDisque = await fichiersDe(storageDir);
   const clesConnues = new Set(manifeste.stockage.cles);
-
-  const ajouter = (liste: string[], valeur: string): void => {
-    if (liste.length < MAX_DETAIL) liste.push(valeur);
-    else rapport.tronque = true;
-  };
 
   for await (const ligne of parcourirInventaire(cheminInventaire)) {
     const chemin = join(storageDir, ligne.chemin);
@@ -221,18 +212,18 @@ async function verifierStockage(
     if (ligne.statut === 'purged') {
       // Un fichier revenu à la place d'une pièce détruite n'est pas une bonne
       // nouvelle : la purge est un acte tracé, et rien ne doit la défaire.
-      if (present) ajouter(rapport.purgeesAvecFichier, ligne.chemin);
+      if (present) noter(rapport.purgeesAvecFichier, ligne.chemin);
       continue;
     }
 
     rapport.attendues += 1;
-    if (!declarationPresente) ajouter(rapport.declarationsAbsentes, declaration);
+    if (!declarationPresente) noter(rapport.declarationsAbsentes, declaration);
     if (!present) {
-      ajouter(rapport.manquantes, ligne.chemin);
+      noter(rapport.manquantes, ligne.chemin);
       continue;
     }
     if (ligne.scellee && ligne.cle && !clesConnues.has(ligne.cle)) {
-      ajouter(rapport.clesInconnues, `${ligne.chemin} (clé « ${ligne.cle} »)`);
+      noter(rapport.clesInconnues, `${ligne.chemin} (clé « ${ligne.cle} »)`);
     }
 
     try {
@@ -242,19 +233,19 @@ async function verifierStockage(
       } else if (clair.sha256 === ligne.sha256 && clair.octets === ligne.octets) {
         rapport.verifiees += 1;
       } else {
-        ajouter(rapport.divergentes, ligne.chemin);
+        noter(rapport.divergentes, ligne.chemin);
       }
     } catch (erreur) {
       // Un sceau qui ne s'ouvre pas est une divergence, pas une panne : c'est
       // exactement ce que le chiffrement était chargé de faire savoir.
-      ajouter(
+      noter(
         rapport.divergentes,
         `${ligne.chemin} (${erreur instanceof Error ? erreur.message : String(erreur)})`,
       );
     }
   }
 
-  for (const reste of surDisque) ajouter(rapport.orphelins, reste);
+  for (const reste of surDisque) noter(rapport.orphelins, reste);
   return rapport;
 }
 
@@ -337,32 +328,32 @@ export async function verifierSauvegarde(options: OptionsVerification): Promise<
       manifeste,
       cleMaitre === 'concorde' ? options.cleMaitre : null,
     );
-    if (stockage.manquantes.length > 0) {
-      anomalies.push(`${stockage.manquantes.length} pièce(s) absente(s) du stockage.`);
+    if (stockage.manquantes.total > 0) {
+      anomalies.push(`${stockage.manquantes.total} pièce(s) absente(s) du stockage.`);
     }
-    if (stockage.divergentes.length > 0) {
+    if (stockage.divergentes.total > 0) {
       anomalies.push(
-        `${stockage.divergentes.length} pièce(s) dont l’empreinte ne correspond plus à celle relevée à l’ingestion.`,
+        `${stockage.divergentes.total} pièce(s) dont l’empreinte ne correspond plus à celle relevée à l’ingestion.`,
       );
     }
-    if (stockage.clesInconnues.length > 0) {
+    if (stockage.clesInconnues.total > 0) {
       anomalies.push(
-        `${stockage.clesInconnues.length} pièce(s) scellée(s) avec une clé absente du manifeste.`,
+        `${stockage.clesInconnues.total} pièce(s) scellée(s) avec une clé absente du manifeste.`,
       );
     }
-    if (stockage.purgeesAvecFichier.length > 0) {
+    if (stockage.purgeesAvecFichier.total > 0) {
       anomalies.push(
-        `${stockage.purgeesAvecFichier.length} pièce(s) purgée(s) dont un fichier est pourtant présent.`,
+        `${stockage.purgeesAvecFichier.total} pièce(s) purgée(s) dont un fichier est pourtant présent.`,
       );
     }
-    if (stockage.declarationsAbsentes.length > 0) {
+    if (stockage.declarationsAbsentes.total > 0) {
       anomalies.push(
-        `${stockage.declarationsAbsentes.length} pièce(s) dont la déclaration d’origine (json du contrat §3) manque au stockage.`,
+        `${stockage.declarationsAbsentes.total} pièce(s) dont la déclaration d’origine (json du contrat §3) manque au stockage.`,
       );
     }
-    if (stockage.orphelins.length > 0) {
+    if (stockage.orphelins.total > 0) {
       anomalies.push(
-        `${stockage.orphelins.length} fichier(s) du stockage qu’aucun enregistrement ne réclame.`,
+        `${stockage.orphelins.total} fichier(s) du stockage qu’aucun enregistrement ne réclame.`,
       );
     }
     if (stockage.sceauxNonVerifies > 0) {

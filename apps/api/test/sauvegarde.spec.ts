@@ -10,6 +10,7 @@ import { lireManifeste, NOM_DUMP, NOM_INVENTAIRE, NOM_MANIFESTE } from '../src/b
 import { parcourirInventaire } from '../src/backup/inventaire';
 import { cibleDepuisUrl, pgDump, SIGNATURE_DUMP } from '../src/backup/pg-dump';
 import { analyserArguments } from '../src/backup/arguments';
+import { MAX_EXEMPLES } from '../src/backup/constat';
 import { createTestPrisma, resetTestData, testDatabaseUrl } from './helpers/database';
 
 /**
@@ -212,7 +213,7 @@ describe('sauvegarde et vérification de restauration', () => {
     // Une clé qui ne concorde pas n'est pas utilisée pour ouvrir les sceaux :
     // le rapport dit que l'intégrité n'a pas été vérifiée, il ne l'invente pas.
     expect(rapport.stockage?.sceauxNonVerifies).toBe(1);
-    expect(rapport.stockage?.divergentes).toEqual([]);
+    expect(rapport.stockage?.divergentes.total).toBe(0);
   });
 
   it('sans clé, dit que les sceaux n’ont pas été ouverts plutôt que de conclure', async () => {
@@ -299,12 +300,35 @@ describe('sauvegarde et vérification de restauration', () => {
       storageDir,
     });
 
-    expect(rapport.stockage?.manquantes).toEqual([absente.chemin]);
-    expect(rapport.stockage?.divergentes).toEqual([alteree.chemin]);
-    expect(rapport.stockage?.orphelins).toEqual([
-      join(tenantId, '2026', '09', 'intrus.wav').split('\\').join('/'),
-    ]);
+    expect(rapport.stockage?.manquantes).toMatchObject({ total: 1, exemples: [absente.chemin] });
+    expect(rapport.stockage?.divergentes).toMatchObject({ total: 1, exemples: [alteree.chemin] });
+    expect(rapport.stockage?.orphelins).toMatchObject({
+      total: 1,
+      exemples: [join(tenantId, '2026', '09', 'intrus.wav').split('\\').join('/')],
+    });
     expect(rapport.restaurable).toBe(false);
+  });
+
+  it('compte toutes les anomalies même quand elle cesse de les énumérer', async () => {
+    // Le rapport annonçait la longueur de sa liste d'exemples : vingt-cinq
+    // pièces disparues se lisaient « 20 pièce(s) absente(s) », et un sinistre
+    // passait pour un incident local.
+    for (let numero = 0; numero < 25; numero += 1) {
+      await ranger({ nom: `piece-${numero}` });
+    }
+    const prise = await prendre();
+    await rm(join(storageDir, tenantId), { recursive: true });
+
+    const rapport = await verifierSauvegarde({
+      repertoire: prise.repertoire,
+      cleMaitre: CLE,
+      storageDir,
+    });
+
+    expect(rapport.stockage?.manquantes.total).toBe(25);
+    expect(rapport.stockage?.manquantes.exemples).toHaveLength(MAX_EXEMPLES);
+    expect(rapport.stockage?.manquantes.tronque).toBe(true);
+    expect(rapport.anomalies.join(' ')).toMatch(/25 pièce\(s\) absente\(s\)/);
   });
 
   it('constate un fichier revenu à la place d’une pièce purgée', async () => {
@@ -321,10 +345,13 @@ describe('sauvegarde et vérification de restauration', () => {
       storageDir,
     });
 
-    expect(rapport.stockage?.purgeesAvecFichier).toEqual([detruite.chemin]);
+    expect(rapport.stockage?.purgeesAvecFichier).toMatchObject({
+      total: 1,
+      exemples: [detruite.chemin],
+    });
     // La déclaration d'origine reste au stockage après la purge : elle n'est
     // pas orpheline, c'est ce qui documente ce qui a été détruit.
-    expect(rapport.stockage?.orphelins).toEqual([]);
+    expect(rapport.stockage?.orphelins.total).toBe(0);
     expect(rapport.restaurable).toBe(false);
   });
 
@@ -338,7 +365,10 @@ describe('sauvegarde et vérification de restauration', () => {
       storageDir,
     });
 
-    expect(rapport.stockage?.declarationsAbsentes).toEqual([piece.declaration]);
+    expect(rapport.stockage?.declarationsAbsentes).toMatchObject({
+      total: 1,
+      exemples: [piece.declaration],
+    });
     // Le wav, lui, est intact : la vérification distingue les deux pertes.
     expect(rapport.stockage?.verifiees).toBe(1);
     expect(rapport.restaurable).toBe(false);
@@ -367,7 +397,7 @@ describe('sauvegarde et vérification de restauration', () => {
       storageDir,
     });
 
-    expect(rapport.stockage?.divergentes).toHaveLength(1);
+    expect(rapport.stockage?.divergentes.total).toBe(1);
     expect(rapport.stockage?.verifiees).toBe(0);
   });
 
