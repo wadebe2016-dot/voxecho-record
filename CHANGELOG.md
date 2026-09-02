@@ -26,3 +26,6 @@ Format : une entrée par session de travail, en français.
 - Gardes globaux : toute route est authentifiée sauf `@Public()`, les rôles
   sont appliqués côté api, et toute tentative de désigner un autre locataire
   que celui du jeton est refusée.
+- `GET /api/recordings` : liste paginée et triée côté serveur, restreinte au
+  locataire du jeton, chaque consultation tracée (`SEARCH`). Types de
+  réponse partagés avec le portail dans `packages/shared`.

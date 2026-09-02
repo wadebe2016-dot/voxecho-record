@@ -8,9 +8,10 @@ import { TenantGuard } from './common/guards/tenant.guard';
 import { AppConfigModule } from './config/config.module';
 import { HealthModule } from './health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { RecordingsModule } from './recordings/recordings.module';
 
 @Module({
-  imports: [AppConfigModule, PrismaModule, AuditModule, AuthModule, HealthModule],
+  imports: [AppConfigModule, PrismaModule, AuditModule, AuthModule, RecordingsModule, HealthModule],
   providers: [
     // Ordre volontaire : authentifier, puis cloisonner, puis autoriser.
     { provide: APP_GUARD, useClass: JwtAuthGuard },
