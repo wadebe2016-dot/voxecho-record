@@ -6,6 +6,7 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { TenantGuard } from './common/guards/tenant.guard';
 import { AppConfigModule } from './config/config.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 import { ExportModule } from './export/export.module';
 import { HealthModule } from './health/health.module';
 import { IngestionModule } from './ingestion/ingestion.module';
@@ -25,6 +26,7 @@ import { RetentionModule } from './retention/retention.module';
     RetentionModule,
     PurgeModule,
     ExportModule,
+    DashboardModule,
     HealthModule,
   ],
   providers: [

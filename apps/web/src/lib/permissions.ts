@@ -5,6 +5,8 @@ import type { Role } from '@voxecho/shared';
  * confort d'affichage : l'autorisation qui fait foi est appliquée par l'api.
  */
 export const CAPACITES = {
+  /** Chiffres d'exploitation : rien n'y dit qui a écouté quoi (§9.12). */
+  consulterTableauDeBord: ['ADMIN', 'SUPERVISOR', 'AUDITOR'],
   consulterEnregistrements: ['ADMIN', 'SUPERVISOR', 'AUDITOR'],
   /**
    * Entendre une conversation de client, ou en emporter une copie, n'est pas

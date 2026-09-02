@@ -4,6 +4,7 @@ export * from './ingestion/filename.js';
 export * from './ingestion/layout.js';
 export * from './ingestion/wav.js';
 export * from './api/audit.js';
+export * from './api/dashboard.js';
 export * from './api/export.js';
 export * from './api/pagination.js';
 export * from './api/playback.js';
