@@ -449,3 +449,8 @@ contrôle.
 - Sans politique publiée, tout est enregistré : ne pas enregistrer doit résulter
   d'une décision écrite. Décisions et réserves en §9.23 — dont la principale :
   **rien n'applique encore ces politiques**, ce sont les lots 05 et 06.
+- Correctif d'ergonomie : l'entrée de menu des politiques devient
+  « Politiques ». « Enregistrement » et « Enregistrements » se distinguaient
+  d'une lettre pour deux écrans sans rapport. Un test refuse désormais qu'un
+  libellé de menu soit le préfixe d'un autre.
+
