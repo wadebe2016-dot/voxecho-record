@@ -9,6 +9,7 @@ import {
 import { ApiError, api } from '../api/client';
 import { useAuth } from '../auth/auth-context';
 import { EditeurPolitique } from '../components/EditeurPolitique';
+import { SimulateurPolitique } from '../components/SimulateurPolitique';
 import { formatHorodatage } from '../lib/format';
 import { peut } from '../lib/permissions';
 
@@ -232,6 +233,18 @@ export function PolitiquesPage() {
           )}
         </section>
       )}
+
+      {(brouillon ?? enVigueur?.document) !== undefined &&
+        (brouillon ?? enVigueur?.document) !== null && (
+          <SimulateurPolitique
+            document={(brouillon ?? enVigueur?.document) as RecordingPolicy}
+            source={
+              brouillon !== null
+                ? 'le brouillon en préparation'
+                : `la version ${enVigueur?.version ?? ''} en vigueur`
+            }
+          />
+        )}
 
       <section aria-labelledby="historique">
         <h2 id="historique" className="mb-2 text-sm font-semibold">

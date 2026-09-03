@@ -124,4 +124,74 @@ describe('politiques d’enregistrement', () => {
       expect(screen.getAllByRole('link', { name: 'Enregistrement' }).length).toBeGreaterThan(0);
     }
   });
+
+  describe('simulateur de décision', () => {
+    /** Politique publiée : RH exclue, marchés systématique, 20 % ailleurs. */
+    const AVEC_REGLES: PolicyVersionDetail = {
+      ...EN_VIGUEUR,
+      document: {
+        schema: 1,
+        parDefaut: 'sample',
+        tauxParDefautPourcent: 20,
+        exclusions: ['1090'],
+        motifExclusions: 'Ressources humaines et médecine du travail',
+        listes: [{ nom: 'Salle des marchés', numeros: ['1001'] }],
+        regles: [
+          {
+            libelle: 'Salle des marchés',
+            critere: 'liste',
+            valeur: 'Salle des marchés',
+            decision: 'always',
+            annonce: true,
+            pauseAutorisee: true,
+          },
+        ],
+      },
+    };
+
+    function ouvrir() {
+      simulerApi({
+        '/api/policies/en-vigueur': () => reponse(200, AVEC_REGLES),
+        '/api/policies': () => reponse(200, [AVEC_REGLES]),
+        '/api/policies/brouillon': () => reponse(200, {}),
+      });
+      return afficher(<PolitiquesPage />, profilPour('AUDITOR'));
+    }
+
+    it('explique pourquoi un appel serait enregistré, règle nommée à l’appui', async () => {
+      ouvrir();
+      const verdict = await screen.findByTestId('verdict-simulation');
+
+      // Le poste 1001 est dans la liste « Salle des marchés » : la règle
+      // l'emporte sur l'échantillonnage par défaut.
+      expect(verdict).toHaveTextContent(/serait enregistré/i);
+      expect(verdict).toHaveTextContent(/Salle des marchés/);
+      expect(verdict).toHaveTextContent(/L’appelant est averti/);
+    });
+
+    it('fait primer une exclusion, et le dit avec son motif', async () => {
+      ouvrir();
+      await screen.findByTestId('verdict-simulation');
+
+      await userEvent.clear(screen.getByLabelText('Poste'));
+      await userEvent.type(screen.getByLabelText('Poste'), '1090');
+
+      const verdict = screen.getByTestId('verdict-simulation');
+      expect(verdict).toHaveTextContent(/ne serait pas enregistré/i);
+      expect(verdict).toHaveTextContent(/Médecine du travail|médecine du travail/);
+    });
+
+    it('montre le tirage d’un échantillonnage et le dit rejouable', async () => {
+      ouvrir();
+      await screen.findByTestId('verdict-simulation');
+
+      // Un poste hors de toute règle : c'est le défaut, à 20 %.
+      await userEvent.clear(screen.getByLabelText('Poste'));
+      await userEvent.type(screen.getByLabelText('Poste'), '1055');
+
+      const verdict = screen.getByTestId('verdict-simulation');
+      expect(verdict).toHaveTextContent(/échantillon 20 %, tirage \d+/);
+      expect(verdict).toHaveTextContent(/la même référence d’appel donnera toujours ce résultat/i);
+    });
+  });
 });

@@ -432,3 +432,20 @@ contrôle.
   seule — un champ grisé sans explication se lit comme un défaut. Aucun secret
   n'y figure : la clé maître est désignée par son empreinte publique.
 - Décisions et réserves en §9.22.
+- **Politiques d'enregistrement sélectif** (brique phare) : contrat et moteur de
+  décision dans `packages/shared`, référentiel versionné et immuable en base,
+  écrans d'édition et de publication, et simulateur « cet appel serait-il
+  enregistré, et pourquoi ? ».
+- Le moteur rend une décision **motivée** — la règle qui a tranché, pas un
+  oui/non — et **rejouable** : l'échantillonnage est déterministe, la même
+  référence d'appel donnant toujours le même tirage, recalculable par un
+  contrôleur. Un seul moteur pour l'api, l'écran et le futur connecteur.
+- Les exclusions (RH, médecine du travail) priment sur toutes les règles et
+  vivent dans leur propre bloc : un administrateur qui réordonne ses règles ne
+  doit pas pouvoir exposer par accident une ligne protégée.
+- Une version publiée est immuable jusque dans la base, et numérotée : c'est ce
+  numéro qui expliquera, des mois plus tard, pourquoi un appel n'a pas été
+  enregistré. `POLICY_SET` s'ajoute au journal, avec une note obligatoire.
+- Sans politique publiée, tout est enregistré : ne pas enregistrer doit résulter
+  d'une décision écrite. Décisions et réserves en §9.23 — dont la principale :
+  **rien n'applique encore ces politiques**, ce sont les lots 05 et 06.
