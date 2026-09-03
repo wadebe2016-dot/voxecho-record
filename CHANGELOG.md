@@ -378,4 +378,9 @@ contrôle.
   renvoie plutôt que de répéter les commandes : deux documents qui décrivent le
   même geste finissent par diverger, et c'est celui qu'on ne lit pas qui reste
   faux.
-
+- Correctif : `deploy/.env.prod.example` n'était pas versionné — `.gitignore`
+  excluait `.env.*` et `git add -A` l'ignorait sans un mot. Le manque ne s'est vu
+  qu'en lisant le runbook sur l'instance, à l'étape qui en a besoin. Le modèle
+  est désormais suivi, et quatre vérifications le protègent : fichiers de
+  déploiement versionnés, toutes les variables de la composition déclarées dans
+  le modèle, aucun secret dans le modèle, et aucun port publié hors 80 et 443.

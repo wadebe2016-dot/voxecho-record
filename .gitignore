@@ -15,6 +15,12 @@ coverage/
 .env
 .env.*
 !.env.example
+# Les modèles d'environnement de déploiement, eux, doivent être versionnés :
+# ils ne portent que des noms de variables et des valeurs vides. `.env.*` les
+# attrapait, et `git add -A` les ignorait sans rien dire — le runbook renvoyait
+# alors vers un fichier absent de l'instance.
+!*.env.prod.example
+!deploy/.env.prod.example
 
 # données locales (audio ingéré, quarantaine)
 /data/
