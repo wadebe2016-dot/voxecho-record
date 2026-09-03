@@ -1221,3 +1221,78 @@ instance sans aucun administrateur d'instance est une instance qu'on ne peut
 plus régler sans accès au serveur : la commande le dit lorsqu'elle n'en trouve
 aucun, mais rien n'empêche de révoquer le dernier. Un garde-fou viendra quand la
 console permettra de révoquer, c'est-à-dire au lot des accès.
+
+### 9.23 Renoncer à une preuve se décide, se motive et se rejoue (S6)
+
+Le produit enregistrait tout ce que la capture lui déposait. Une politique
+d'enregistrement sélectif dit ce qu'il faut enregistrer, et donc **ce à quoi
+l'on renonce d'avance** : pour un produit dont toute la valeur est la preuve,
+c'est un renversement. L'argument commercial est réel — enregistrer 20 % des
+appels coûte cinq fois moins cher en stockage qu'enregistrer tout — mais il ne
+tient que si chaque appel manquant peut être expliqué. Tout ce lot est écrit
+pour cela.
+
+**Une décision se motive.** Le moteur ne rend jamais un oui/non : il rend la
+règle qui a tranché. « Cet appel n'est pas enregistré parce que la règle
+"Médecine du travail" l'exclut, sous la version 7 de la politique » se défend
+devant un contrôleur ; « cet appel n'est pas là » ne se défend pas.
+
+**Une décision se rejoue.** L'échantillonnage est **déterministe** : la même
+référence d'appel et la même règle donnent toujours le même tirage, que
+quiconque peut recalculer des mois plus tard. Un tirage aléatoire aurait rendu
+« pourquoi celui-là ? » sans réponse. Le hachage est un FNV-1a de dix lignes et
+non SHA-256, pour trois raisons dans cet ordre : le moteur tourne dans le
+navigateur, où `node:crypto` n'existe pas — vérifié, le portail refuse de se
+construire ; il devra être réimplémenté dans le connecteur, en Lua ou en shell ;
+et un contrôleur doit pouvoir refaire le calcul. La résistance cryptographique
+n'était pas la propriété recherchée : un agent ne choisit pas la référence
+d'appel, que le PBX attribue.
+
+**Une décision se date.** Une version publiée est immuable — un déclencheur en
+base l'y contraint, comme pour le journal d'audit (§5) — et numérotée. Ce numéro
+voyagera avec chaque décision. Réécrire une politique publiée reviendrait à
+réécrire la raison d'une absence de preuve.
+
+**Les exclusions ne sont pas des règles.** RH, médecine du travail,
+représentation du personnel : ces numéros sont évalués avant tout le reste, dans
+une liste séparée. S'ils étaient des règles ordonnées, un administrateur qui
+réordonne sa liste exposerait un jour la ligne de la médecine du travail — un
+incident dont on ne se relève pas. L'ordre est donc : exclusions, puis règles
+dans l'ordre écrit, puis défaut de la politique.
+
+**Le défaut du produit enregistre tout.** Sans politique publiée, et quand
+aucune règle ne correspond, tout est enregistré. Ne pas enregistrer doit
+résulter d'une décision écrite, jamais d'un oubli de règle ou d'un référentiel
+vide.
+
+**Un seul moteur, dans le paquet partagé.** L'api valide avec, le portail
+simule avec, le connecteur décidera avec. Trois implémentations auraient produit
+trois lectures divergentes du même document, et l'écran aurait promis ce que la
+téléphonie n'aurait pas fait. C'est aussi ce qui permet au simulateur d'être
+autre chose qu'une aide à la saisie : il rejoue la décision réelle, sur le
+brouillon avant publication.
+
+**La durée de conservation reste hors de cette politique.** Elle décide **si**
+l'on enregistre ; la rétention décide **combien de temps** (§9.6, et §9.10 qui a
+prévu la déclinaison par catégorie). Deux sources de vérité pour la même
+question finissent par diverger, et le jour où elles divergeraient, c'est la
+purge qui arbitrerait.
+
+**`POLICY_SET` s'ajoute au §5**, comme `RETENTION_SET` au §9.6. La publication
+exige une note d'au moins dix caractères et porte au journal un indicateur
+`renonce`, qui dit d'un coup d'œil si cette version abandonne des
+enregistrements. Un brouillon, lui, ne trace rien : c'est un travail en cours
+sans effet sur la capture, comme la simulation de purge du §9.7.
+
+**Réserve** — ce lot construit le référentiel ; **rien ne l'applique encore**.
+La politique sera publiée aux connecteurs (lot 05) puis appliquée à la source
+(lot 06), et c'est seulement là qu'un appel cessera d'être enregistré. Tant que
+ce n'est pas fait, une politique publiée est une intention, et l'écran ne doit
+pas laisser croire l'inverse. Par ailleurs, `on_demand` et la pause pour saisie
+sensible sont **déclarés** ici et exécutés par le connecteur : si un PBX ne sait
+pas les tenir, la politique promettra plus que la capture ne fera — le lot 06
+devra dire ce qu'un connecteur sait faire, et refuser de publier une politique
+qu'il ne peut pas appliquer. Enfin, les listes de numéros s'écrivent une ligne à
+la fois dans une zone de texte : robuste et copiable depuis un tableur, mais
+pénible au-delà de quelques dizaines d'entrées ; l'import de fichier viendra si
+le besoin se confirme.

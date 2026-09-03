@@ -96,6 +96,7 @@ const ACTIONS: Record<string, string> = {
   HOLD_SET: 'Conservation posée',
   HOLD_RELEASE: 'Conservation levée',
   RETENTION_SET: 'Rétention modifiée',
+  POLICY_SET: 'Politique d’enregistrement publiée',
 };
 
 export function libelleAction(action: string): string {

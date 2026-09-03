@@ -5,6 +5,9 @@ import type {
   ExportIntegrite,
   InstanceInfoResponse,
   InstanceSettingsResponse,
+  PolicyVersionDetail,
+  PolicyVersionSummary,
+  RecordingPolicy,
   ListenTicketResponse,
   LoginRequest,
   Page,
@@ -126,6 +129,35 @@ export const api = {
 
   /** Réglages de l'instance, en lecture seule (§9.22). */
   reglagesInstance: (): Promise<InstanceSettingsResponse> => appeler('/administration/reglages'),
+
+  /** Politiques d'enregistrement — CLAUDE.md §9.23. */
+  politiques: (): Promise<PolicyVersionSummary[]> => appeler('/policies'),
+
+  /**
+   * La politique appliquée. Nulle tant qu'aucune n'a été publiée : c'est alors
+   * le défaut du produit qui vaut, et il enregistre tout.
+   */
+  politiqueEnVigueur: (): Promise<PolicyVersionDetail | null> =>
+    appeler('/policies/en-vigueur').then((valeur) =>
+      valeur !== null && Object.keys(valeur as object).length > 0
+        ? (valeur as PolicyVersionDetail)
+        : null,
+    ),
+
+  politiqueBrouillon: (): Promise<PolicyVersionDetail | null> =>
+    appeler('/policies/brouillon').then((valeur) =>
+      valeur !== null && Object.keys(valeur as object).length > 0
+        ? (valeur as PolicyVersionDetail)
+        : null,
+    ),
+
+  enregistrerBrouillon: (document: RecordingPolicy): Promise<PolicyVersionDetail> =>
+    appeler('/policies/brouillon', { method: 'PUT', body: { document } }),
+
+  abandonnerBrouillon: (): Promise<void> => appeler('/policies/brouillon', { method: 'DELETE' }),
+
+  publierPolitique: (note: string): Promise<PolicyVersionDetail> =>
+    appeler('/policies/brouillon/publier', { method: 'POST', body: { note } }),
 
   enregistrements: (query: RecordingListQuery): Promise<Page<RecordingListItem>> =>
     appeler('/recordings', { query: query as Record<string, string | number | undefined> }),

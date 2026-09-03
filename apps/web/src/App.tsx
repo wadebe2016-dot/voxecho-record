@@ -7,6 +7,7 @@ import { LoginPage } from './pages/LoginPage';
 import { RecordingsPage } from './pages/RecordingsPage';
 import { TableauDeBordPage } from './pages/TableauDeBordPage';
 import { AdministrationPage } from './pages/AdministrationPage';
+import { PolitiquesPage } from './pages/PolitiquesPage';
 
 export function App() {
   return (
@@ -39,6 +40,7 @@ function Portail() {
         <Route path="/tableau-de-bord" element={<TableauDeBordPage />} />
         <Route path="/enregistrements" element={<RecordingsPage />} />
         <Route path="/journal" element={<JournalPage />} />
+        <Route path="/politiques" element={<PolitiquesPage />} />
         <Route path="/administration" element={<AdministrationPage />} />
         <Route path="*" element={<Navigate to="/enregistrements" replace />} />
       </Routes>

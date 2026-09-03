@@ -20,6 +20,7 @@ const NAVIGATION: Entree[] = [
   { chemin: '/tableau-de-bord', libelle: 'Tableau de bord', capacite: 'consulterTableauDeBord' },
   { chemin: '/enregistrements', libelle: 'Enregistrements', capacite: 'consulterEnregistrements' },
   { chemin: '/journal', libelle: 'Journal d’audit', capacite: 'consulterJournalAudit' },
+  { chemin: '/politiques', libelle: 'Enregistrement', capacite: 'consulterPolitiques' },
   {
     chemin: '/administration',
     libelle: 'Administration',

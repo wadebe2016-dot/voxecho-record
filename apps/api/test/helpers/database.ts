@@ -63,6 +63,20 @@ export async function resetTestData(prisma: PrismaClient): Promise<void> {
   } finally {
     await prisma.$executeRawUnsafe(`ALTER TABLE ${schema}.audit_events ENABLE TRIGGER USER`);
   }
+  // Les politiques publiées sont immuables en base (§9.23), comme le journal :
+  // seule une bascule explicite du garde-fou, réservée aux tests, permet de
+  // remettre un schéma de test à zéro.
+  await prisma.$executeRawUnsafe(
+    `ALTER TABLE ${schema}.recording_policy_versions DISABLE TRIGGER USER`,
+  );
+  try {
+    await prisma.recordingPolicyVersion.deleteMany();
+  } finally {
+    await prisma.$executeRawUnsafe(
+      `ALTER TABLE ${schema}.recording_policy_versions ENABLE TRIGGER USER`,
+    );
+  }
+
   // Les rapports de purge retiennent les enregistrements qu'ils énumèrent
   // (`onDelete: Restrict`) : un appel cité dans un rapport ne s'efface pas.
   await prisma.purgeRunItem.deleteMany();
