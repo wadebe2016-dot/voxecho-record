@@ -19,7 +19,11 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-voxecho}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
       POSTGRES_DB: ${POSTGRES_DB:-voxecho}
-      TZ: ${TZ:-Africa/Douala}
+      # La base tourne en UTC, toujours : les colonnes à DEFAULT
+      # CURRENT_TIMESTAMP prennent l'heure du fuseau de session, et un serveur
+      # réglé sur Africa/Douala décalerait d'une heure chaque entrée du journal
+      # d'audit (§9.27). C'est l'affichage qui convertit, jamais le stockage.
+      TZ: UTC
     ports:
       - '${POSTGRES_PORT:-5432}:5432'
     volumes:

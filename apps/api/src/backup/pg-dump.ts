@@ -37,7 +37,9 @@ export function cibleDepuisUrl(brut: string): CibleBase {
   url.searchParams.delete('schema');
   // `connection_limit` et consorts sont propres à Prisma : libpq les refuse
   // au même titre.
-  for (const parametre of ['connection_limit', 'pool_timeout', 'pgbouncer']) {
+  // `options` porte le fuseau que l'api impose à sa session (§9.27) : il n'a
+  // pas de sens ici, nos colonnes d'horodatage étant sans fuseau.
+  for (const parametre of ['connection_limit', 'pool_timeout', 'pgbouncer', 'options']) {
     url.searchParams.delete(parametre);
   }
   return { url: url.toString(), schema };

@@ -510,3 +510,16 @@ contrôle.
   de passe refusée dit ce qu'elle attend, au lieu de laisser deviner.
 - Manuel complété : comptes, mots de passe provisoires, politique de mot de
   passe.
+- **Correctif de conformité** : les horodatages écrits par la base étaient
+  décalés d'une heure. Les colonnes à `DEFAULT CURRENT_TIMESTAMP` — dont
+  `audit_events.at` — prennent l'heure du fuseau de session, et une base réglée
+  sur Africa/Douala écrivait 13 h 56 pour 12 h 56 UTC. Ce n'était pas
+  l'affichage : c'était ce qui était stocké, dans un journal append-only.
+- Le produit impose désormais `options=-c timezone=UTC` à sa connexion, plutôt
+  que de s'en remettre au serveur — le fuseau est figé dans `postgresql.conf` à
+  l'initialisation du volume, et corriger un compose ne change rien à une base
+  déjà créée. Un contrôle au démarrage refuse une session qui n'est pas en UTC.
+- Deux pièges attrapés par les tests : `URLSearchParams` encode l'espace en `+`,
+  que libpq refuse, et les outils PostgreSQL n'ont que faire de ce paramètre.
+  Décisions et réserves en §9.27 — dont celle-ci : les horodatages déjà écrits
+  restent décalés, puisqu'un journal append-only ne se corrige pas.

@@ -25,10 +25,37 @@ export interface PartiesConnexion {
   schema?: string;
 }
 
+/**
+ * Force la session PostgreSQL en UTC — CLAUDE.md §9.27.
+ *
+ * Les colonnes d'horodatage sont des `timestamp` sans fuseau, et celles qui
+ * portent `DEFAULT CURRENT_TIMESTAMP` — `audit_events.at`, tous les
+ * `created_at` — prennent la valeur **du fuseau de la session**. Une base
+ * réglée sur Africa/Douala y écrit donc 13 h 56 quand il est 12 h 56 UTC ;
+ * l'api relit cette colonne comme de l'UTC, et le portail affiche 14 h 56.
+ * Une heure de trop dans un journal qu'on ne peut pas corriger.
+ *
+ * Le produit ne s'en remet pas au réglage du serveur : il l'impose à sa
+ * connexion. Un client fournira sa propre base, et son fuseau ne nous regarde
+ * pas — c'est ce que nous y écrivons qui doit être juste.
+ */
+export function avecFuseauUtc(url: string): string {
+  const cible = new URL(url);
+  // Une déclaration explicite de l'exploitant l'emporte : s'il a réglé
+  // `options` lui-même, on ne le contredit pas dans son dos — le contrôle au
+  // démarrage refusera de toute façon une session qui n'est pas en UTC.
+  if (cible.searchParams.has('options')) return url;
+
+  // Écrit à la main, et non par `URLSearchParams` : celui-ci encode l'espace
+  // en `+`, que libpq lit littéralement — `pg_dump` refusait alors de se
+  // connecter sur « unrecognized configuration parameter "+timezone" ».
+  return `${url}${url.includes('?') ? '&' : '?'}options=-c%20timezone%3DUTC`;
+}
+
 export function construireDatabaseUrl(parties: PartiesConnexion): string {
   const identite = `${encodeURIComponent(parties.user)}:${encodeURIComponent(parties.password)}`;
   const base = `postgresql://${identite}@${parties.host}:${parties.port}/${encodeURIComponent(parties.database)}`;
-  return `${base}?schema=${encodeURIComponent(parties.schema ?? 'public')}`;
+  return avecFuseauUtc(`${base}?schema=${encodeURIComponent(parties.schema ?? 'public')}`);
 }
 
 /**
@@ -41,7 +68,7 @@ export function construireDatabaseUrl(parties: PartiesConnexion): string {
  */
 export function databaseUrlDepuisEnv(env: NodeJS.ProcessEnv = process.env): string | null {
   const fournie = env.DATABASE_URL?.trim();
-  if (fournie) return fournie;
+  if (fournie) return avecFuseauUtc(fournie);
 
   const user = env.POSTGRES_USER?.trim();
   const password = env.POSTGRES_PASSWORD ?? '';

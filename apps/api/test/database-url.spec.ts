@@ -32,17 +32,21 @@ describe('URL de connexion', () => {
       });
 
       // Aucun caractère gênant ne subsiste hors encodage, et le port reste
-      // lisible : c'est lui que Prisma n'arrivait plus à lire.
+      // lisible : c'est lui que Prisma n'arrivait plus à lire. L'url porte en
+      // outre le fuseau imposé à la session (§9.27).
       expect(url).toBe(
-        'postgresql://voxecho:a%2Fb%2Bc%3Dd%40e%3Af%3Fg%23h@db:5432/voxecho?schema=public',
+        'postgresql://voxecho:a%2Fb%2Bc%3Dd%40e%3Af%3Fg%23h@db:5432/voxecho' +
+          '?schema=public&options=-c%20timezone%3DUTC',
       );
       expect(new URL(url).port).toBe('5432');
       expect(decodeURIComponent(new URL(url).password)).toBe('a/b+c=d@e:f?g#h');
     });
 
     it('respecte une DATABASE_URL fournie, et ne construit qu’à défaut', () => {
+      // Une url fournie est respectée, au fuseau près : c'est le seul réglage
+      // que le produit impose, parce qu'il en va de la justesse du journal.
       expect(databaseUrlDepuisEnv({ DATABASE_URL: 'postgresql://donnee/entiere' })).toBe(
-        'postgresql://donnee/entiere',
+        'postgresql://donnee/entiere?options=-c%20timezone%3DUTC',
       );
 
       const construite = databaseUrlDepuisEnv({
@@ -70,7 +74,7 @@ describe('URL de connexion', () => {
 
       const dejaFournie: NodeJS.ProcessEnv = { DATABASE_URL: 'postgresql://intacte' };
       appliquerDatabaseUrl(dejaFournie);
-      expect(dejaFournie.DATABASE_URL).toBe('postgresql://intacte');
+      expect(dejaFournie.DATABASE_URL).toBe('postgresql://intacte?options=-c%20timezone%3DUTC');
     });
   });
 
