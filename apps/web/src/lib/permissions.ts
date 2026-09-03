@@ -16,6 +16,12 @@ export const CAPACITES = {
    */
   ecouterEnregistrements: ['ADMIN', 'AUDITOR'],
   consulterJournalAudit: ['ADMIN', 'AUDITOR'],
+  /**
+   * « Quelle politique s'appliquait ce jour-là ? » est une question de
+   * conformité : les trois rôles la lisent (§9.23). Seul l'ADMIN la change.
+   */
+  consulterPolitiques: ['ADMIN', 'SUPERVISOR', 'AUDITOR'],
+  gererPolitiques: ['ADMIN'],
   gererComptes: ['ADMIN'],
   gererRetention: ['ADMIN'],
   /**
