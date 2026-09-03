@@ -453,4 +453,16 @@ contrôle.
   « Politiques ». « Enregistrement » et « Enregistrements » se distinguaient
   d'une lettre pour deux écrans sans rapport. Un test refuse désormais qu'un
   libellé de menu soit le préfixe d'un autre.
-
+- Sobriété des écrans : les paragraphes qui expliquaient le produit sous chaque
+  champ sont retirés. Trois niveaux désormais — le libellé dit quoi, l'icône
+  d'aide (ⓘ) dit l'essentiel au survol, `docs/manuel-utilisateur.md` porte le
+  développement complet. Rien n'est perdu, tout est déplacé.
+- Restent à l'écran les mentions qui informent d'un état ou avertissent d'une
+  conséquence — écoute et export tracés, verrouillage après échecs, instance
+  d'évaluation, brouillon sans effet, réglage en lecture seule : les taire
+  serait un dark-pattern, pas de la sobriété (§9.24).
+- L'aide est accessible : `aria-label` et `title`, et les tests la vérifient par
+  son nom accessible. Une infobulle qu'un clavier ne peut atteindre serait une
+  régression déguisée en épure.
+- Nouveau document : `docs/manuel-utilisateur.md`, le premier qui s'adresse à
+  l'utilisateur plutôt qu'au développeur.

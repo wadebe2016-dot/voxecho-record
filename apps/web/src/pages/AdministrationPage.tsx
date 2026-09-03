@@ -2,19 +2,14 @@ import { useEffect, useState } from 'react';
 import type { InstanceSettingsResponse } from '@voxecho/shared';
 import { ApiError, api } from '../api/client';
 import { useAuth } from '../auth/auth-context';
+import { Aide } from '../components/Aide';
 
 /**
  * Console d'administration, écran des réglages — CLAUDE.md §9.22.
  *
- * Premier écran de la console : il ne change rien, il montre. C'est déjà
- * beaucoup — répondre à « quelle conservation minimale impose cette
- * instance ? » ou « à quels relais fait-elle confiance ? » supposait jusqu'ici
- * d'ouvrir un fichier sur le serveur.
- *
- * Les réglages qui commandent la valeur probante du journal sont exposés avec
- * la raison pour laquelle ils ne se changent pas ici. Un écran de conformité
- * qui grise un champ sans dire pourquoi laisse croire à un défaut ; celui-ci
- * explique une décision.
+ * L'écran ne change rien, il montre. Ce qu'un réglage commande, et pourquoi
+ * certains ne se modifient pas ici, se lisent au survol de l'icône d'aide
+ * plutôt qu'en paragraphes : le détail complet est au manuel (§9.24).
  */
 export function AdministrationPage() {
   const { profil } = useAuth();
@@ -49,9 +44,8 @@ export function AdministrationPage() {
     // l'accès direct par l'url. L'api refuse de toute façon (§9.9).
     return (
       <p className="rounded border border-ardoise-200 bg-white p-4 text-sm text-ardoise-600">
-        L’administration de l’instance est réservée à ses administrateurs. Il ne s’agit pas d’une
-        panne : administrer un locataire et administrer l’instance qui l’héberge sont deux
-        habilitations distinctes.
+        Réservé aux administrateurs de l’instance.
+        <Aide texte="Administrer un locataire et administrer l’instance qui l’héberge sont deux habilitations distinctes. Ce n’est pas une panne." />
       </p>
     );
   }
@@ -72,8 +66,8 @@ export function AdministrationPage() {
         <h1 className="text-lg font-semibold tracking-tight">Administration de l’instance</h1>
         <p className="mt-1 text-sm text-ardoise-600">
           Version {reglages.version}
-          {reglages.evaluation ? ' · version d’évaluation' : ''}. Ces réglages valent pour tous les
-          locataires servis par cette instance.
+          {reglages.evaluation ? ' · version d’évaluation' : ''}
+          <Aide texte="Ces réglages valent pour tous les locataires servis par cette instance." />
         </p>
       </header>
 
@@ -120,28 +114,26 @@ export function AdministrationPage() {
           </h2>
           <dl className="divide-y divide-ardoise-100 border border-ardoise-200 bg-white">
             {groupe.reglages.map((reglage) => (
-              <div key={reglage.cle} className="px-3 py-2">
-                <div className="flex flex-wrap items-baseline gap-x-3">
-                  <dt className="font-mono text-xs text-ardoise-600">{reglage.cle}</dt>
-                  <dd className="text-sm font-medium">{reglage.valeur}</dd>
-                </div>
-                <p className="mt-0.5 text-xs text-ardoise-600">{reglage.effet}</p>
+              <div key={reglage.cle} className="flex flex-wrap items-baseline gap-x-3 px-3 py-2">
+                <dt className="font-mono text-xs text-ardoise-600">
+                  {reglage.cle}
+                  <Aide
+                    texte={
+                      reglage.raisonLectureSeule === undefined
+                        ? reglage.effet
+                        : `${reglage.effet} — Non modifiable ici : ${reglage.raisonLectureSeule}`
+                    }
+                  />
+                </dt>
+                <dd className="text-sm font-medium">{reglage.valeur}</dd>
                 {reglage.raisonLectureSeule !== undefined && (
-                  <p className="mt-0.5 text-xs text-ardoise-500">
-                    <span className="font-medium">Non modifiable ici.</span>{' '}
-                    {reglage.raisonLectureSeule}
-                  </p>
+                  <dd className="text-xs text-ardoise-400">lecture seule</dd>
                 )}
               </div>
             ))}
           </dl>
         </section>
       ))}
-
-      <p className="text-xs text-ardoise-500">
-        Ces réglages se lisent ici et se changent à l’installation. Les écrans de gestion — comptes,
-        conservation, politiques d’enregistrement — viennent aux lots suivants.
-      </p>
     </div>
   );
 }

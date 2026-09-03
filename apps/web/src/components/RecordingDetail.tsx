@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { RecordingListItem } from '@voxecho/shared';
 import { ApiError, api, telecharger, urlAudio } from '../api/client';
+import { Aide } from './Aide';
 import { useAuth } from '../auth/auth-context';
 import { peut } from '../lib/permissions';
 import {
@@ -184,8 +185,8 @@ export function RecordingDetail({ appel, onFermer }: Props) {
             {exportEnCours ? 'Préparation de l’archive…' : 'Exporter (audio + fiche)'}
           </button>
           <p className="mt-2 text-xs text-ardoise-600">
-            Archive ZIP : le fichier audio, une fiche PDF et une fiche JSON portant l’empreinte
-            SHA-256, le demandeur et l’horodatage. Cet export est inscrit au journal d’audit.
+            Export inscrit au journal.
+            <Aide texte="Archive ZIP : le fichier audio, une fiche PDF et une fiche JSON portant l’empreinte SHA-256, le demandeur et l’horodatage." />
           </p>
 
           {integrite === 'concordante' && (

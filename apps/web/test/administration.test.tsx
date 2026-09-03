@@ -63,20 +63,25 @@ describe('console d’administration', () => {
     expect(screen.queryByRole('link', { name: 'Administration' })).toBeNull();
   });
 
-  it('affiche les réglages, leur effet, et la raison de leur lecture seule', async () => {
+  it('affiche les réglages, et réserve l’explication à l’aide contextuelle', async () => {
     simulerApi({ '/api/administration/reglages': () => reponse(200, REGLAGES) });
     afficher(<AdministrationPage />, ADMIN_INSTANCE);
 
-    expect(await screen.findByText('TRUSTED_PROXIES')).toBeInTheDocument();
+    expect(await screen.findByText(/TRUSTED_PROXIES/)).toBeInTheDocument();
     expect(screen.getByText('172.16.0.0/12')).toBeInTheDocument();
-    expect(screen.getByText(/invisible du journal/i)).toBeInTheDocument();
     expect(screen.getByText('Banque Méridienne')).toBeInTheDocument();
+
+    // L'écran dit « lecture seule » ; le pourquoi se lit au survol, pas en
+    // paragraphe sous chaque champ (§9.24).
+    expect(screen.getByText('lecture seule')).toBeInTheDocument();
+    expect(screen.getByLabelText(/invisible du journal/i)).toBeInTheDocument();
   });
 
-  it('explique le refus au lieu de laisser croire à une panne', () => {
+  it('dit le refus sans laisser croire à une panne', () => {
     simulerApi({});
     afficher(<AdministrationPage />, profilPour('ADMIN'));
 
-    expect(screen.getByText(/deux habilitations distinctes/i)).toBeInTheDocument();
+    expect(screen.getByText(/réservé aux administrateurs de l’instance/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/deux habilitations distinctes/i)).toBeInTheDocument();
   });
 });

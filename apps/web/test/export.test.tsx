@@ -69,12 +69,14 @@ describe('export d’un appel', () => {
     expect(appels.some((url) => url.includes('/export'))).toBe(false);
   });
 
-  it('annonce ce que contient l’archive et qu’elle est tracée', async () => {
+  it('annonce que l’export est tracé, et dit à l’aide ce que contient l’archive', async () => {
     await ouvrirLaFiche();
-    const mention = await screen.findByText(/Archive ZIP/);
-    expect(mention).toHaveTextContent(/fiche PDF/);
-    expect(mention).toHaveTextContent(/SHA-256/);
-    expect(mention).toHaveTextContent(/journal d’audit/);
+
+    // L'écran reste court ; le détail de l'archive se lit au survol (§9.24).
+    expect(await screen.findByText(/Export inscrit au journal/)).toBeInTheDocument();
+    const aide = screen.getByLabelText(/Archive ZIP/);
+    expect(aide).toHaveAccessibleName(/fiche PDF/);
+    expect(aide).toHaveAccessibleName(/SHA-256/);
   });
 
   it('demande l’archive au bouton, et confirme l’empreinte vérifiée', async () => {

@@ -8,6 +8,7 @@ import {
 } from '@voxecho/shared';
 import { ApiError, api } from '../api/client';
 import { useAuth } from '../auth/auth-context';
+import { Aide } from '../components/Aide';
 import { EditeurPolitique } from '../components/EditeurPolitique';
 import { SimulateurPolitique } from '../components/SimulateurPolitique';
 import { formatHorodatage } from '../lib/format';
@@ -16,11 +17,9 @@ import { peut } from '../lib/permissions';
 /**
  * Politiques d'enregistrement — CLAUDE.md §9.23.
  *
- * Trois choses sur un même écran, dans cet ordre : ce qui s'applique
- * aujourd'hui, ce qu'on prépare, et ce qui s'est appliqué avant. La dernière
- * n'est pas un ornement : le jour où le produit cesse d'enregistrer
- * systématiquement, « quelle politique s'appliquait le 12 mars ? » devient une
- * question de contrôle, et elle doit se lire sans demander à l'exploitant.
+ * Trois choses dans l'ordre où on les consulte : ce qui s'applique, ce qu'on
+ * prépare, ce qui s'est appliqué avant. L'historique répond à « quelle
+ * politique s'appliquait le 12 mars ? », qui est une question de contrôle.
  */
 export function PolitiquesPage() {
   const { profil } = useAuth();
@@ -104,11 +103,10 @@ export function PolitiquesPage() {
   return (
     <div className="space-y-8">
       <header>
-        <h1 className="text-lg font-semibold tracking-tight">Politiques d’enregistrement</h1>
-        <p className="mt-1 text-sm text-ardoise-600">
-          Ce que la capture doit enregistrer, et ce qu’elle doit laisser passer. Chaque appel non
-          enregistré sera motivé par la version qui s’appliquait.
-        </p>
+        <h1 className="text-lg font-semibold tracking-tight">
+          Politiques d’enregistrement
+          <Aide texte="Ce que la capture doit enregistrer, et ce qu’elle doit laisser passer. Chaque appel non enregistré est motivé par la version en vigueur au moment de l’appel." />
+        </h1>
       </header>
 
       {message !== null && (
@@ -133,8 +131,8 @@ export function PolitiquesPage() {
         </h2>
         {enVigueur === null ? (
           <p className="rounded border border-ardoise-200 bg-white p-4 text-sm text-ardoise-600">
-            Aucune politique publiée : <strong>tous les appels sont enregistrés</strong>. C’est le
-            défaut du produit — ne pas enregistrer doit résulter d’une décision écrite.
+            Aucune politique publiée — <strong>tous les appels sont enregistrés</strong>.
+            <Aide texte="C’est le défaut du produit : ne pas enregistrer doit résulter d’une décision écrite." />
           </p>
         ) : (
           <div className="rounded border border-ardoise-200 bg-white p-4 text-sm">
@@ -180,12 +178,13 @@ export function PolitiquesPage() {
 
               <div className="rounded border border-ardoise-200 bg-white p-4">
                 <label className="mb-1 block text-xs font-medium text-ardoise-700" htmlFor="note">
-                  Ce que cette version change, et pourquoi
+                  Note de version
+                  <Aide texte="Ce que cette version change, et pourquoi. Dix caractères au moins : un contrôleur la lira." />
                 </label>
                 <input
                   id="note"
                   className="w-full rounded border border-ardoise-300 px-2 py-1 text-sm"
-                  placeholder="Dix caractères au moins : un contrôleur lira cette phrase"
+                  placeholder="Ce que cette version change"
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                 />
@@ -224,10 +223,6 @@ export function PolitiquesPage() {
                     Abandonner
                   </button>
                 </div>
-                <p className="mt-2 text-xs text-ardoise-500">
-                  Une version publiée ne se modifie plus : on en publie une nouvelle. C’est ce qui
-                  permet de dire, plus tard, quelle politique s’appliquait à une date donnée.
-                </p>
               </div>
             </div>
           )}
