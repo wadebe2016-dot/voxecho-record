@@ -57,6 +57,19 @@ enum AuditAction {
   /// Raccourcir une rétention détruit des preuves à terme : l'acte doit se
   /// lire au journal comme n'importe quelle autre destruction.
   RETENTION_SET
+
+  /// Publication d'une politique d'enregistrement (CLAUDE.md §9.23). Décider
+  /// de ne pas enregistrer certains appels est au moins aussi lourd que
+  /// raccourcir une conservation : c'est renoncer d'avance à une preuve.
+  POLICY_SET
+}
+
+/// Cycle de vie d'une version de politique d'enregistrement.
+enum PolicyStatus {
+  /// En cours d'écriture. Modifiable, abandonnable, sans effet sur la capture.
+  draft
+  /// Publiée : immuable, et opposable. Un déclencheur en base l'y contraint.
+  published
 }
 
 model Tenant {
@@ -81,6 +94,7 @@ model Tenant {
   auditEvents       AuditEvent[]
   retentionPolicies RetentionPolicy[]
   purgeRuns         PurgeRun[]
+  recordingPolicies RecordingPolicyVersion[]
 
   @@map("tenants")
 }
@@ -119,6 +133,8 @@ model User {
   purgeRunsCreated   PurgeRun[]     @relation("PurgeRunCreatedBy")
   purgeRunsExecuted  PurgeRun[]     @relation("PurgeRunExecutedBy")
   purgeRunsCancelled PurgeRun[]     @relation("PurgeRunCancelledBy")
+  policiesCreated    RecordingPolicyVersion[] @relation("PolicyCreatedBy")
+  policiesPublished  RecordingPolicyVersion[] @relation("PolicyPublishedBy")
 
   @@index([tenantId])
   @@map("users")
@@ -369,4 +385,46 @@ model LegalHold {
   /// d'un locataire au moment de la purge.
   @@index([tenantId, releasedAt])
   @@map("legal_holds")
+}
+
+/// Politique d'enregistrement sélectif — CLAUDE.md §9.23.
+///
+/// Une version publiée ne se modifie jamais : on en publie une nouvelle. C'est
+/// la seule façon de répondre à « quelle politique s'appliquait le 12 mars ? »,
+/// et cette question sera posée, précisément parce que le produit renonce à
+/// enregistrer certains appels. Un déclencheur en base l'impose, comme pour le
+/// journal d'audit (§5) : l'absence de route d'écriture ne suffit pas quand la
+/// valeur probante en dépend.
+model RecordingPolicyVersion {
+  id       String       @id @default(uuid()) @db.Uuid
+  tenantId String       @map("tenant_id") @db.Uuid
+  /// Numéro croissant par locataire. C'est lui qui voyage avec chaque décision
+  /// d'enregistrement, et qu'un contrôleur citera.
+  version  Int
+  status   PolicyStatus @default(draft)
+
+  /// La politique elle-même, telle que validée par le contrat partagé.
+  document Json @db.JsonB
+
+  /// Ce que cette version change, écrit par qui la publie. Exigé à la
+  /// publication : une politique qui renonce à des preuves ne se pousse pas
+  /// sans un mot d'explication.
+  note String?
+
+  /// Empreinte du document publié, pour que le connecteur puisse vérifier
+  /// qu'il applique bien ce qui a été décidé.
+  sha256 String?
+
+  createdBy   String    @map("created_by") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at")
+  publishedBy String?   @map("published_by") @db.Uuid
+  publishedAt DateTime? @map("published_at")
+
+  tenant  Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  auteur  User   @relation("PolicyCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  editeur User?  @relation("PolicyPublishedBy", fields: [publishedBy], references: [id], onDelete: Restrict)
+
+  @@unique([tenantId, version])
+  @@index([tenantId, status])
+  @@map("recording_policy_versions")
 }

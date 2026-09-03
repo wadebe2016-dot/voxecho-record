@@ -26,5 +26,7 @@ export const AUDIT_ACTIONS = [
   'HOLD_SET',
   'HOLD_RELEASE',
   'RETENTION_SET',
+  /** Publication d'une politique d'enregistrement sélectif (§9.23). */
+  'POLICY_SET',
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

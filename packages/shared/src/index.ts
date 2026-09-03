@@ -12,6 +12,7 @@ export * from './api/export.js';
 export * from './api/instance.js';
 export * from './api/pagination.js';
 export * from './api/playback.js';
+export * from './api/policy.js';
 export * from './api/purge.js';
 export * from './api/recordings.js';
 export * from './api/retention.js';

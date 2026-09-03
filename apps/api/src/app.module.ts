@@ -16,6 +16,7 @@ import { PurgeModule } from './purge/purge.module';
 import { RecordingsModule } from './recordings/recordings.module';
 import { RetentionModule } from './retention/retention.module';
 import { AdministrationModule } from './administration/administration.module';
+import { PolicyModule } from './policy/policy.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { AdministrationModule } from './administration/administration.module';
     IngestionModule,
     RecordingsModule,
     RetentionModule,
+    PolicyModule,
     PurgeModule,
     ExportModule,
     DashboardModule,
