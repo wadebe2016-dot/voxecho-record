@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { PolicyVersionDetail } from '@voxecho/shared';
 import { PolitiquesPage } from '../src/pages/PolitiquesPage';
 import { AppShell } from '../src/components/AppShell';
+import { ConfigurationShell } from '../src/components/ConfigurationShell';
 import { afficher, PROFIL_AUDITEUR, profilPour, reponse, simulerApi } from './helpers';
 
 const EN_VIGUEUR: PolicyVersionDetail = {
@@ -75,7 +76,7 @@ describe('politiques d’enregistrement', () => {
     // Un auditeur lit la politique — c'est une question de conformité — mais
     // ne la change pas (§9.23).
     expect(screen.queryByRole('button', { name: /publier/i })).toBeNull();
-    expect(screen.queryByRole('button', { name: /commencer une politique/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /créer une politique/i })).toBeNull();
   });
 
   it('valide le brouillon avec le contrat partagé avant de l’envoyer', async () => {
@@ -86,7 +87,7 @@ describe('politiques d’enregistrement', () => {
     });
     afficher(<PolitiquesPage />, profilPour('ADMIN'));
 
-    await userEvent.click(await screen.findByRole('button', { name: /commencer une politique/i }));
+    await userEvent.click(await screen.findByRole('button', { name: /créer une politique/i }));
     // Un échantillonnage sans taux : le contrat le refuse, et l'écran le dit
     // sans aller déranger l'api — c'est le même validateur des deux côtés.
     await userEvent.selectOptions(screen.getByLabelText('Décision par défaut'), 'sample');
@@ -107,7 +108,7 @@ describe('politiques d’enregistrement', () => {
     });
     afficher(<PolitiquesPage />, profilPour('ADMIN'));
 
-    await userEvent.click(await screen.findByRole('button', { name: /commencer une politique/i }));
+    await userEvent.click(await screen.findByRole('button', { name: /créer une politique/i }));
     const publier = screen.getByRole('button', { name: 'Publier' });
 
     // Renoncer d'avance à des preuves se motive : le bouton reste fermé tant
@@ -117,12 +118,27 @@ describe('politiques d’enregistrement', () => {
     await waitFor(() => expect(publier).toBeEnabled());
   });
 
-  it('ouvre l’entrée de navigation aux trois rôles, sous un libellé distinct', () => {
+  it('ouvre la configuration aux trois rôles depuis la barre du haut', () => {
     simulerApi({});
     for (const role of ['ADMIN', 'SUPERVISOR', 'AUDITOR'] as const) {
       afficher(<AppShell>contenu</AppShell>, profilPour(role));
-      expect(screen.getAllByRole('link', { name: 'Politiques' }).length).toBeGreaterThan(0);
+      expect(screen.getAllByRole('link', { name: 'Configuration' }).length).toBeGreaterThan(0);
     }
+  });
+
+  it('présente « Politiques » dans le menu vertical de configuration', () => {
+    simulerApi({});
+    afficher(
+      <ConfigurationShell>
+        <span>contenu</span>
+      </ConfigurationShell>,
+      profilPour('AUDITOR'),
+    );
+
+    const menu = screen.getByRole('navigation', { name: 'Configuration' });
+    expect(within(menu).getByRole('link', { name: 'Politiques' })).toBeInTheDocument();
+    // Les réglages d'instance ne s'ouvrent pas à qui ne l'administre pas.
+    expect(within(menu).queryByRole('link', { name: 'Réglages' })).toBeNull();
   });
 
   it('ne présente aucun libellé de menu qu’on puisse confondre avec un autre', () => {

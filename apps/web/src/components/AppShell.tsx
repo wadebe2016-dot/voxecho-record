@@ -20,15 +20,9 @@ const NAVIGATION: Entree[] = [
   { chemin: '/tableau-de-bord', libelle: 'Tableau de bord', capacite: 'consulterTableauDeBord' },
   { chemin: '/enregistrements', libelle: 'Enregistrements', capacite: 'consulterEnregistrements' },
   { chemin: '/journal', libelle: 'Journal d’audit', capacite: 'consulterJournalAudit' },
-  // « Enregistrement » voisinait « Enregistrements » : à une lettre près, deux
-  // écrans sans rapport — les politiques d'un côté, les appels de l'autre.
-  { chemin: '/politiques', libelle: 'Politiques', capacite: 'consulterPolitiques' },
-  {
-    chemin: '/administration',
-    libelle: 'Administration',
-    capacite: 'administrerInstance',
-    instanceSeulement: true,
-  },
+  // Une seule porte vers les écrans de réglages, qui ont leur propre menu
+  // vertical (§9.25). La barre du haut reste celle de l'usage quotidien.
+  { chemin: '/politiques', libelle: 'Configuration', capacite: 'consulterPolitiques' },
 ];
 
 /** Bandeau locataire + navigation filtrée par rôle (masquage d'affichage). */

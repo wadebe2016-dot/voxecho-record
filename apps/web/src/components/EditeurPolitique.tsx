@@ -188,7 +188,7 @@ export function EditeurPolitique({
                     })
                   }
                 >
-                  Retirer
+                  Supprimer
                 </button>
               </div>
               <textarea
@@ -276,7 +276,7 @@ export function EditeurPolitique({
                     })
                   }
                 >
-                  Retirer
+                  Supprimer
                 </button>
               </div>
 
