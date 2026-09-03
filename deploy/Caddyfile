@@ -1,4 +1,4 @@
-# Terminaison TLS de l'instance de démonstration — CLAUDE.md §9.18.
+# Terminaison TLS de l'instance d'évaluation — CLAUDE.md §9.18 et §9.21.
 #
 # Caddy obtient et renouvelle seul le certificat Let's Encrypt par challenge
 # HTTP-01, ce qui suppose le port 80 joignable depuis l'extérieur et
