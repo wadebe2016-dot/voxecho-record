@@ -1341,3 +1341,40 @@ composant d'infobulle (clic, ancrage, fermeture au clavier) — et ce sera un lo
 pas une retouche. Par ailleurs, le manuel vit à côté du code : rien ne garantit
 qu'il suive une évolution d'écran, sinon la discipline. Le jour où il divergera,
 c'est lui qu'un utilisateur croira.
+
+### 9.25 Deux usages, deux navigations (S6)
+
+La barre horizontale portait cinq entrées et devait en accueillir une dizaine :
+comptes, conservation, sources, sauvegarde, locataires, politiques. Elle n'y
+suffisait plus.
+
+**Le choix n'est pas « tout en sidebar ».** Deux usages coexistent et n'ont pas
+les mêmes besoins. Un auditeur passe sa journée sur trois écrans et travaille
+sur des listes denses — un tableau de neuf colonnes, un journal d'audit — où
+deux cents pixels de menu permanent se paient en colonnes tronquées.
+L'administrateur, lui, navigue entre des écrans de réglages qu'aucune barre
+horizontale ne tiendra.
+
+**La barre du haut reste celle de l'usage quotidien** — tableau de bord,
+enregistrements, journal — plus une porte unique, « Configuration ». Les écrans
+de réglages ont leur propre menu vertical, groupé par domaine : conformité,
+accès, capture, exploitation, instance.
+
+**Seules les entrées qui existent sont affichées.** Un menu qui annonce des
+écrans à venir fait perdre du temps à qui les cherche ; les sections se
+rempliront lot par lot. C'est la leçon du §9.5, où un lien mort avait été
+assumé faute de mieux — ici rien ne l'impose.
+
+**Les URL ne changent pas.** `/politiques` et `/administration` restent ce
+qu'elles sont : le runbook et le manuel y renvoient, et une réorganisation de
+menu n'est pas une raison de casser des liens écrits ailleurs.
+
+Les libellés de boutons suivent la même exigence de banalité : « Créer »,
+« Modifier », « Publier », « Supprimer », « Désactiver ». « Commencer une
+politique » et « Abandonner » disaient la même chose dans une langue que
+personne n'attend dans un logiciel de gestion.
+
+**Réserve** — la sidebar est fixe et sans repli : à moins de 1 024 pixels de
+large, elle serrera le contenu. Le portail est fait pour un poste de travail, et
+c'est un compromis assumé tant qu'il n'est pas consulté sur tablette ; ce jour-là
+il faudra un menu escamotable, ce qui est un lot et non une retouche.

@@ -466,3 +466,12 @@ contrôle.
   régression déguisée en épure.
 - Nouveau document : `docs/manuel-utilisateur.md`, le premier qui s'adresse à
   l'utilisateur plutôt qu'au développeur.
+- Navigation : la barre du haut garde l'usage quotidien (tableau de bord,
+  enregistrements, journal) plus une porte « Configuration » ; les écrans de
+  réglages ont un menu vertical groupé par domaine. Une sidebar permanente
+  aurait mangé la largeur des listes d'appels, qui en ont besoin (§9.25).
+- Seules les entrées qui existent sont affichées : les sections se rempliront
+  lot par lot. Les URL `/politiques` et `/administration` ne changent pas.
+- Libellés de boutons uniformisés en verbes d'action standard : « Créer une
+  politique » (et non « Commencer »), « Supprimer le brouillon » (et non
+  « Abandonner »), « Supprimer », « Précédent / Suivant ».

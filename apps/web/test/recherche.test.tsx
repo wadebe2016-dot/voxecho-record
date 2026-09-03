@@ -100,7 +100,7 @@ describe('recherche d’enregistrements', () => {
     afficher(<RecordingsPage />);
     await screen.findByText('01/09/2026 14:30:12');
 
-    await userEvent.click(screen.getByRole('button', { name: 'Suivante' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Suivant' }));
     await waitFor(() => expect(derniereRequete(fetch).get('page')).toBe('2'));
 
     await userEvent.type(screen.getByLabelText('Numéro (poste ou correspondant)'), '1001');

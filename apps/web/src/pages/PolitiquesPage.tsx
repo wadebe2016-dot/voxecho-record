@@ -167,7 +167,7 @@ export function PolitiquesPage() {
                 className="rounded border border-ardoise-300 px-3 py-1 text-sm hover:bg-ardoise-50"
                 onClick={() => setBrouillon(enVigueur?.document ?? politiqueParDefaut())}
               >
-                {enVigueur === null ? 'Commencer une politique' : 'Partir de la version en vigueur'}
+                {enVigueur === null ? 'Créer une politique' : 'Dupliquer la version en vigueur'}
               </button>
             )}
           </div>
@@ -220,7 +220,7 @@ export function PolitiquesPage() {
                         });
                     }}
                   >
-                    Abandonner
+                    Supprimer le brouillon
                   </button>
                 </div>
               </div>

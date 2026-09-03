@@ -189,7 +189,7 @@ export function RecordingsPage() {
             disabled={page <= 1}
             className="rounded border border-ardoise-200 px-2 py-1 disabled:opacity-50"
           >
-            Précédente
+            Précédent
           </button>
           <span className="text-ardoise-600">
             Page {donnees.page} sur {donnees.pageCount}
@@ -200,7 +200,7 @@ export function RecordingsPage() {
             disabled={page >= donnees.pageCount}
             className="rounded border border-ardoise-200 px-2 py-1 disabled:opacity-50"
           >
-            Suivante
+            Suivant
           </button>
         </nav>
       )}
