@@ -6,6 +6,7 @@ import { TAILLE_CLE } from '../storage/coffre';
 import { analyserArguments } from './arguments';
 import { creerSauvegarde } from './sauvegarde.service';
 import { NOM_MANIFESTE } from './manifeste';
+import { appliquerDatabaseUrl } from '../config/database-url';
 
 /**
  * Prend une sauvegarde — CLAUDE.md §9.14.
@@ -32,6 +33,9 @@ function lireVersion(): string {
 }
 
 async function main(): Promise<void> {
+  // Le point d'entrée de l'image construit DATABASE_URL ; une commande
+  // d'exploitation le court-circuite et doit donc la construire aussi (§9.19).
+  appliquerDatabaseUrl();
   const arguments_ = analyserArguments(process.argv.slice(2), ['--vers'], []);
   const prisma = new PrismaClient();
 

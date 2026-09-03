@@ -384,3 +384,16 @@ contrôle.
   est désormais suivi, et quatre vérifications le protègent : fichiers de
   déploiement versionnés, toutes les variables de la composition déclarées dans
   le modèle, aucun secret dans le modèle, et aucun port publié hors 80 et 443.
+- Correctif de mise en service : l'api redémarrait en boucle sur
+  « invalid port number in database URL ». Le compose assemblait l'URL de
+  connexion par concaténation et le mot de passe, tiré en base64, contenait un
+  `/` — qui referme la partie autorité d'une URL. Le message désignait le port,
+  le coupable était le mot de passe.
+- La composition passe désormais les composants ; le produit construit l'URL en
+  encodant identifiant et mot de passe, une seule fois, au même endroit. Le
+  point d'entrée de l'image l'obtient du même module avant de migrer, et les
+  commandes d'exploitation, qui le court-circuitent, l'appellent aussi.
+- Éprouvé sur une vraie connexion : un rôle PostgreSQL dont le mot de passe
+  contient `/`, `+` et `=`, une connexion qui aboutit, et la même assemblée à
+  l'ancienne qui échoue. Un garde-fou refuse toute concaténation d'URL
+  réintroduite dans un compose. Décisions en §9.19.

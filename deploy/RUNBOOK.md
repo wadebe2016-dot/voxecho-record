@@ -129,7 +129,10 @@ def pose(c, v):
     global s
     s = re.sub(rf'^{c}=.*$', f'{c}={v}', s, flags=re.M)
 b64 = lambda n: base64.b64encode(secrets.token_bytes(n)).decode()
-pose('POSTGRES_PASSWORD', b64(24)); pose('JWT_ACCESS_SECRET', b64(48))
+# POSTGRES_PASSWORD sans / ni + : le produit encode désormais l'URL (§9.19),
+# mais ce mot de passe se retrouve aussi dans psql, pg_dump et les journaux,
+# où un caractère gênant se paie en échappements oubliés.
+pose('POSTGRES_PASSWORD', secrets.token_urlsafe(24)); pose('JWT_ACCESS_SECRET', b64(48))
 pose('JWT_REFRESH_SECRET', b64(48)); pose('STORAGE_MASTER_KEY', b64(32))
 for r in ('ADMIN','AUDITOR','SUPERVISOR'): pose(f'DEMO_{r}_PASSWORD', secrets.token_urlsafe(18))
 p.write_text(s); print('secrets générés')

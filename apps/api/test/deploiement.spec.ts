@@ -83,4 +83,18 @@ describe('composition de déploiement', () => {
     const ports = [...compose.matchAll(/^\s+- '(\d+):\d+'/gm)].map((t) => t[1]);
     expect(ports.sort()).toEqual(['443', '80']);
   });
+
+  it('n’assemble aucune URL de connexion par concaténation', () => {
+    // Le défaut du §9.19 : `postgresql://${USER}:${PASSWORD}@...` dans un
+    // compose. Un mot de passe contenant `/` referme la partie autorité, et
+    // l'api redémarre en boucle sur un « invalid port number » qui ne dit rien
+    // du vrai problème. Les composants sont passés, le produit construit.
+    for (const fichier of ['deploy/docker-compose.prod.yml', 'docker-compose.yml']) {
+      const contenu = readFileSync(join(RACINE, fichier), 'utf8');
+      const lignes = contenu
+        .split('\n')
+        .filter((ligne) => ligne.includes('postgresql://') && ligne.includes('${'));
+      expect(lignes).toEqual([]);
+    }
+  });
 });

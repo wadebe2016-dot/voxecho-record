@@ -5,6 +5,7 @@ import { TAILLE_CLE } from '../storage/coffre';
 import { analyserArguments } from './arguments';
 import { lignesDe } from './constat';
 import { verifierSauvegarde, type RapportSauvegarde } from './verification.service';
+import { appliquerDatabaseUrl } from '../config/database-url';
 
 /**
  * Vérifie une sauvegarde — CLAUDE.md §9.14.
@@ -81,6 +82,9 @@ function afficher(rapport: RapportSauvegarde): void {
 }
 
 async function main(): Promise<void> {
+  // Le point d'entrée de l'image construit DATABASE_URL ; une commande
+  // d'exploitation le court-circuite et doit donc la construire aussi (§9.19).
+  appliquerDatabaseUrl();
   const arguments_ = analyserArguments(process.argv.slice(2), ['--empreinte'], ['--stockage']);
   const racine = resoudreCheminDeDonnees(process.env.BACKUP_DIR ?? './data/backups');
   const positionnel = arguments_.positionnels[0];
