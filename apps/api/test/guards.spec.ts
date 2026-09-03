@@ -13,6 +13,7 @@ const AUDITEUR: AuthUser = {
   email: 'auditeur@a.cm',
   role: 'AUDITOR',
   instanceAdmin: false,
+  mustChangePassword: false,
 };
 
 function contexte(requete: Record<string, unknown>): ExecutionContext {

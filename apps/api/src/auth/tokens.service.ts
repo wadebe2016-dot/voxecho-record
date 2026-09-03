@@ -30,6 +30,7 @@ export class TokensService {
       email: user.email,
       role: user.role,
       adm: user.instanceAdmin,
+      chg: user.mustChangePassword,
     };
     const accessToken = await this.jwt.signAsync(accessPayload, {
       secret: this.config.get('JWT_ACCESS_SECRET'),
@@ -68,6 +69,7 @@ export class TokensService {
         // Absent des jetons émis avant le §9.22 : sans le drapeau, on
         // n'accorde rien. Un privilège ne se déduit jamais d'un silence.
         instanceAdmin: payload.adm === true,
+        mustChangePassword: payload.chg === true,
       };
     } catch {
       throw new UnauthorizedException('Jeton invalide ou expiré.');

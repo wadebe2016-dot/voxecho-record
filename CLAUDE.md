@@ -1378,3 +1378,61 @@ personne n'attend dans un logiciel de gestion.
 large, elle serrera le contenu. Le portail est fait pour un poste de travail, et
 c'est un compromis assumé tant qu'il n'est pas consulté sur tablette ; ce jour-là
 il faudra un menu escamotable, ce qui est un lot et non une retouche.
+
+### 9.26 Un compte se crée, se désactive, et ne se devine pas (S6)
+
+Deuxième lot de la console. Donner à quelqu'un le droit d'entendre des
+conversations de clients est l'acte le plus lourd qu'on y accomplisse : il se
+trace, il ne s'auto-attribue pas, et il ne doit jamais fermer la porte derrière
+lui.
+
+**Un compte ne se supprime pas, il se désactive.** Le journal d'audit référence
+son auteur (`onDelete: Restrict`, §5) : l'effacer effacerait le lien vers ce
+qu'il a écouté. La console n'offre donc aucune suppression, et un compte
+désactivé ne peut plus se connecter tout en restant nommable dans le journal.
+
+**Le mot de passe initial est provisoire et l'api l'impose.** Il est engendré
+par le produit — jamais choisi par l'administrateur, qui prendrait le premier
+qui lui vient et le retrouverait dans un courriel six mois plus tard — rendu
+**une seule fois**, et à renouveler dès la première connexion. Tant qu'il ne
+l'est pas, un garde global ne laisse passer que le profil, le changement de mot
+de passe et la déconnexion : masquer le portail n'aurait rien protégé, l'api
+restant joignable directement.
+
+Il est écrit pour être dicté au téléphone : quatre groupes de quatre
+caractères, sans `O` ni `0`, sans `I` ni `1`. Le changer rend une paire de
+jetons neuve — le drapeau voyage dans le jeton — et révoque les sessions
+ouvertes ailleurs, parce que changer son mot de passe est le geste de qui craint
+qu'on le lui ait pris.
+
+**Pas d'expiration périodique.** C'est un choix, et il surprendra peut-être un
+responsable conformité habitué à la règle des quatre-vingt-dix jours : imposer
+un changement régulier produit `Banque2026!1` puis `Banque2026!2`, et des
+pense-bêtes sous les claviers. Les recommandations actuelles l'ont abandonnée.
+Ce qui protège est ailleurs, et déjà en place : longueur sérieuse, refus de ce
+qui se devine — suites courantes, adresse du titulaire, trop peu de caractères
+distincts — verrouillage après échecs (§5) et limitation par adresse (§9.16).
+
+**Un administrateur ne modifie pas son propre compte.** Se rétrograder ou se
+désactiver soi-même, c'est se fermer la porte de l'intérieur, et il faudrait
+alors un accès au serveur pour revenir. Un autre administrateur le fait.
+
+**Le dernier administrateur de l'instance est protégé** — la réserve du §9.22
+est levée. Ni la console ni la commande d'exploitation ne le laissent
+rétrograder, désactiver ou révoquer tant qu'aucun autre ne le remplace : sans
+lui, la console d'administration se ferme à tout le monde.
+
+**`USER_SET` s'ajoute au §5**, avec l'avant et l'après de chaque changement.
+C'est la troisième action ajoutée après `RETENTION_SET` (§9.6) et `POLICY_SET`
+(§9.23), et pour la même raison : ce qui engage la banque doit se lire au
+journal.
+
+**Réserve** — l'unicité de l'adresse est globale (§9.1) : créer un compte dont
+l'adresse existe déjà chez un autre locataire est refusé, et le refus révèle,
+par déduction, que cette adresse est connue de l'instance. On ne dit pas où, et
+c'est le mieux qu'on puisse faire sans renoncer à l'unicité globale ; le jour où
+l'offre mutualisée du §9.1 arrivera, ce cas disparaîtra avec elle. Par ailleurs,
+le mot de passe provisoire circule aujourd'hui de la main à la main : c'est
+acceptable pour un service conformité de quelques personnes, et cela demandera
+un envoi par courriel — donc le SMTP du lot 08 — dès qu'un client aura des
+dizaines de comptes à ouvrir.

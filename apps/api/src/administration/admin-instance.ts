@@ -48,6 +48,19 @@ async function main(): Promise<void> {
         throw new Error(`${email} est désactivé : le réactiver avant de le promouvoir.`);
       }
 
+      if (revoquer !== undefined && compte.instanceAdmin) {
+        // Réserve du §9.22 : sans administrateur d'instance, la console se
+        // ferme à tout le monde et il faut un accès au serveur pour la rouvrir.
+        const autres = await prisma.user.count({
+          where: { instanceAdmin: true, active: true, id: { not: compte.id } },
+        });
+        if (autres === 0) {
+          throw new Error(
+            `${email} est le dernier administrateur de l’instance : en promouvoir un autre avant de le révoquer.`,
+          );
+        }
+      }
+
       await prisma.user.update({
         where: { id: compte.id },
         data: { instanceAdmin: promouvoir !== undefined },

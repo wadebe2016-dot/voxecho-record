@@ -5,6 +5,7 @@ import { Public } from '../common/decorators/public.decorator';
 import { AuthService } from './auth.service';
 import type { AuthUser, TokenPair } from './auth.types';
 import { LimitationConnexionGuard } from './limitation-connexion.guard';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
 
@@ -29,6 +30,16 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   refresh(@Body() dto: RefreshDto): Promise<TokenPair> {
     return this.auth.refresh(dto.refreshToken);
+  }
+
+  @Post('password')
+  @HttpCode(HttpStatus.OK)
+  changerMotDePasse(
+    @Body() dto: ChangePasswordDto,
+    @CurrentUser() user: AuthUser,
+    @Req() request: Request,
+  ): Promise<TokenPair> {
+    return this.auth.changerMotDePasse(user, dto.ancien, dto.nouveau, adresse(request));
   }
 
   @Post('logout')

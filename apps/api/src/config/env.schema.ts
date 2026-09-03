@@ -29,6 +29,13 @@ export const envSchema = z.object({
   JWT_REFRESH_SECRET: secret,
   JWT_ACCESS_TTL: duration.default('15m'),
   JWT_REFRESH_TTL: duration.default('7d'),
+  /**
+   * Longueur minimale d'un mot de passe (§9.26). Pas d'expiration périodique :
+   * elle produit des variantes numérotées et des pense-bêtes, pas de la
+   * sécurité.
+   */
+  PASSWORD_MIN_LENGTH: z.coerce.number().int().min(8).max(128).default(12),
+
   AUTH_MAX_FAILED_ATTEMPTS: z.coerce.number().int().min(1).max(50).default(5),
   AUTH_LOCK_DURATION_MIN: z.coerce.number().int().min(1).max(1440).default(15),
 

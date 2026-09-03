@@ -475,3 +475,17 @@ contrôle.
 - Libellés de boutons uniformisés en verbes d'action standard : « Créer une
   politique » (et non « Commencer »), « Supprimer le brouillon » (et non
   « Abandonner »), « Supprimer », « Précédent / Suivant ».
+- Gestion des comptes (api) : création avec mot de passe **provisoire** rendu une
+  seule fois, changement de rôle, activation, réinitialisation. Aucune
+  suppression — un compte se désactive, parce que le journal référence son
+  auteur et qu'effacer un compte effacerait le lien vers ce qu'il a écouté.
+- Tant qu'un mot de passe provisoire n'est pas renouvelé, un garde global ne
+  laisse passer que le profil, le changement de mot de passe et la déconnexion :
+  masquer le portail n'aurait rien protégé, l'api restant joignable.
+- Politique de mot de passe : longueur minimale configurable (12 par défaut),
+  refus des suites courantes, de l'adresse du titulaire et des mots de passe
+  trop pauvres. **Pas d'expiration périodique**, et le §9.26 dit pourquoi.
+- Le dernier administrateur de l'instance ne peut plus être rétrogradé,
+  désactivé ni révoqué — ni par la console, ni par la commande. La réserve du
+  §9.22 est levée.
+- `USER_SET` s'ajoute au journal, avec l'avant et l'après de chaque changement.
