@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Aide } from './Aide';
 import {
   deciderEnregistrement,
   INGEST_DIRECTIONS,
@@ -12,15 +13,9 @@ import {
 /**
  * Simulateur de décision — CLAUDE.md §9.23.
  *
- * « Cet appel serait-il enregistré, et pourquoi ? » — la question que se pose
- * un responsable conformité avant de publier, et celle que posera un
- * contrôleur après. L'écran y répond avec le **moteur partagé**, celui-là même
- * qu'exécutera le connecteur : ce n'est pas une approximation d'aide à la
- * saisie, c'est la décision réelle, rejouée.
- *
- * Il éprouve le brouillon quand il y en a un. On vérifie ainsi ce qu'une
- * politique changera **avant** de la rendre opposable, plutôt que de le
- * découvrir sur les appels du lendemain.
+ * Rejoue le moteur partagé, celui qu'exécutera le connecteur : ce n'est pas
+ * une approximation. Il éprouve le brouillon quand il y en a un, pour qu'on
+ * voie ce qu'une politique changera avant de la rendre opposable.
  */
 
 const CHAMP =
@@ -51,12 +46,10 @@ export function SimulateurPolitique({
       className="rounded border border-ardoise-200 bg-white p-4"
       aria-labelledby="simulateur"
     >
-      <h3 id="simulateur" className="mb-1 text-sm font-semibold">
-        Simuler un appel
+      <h3 id="simulateur" className="mb-3 text-sm font-semibold">
+        Simuler un appel <span className="font-normal text-ardoise-500">— sur {source}</span>
+        <Aide texte="Le moteur utilisé ici est celui qu’exécutera la capture : le verdict est la décision réelle, rejouée." />
       </h3>
-      <p className="mb-3 text-xs text-ardoise-600">
-        Sur {source}, avec le moteur qu’exécutera la capture — ce n’est pas une approximation.
-      </p>
 
       <div className="grid gap-3 sm:grid-cols-5">
         <div>
@@ -148,16 +141,11 @@ export function SimulateurPolitique({
             : 'Cet appel ne serait pas enregistré.'}
         </p>
         <p className="mt-1">{decision.motif}</p>
-        {decision.tirage !== undefined && (
-          <p className="mt-1 text-xs">
-            Tirage déterministe&nbsp;: la même référence d’appel donnera toujours ce résultat, et un
-            contrôleur peut le recalculer.
-          </p>
-        )}
         {(decision.annonce || decision.pauseAutorisee) && (
           <p className="mt-1 text-xs">
-            {decision.annonce ? 'L’appelant est averti de l’enregistrement. ' : ''}
-            {decision.pauseAutorisee ? 'L’agent peut suspendre pendant une saisie sensible.' : ''}
+            {decision.annonce ? 'Annonce à l’appelant.' : ''}
+            {decision.annonce && decision.pauseAutorisee ? ' ' : ''}
+            {decision.pauseAutorisee ? 'Pause autorisée.' : ''}
           </p>
         )}
       </div>

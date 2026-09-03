@@ -1296,3 +1296,48 @@ qu'il ne peut pas appliquer. Enfin, les listes de numéros s'écrivent une ligne
 la fois dans une zone de texte : robuste et copiable depuis un tableur, mais
 pénible au-delà de quelques dizaines d'entrées ; l'import de fichier viendra si
 le besoin se confirme.
+
+### 9.24 Un écran de professionnel ne se justifie pas (S6)
+
+Les écrans du portail expliquaient le produit à chaque champ : sous le défaut
+d'une politique, pourquoi il enregistre tout ; sous une liste d'exclusion,
+pourquoi elle prime ; sous chaque réglage d'instance, pourquoi il ne se modifie
+pas ici. Chacun de ces paragraphes était juste, et l'ensemble alourdissait
+l'outil au point de lui donner l'air de plaider sa cause.
+
+**Ce que voit un utilisateur professionnel doit être court.** Un responsable
+conformité qui ouvre l'écran des politiques pour la vingtième fois n'a pas
+besoin qu'on lui rappelle la doctrine du produit ; il a besoin de trouver son
+champ. Le raisonnement qui a présidé à un choix reste utile — mais une fois, pas
+à chaque visite.
+
+**Trois niveaux, désormais.** Le libellé dit quoi. L'icône d'aide (ⓘ), au
+survol, dit l'essentiel en une phrase. `docs/manuel-utilisateur.md` porte le
+développement complet, avec renvoi à la décision qui le fonde. Rien n'a été
+perdu : ce qui a été retiré des écrans a été déplacé, et le manuel est le seul
+document qui s'adresse à l'utilisateur plutôt qu'au développeur.
+
+**Ce qui reste à l'écran malgré la règle**, parce que ce n'est pas de la
+justification mais de l'information d'état ou de l'avertissement : que l'écoute
+et l'export sont inscrits au journal (§9.4, §9.8) ; que le compte se verrouille
+après plusieurs échecs ; que l'instance sert des données fabriquées (§9.21) ;
+qu'aucune politique publiée signifie que tout est enregistré ; qu'un brouillon
+est sans effet avant publication ; qu'un réglage est en lecture seule. Ces
+mentions changent ce que l'utilisateur croit vrai de l'état du système, ou
+l'avertissent d'une conséquence — les taire serait un dark-pattern, pas de la
+sobriété.
+
+**L'aide est accessible, pas seulement décorative.** L'icône porte le texte en
+`aria-label` et en `title` : un lecteur d'écran l'annonce, et les tests
+vérifient l'aide par son nom accessible plutôt que par un paragraphe visible.
+Une infobulle qu'un clavier ne peut pas atteindre serait une régression
+déguisée en épure.
+
+**Réserve** — l'infobulle native (`title`) ne s'affiche pas au toucher et tarde
+à la souris. Elle suffit pour une aide d'appoint sur un poste de travail, qui
+est le cadre d'usage ; le jour où le portail sera consulté sur tablette, ou si
+l'aide devient nécessaire à la compréhension plutôt qu'utile, il faudra un vrai
+composant d'infobulle (clic, ancrage, fermeture au clavier) — et ce sera un lot,
+pas une retouche. Par ailleurs, le manuel vit à côté du code : rien ne garantit
+qu'il suive une évolution d'écran, sinon la discipline. Le jour où il divergera,
+c'est lui qu'un utilisateur croira.

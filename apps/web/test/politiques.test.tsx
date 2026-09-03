@@ -186,7 +186,7 @@ describe('politiques d’enregistrement', () => {
       // l'emporte sur l'échantillonnage par défaut.
       expect(verdict).toHaveTextContent(/serait enregistré/i);
       expect(verdict).toHaveTextContent(/Salle des marchés/);
-      expect(verdict).toHaveTextContent(/L’appelant est averti/);
+      expect(verdict).toHaveTextContent(/Annonce à l’appelant/);
     });
 
     it('fait primer une exclusion, et le dit avec son motif', async () => {
@@ -211,7 +211,8 @@ describe('politiques d’enregistrement', () => {
 
       const verdict = screen.getByTestId('verdict-simulation');
       expect(verdict).toHaveTextContent(/échantillon 20 %, tirage \d+/);
-      expect(verdict).toHaveTextContent(/la même référence d’appel donnera toujours ce résultat/i);
+      // Le caractère rejouable du tirage se lit à l'aide, plus en paragraphe.
+      expect(screen.getByLabelText(/décision réelle, rejouée/i)).toBeInTheDocument();
     });
   });
 });

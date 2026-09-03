@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Aide } from './Aide';
 import {
   INGEST_DIRECTIONS,
   INGEST_OPERATION_CATEGORIES,
@@ -14,10 +15,9 @@ import {
  * Édition d'un brouillon de politique — CLAUDE.md §9.23.
  *
  * L'ordre des règles est visible et modifiable à la main : c'est la première
- * qui correspond qui décide, et un administrateur doit voir cet ordre plutôt
- * que de le deviner. Les exclusions sont ailleurs, dans leur propre bloc,
- * parce qu'elles priment sur tout — les mêler aux règles laisserait croire
- * qu'un déplacement pourrait les contourner.
+ * qui correspond qui décide. Les exclusions ont leur propre bloc parce
+ * qu'elles priment sur tout. Ce qui mérite explication tient dans une
+ * infobulle ; le détail est au manuel (§9.24).
  */
 
 const CHAMP =
@@ -89,11 +89,10 @@ export function EditeurPolitique({
   return (
     <div className="space-y-6">
       <section className="rounded border border-ardoise-200 bg-white p-4">
-        <h3 className="mb-3 text-sm font-semibold">Par défaut</h3>
-        <p className="mb-3 text-xs text-ardoise-600">
-          Ce qui s’applique quand aucune règle ne correspond. Le défaut du produit enregistre
-          tout&nbsp;: ne pas enregistrer doit résulter d’une décision, jamais d’un oubli de règle.
-        </p>
+        <h3 className="mb-3 text-sm font-semibold">
+          Par défaut
+          <Aide texte="S’applique quand aucune règle ne correspond. Le défaut du produit enregistre tout." />
+        </h3>
         <div className="flex flex-wrap items-end gap-3">
           <div className="w-64">
             <label className={ETIQUETTE} htmlFor="parDefaut">
@@ -137,12 +136,10 @@ export function EditeurPolitique({
       </section>
 
       <section className="rounded border border-amber-300 bg-amber-50 p-4">
-        <h3 className="mb-3 text-sm font-semibold">Jamais enregistrés</h3>
-        <p className="mb-3 text-xs text-amber-900">
-          Ces numéros priment sur toutes les règles, quel que soit leur ordre — ressources humaines,
-          médecine du travail, représentation du personnel. Un numéro par ligne&nbsp;;
-          <span className="font-mono"> 699*</span> vaut préfixe.
-        </p>
+        <h3 className="mb-3 text-sm font-semibold">
+          Jamais enregistrés
+          <Aide texte="Ces numéros priment sur toutes les règles, quel que soit leur ordre. Un numéro par ligne ; 699* vaut préfixe." />
+        </h3>
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <label className={ETIQUETTE} htmlFor="exclusions">
@@ -173,11 +170,10 @@ export function EditeurPolitique({
       </section>
 
       <section className="rounded border border-ardoise-200 bg-white p-4">
-        <h3 className="mb-3 text-sm font-semibold">Listes nommées</h3>
-        <p className="mb-3 text-xs text-ardoise-600">
-          Tiennent lieu de service ou de département tant qu’aucun annuaire n’est branché. Une règle
-          peut ensuite porter sur une liste entière.
-        </p>
+        <h3 className="mb-3 text-sm font-semibold">
+          Listes nommées
+          <Aide texte="Un service ou un département : une règle peut ensuite porter sur la liste entière." />
+        </h3>
         <div className="space-y-3">
           {document.listes.map((liste, index) => (
             <div key={liste.nom} className="rounded border border-ardoise-200 p-3">
@@ -236,11 +232,11 @@ export function EditeurPolitique({
       </section>
 
       <section className="rounded border border-ardoise-200 bg-white p-4">
-        <h3 className="mb-1 text-sm font-semibold">Règles</h3>
-        <p className="mb-3 text-xs text-ardoise-600">
-          Évaluées dans cet ordre&nbsp;: <strong>la première qui correspond décide</strong>. Les
-          exclusions ci-dessus passent avant toutes.
-        </p>
+        <h3 className="mb-3 text-sm font-semibold">
+          Règles{' '}
+          <span className="font-normal text-ardoise-500">— la première qui correspond décide</span>
+          <Aide texte="Évaluées de haut en bas. Les exclusions ci-dessus passent avant toutes les règles." />
+        </h3>
         <ol className="space-y-3">
           {document.regles.map((regle, index) => (
             <li key={index} className="rounded border border-ardoise-200 p-3">
