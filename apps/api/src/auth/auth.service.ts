@@ -1,4 +1,10 @@
-import { ForbiddenException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  Logger,
+  UnauthorizedException,
+} from '@nestjs/common';
 import type { User } from '@prisma/client';
 import { AuditService } from '../audit/audit.service';
 import { AppConfig } from '../config/config.module';
@@ -6,6 +12,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import type { AuthUser, TokenPair } from './auth.types';
 import { LimitationConnexion } from './limitation-connexion.service';
 import { hashPassword, verifyPassword } from './password';
+import { verifierMotDePasse } from './password-policy';
 import { TokensService } from './tokens.service';
 
 /**
@@ -135,6 +142,7 @@ export class AuthService {
     tenantId: string;
     tenantName: string;
     instanceAdmin: boolean;
+    mustChangePassword: boolean;
   }> {
     const compte = await this.prisma.user.findFirst({
       where: { id: user.userId, tenantId: user.tenantId },
@@ -152,7 +160,66 @@ export class AuthService {
       // Relu en base, non repris du jeton : une révocation prononcée pendant
       // une session doit se voir au prochain chargement du portail.
       instanceAdmin: compte.instanceAdmin,
+      mustChangePassword: compte.mustChangePassword,
     };
+  }
+
+  /**
+   * Changement de mot de passe par son titulaire — CLAUDE.md §9.26.
+   *
+   * Rend une paire de jetons neuve : le drapeau « à renouveler » voyage dans
+   * le jeton, et sans cela le compte resterait bloqué jusqu'à son expiration.
+   * Les sessions ouvertes ailleurs sont révoquées — changer son mot de passe
+   * est le geste de qui craint qu'on le lui ait pris.
+   */
+  async changerMotDePasse(
+    user: AuthUser,
+    ancien: string,
+    nouveau: string,
+    ip: string | null,
+  ): Promise<TokenPair> {
+    const compte = await this.prisma.user.findFirst({
+      where: { id: user.userId, tenantId: user.tenantId },
+    });
+    if (!compte || !compte.active) throw new UnauthorizedException('Session close.');
+
+    if (!(await verifyPassword(compte.passwordHash, ancien))) {
+      this.limitation.signalerEchec(ip);
+      throw new UnauthorizedException('Mot de passe actuel incorrect.');
+    }
+    if (ancien === nouveau) {
+      throw new BadRequestException({
+        message: 'Nouveau mot de passe refusé.',
+        details: ['Le nouveau mot de passe doit différer de l’actuel.'],
+      });
+    }
+
+    const verdict = verifierMotDePasse(nouveau, {
+      longueurMinimale: this.config.get('PASSWORD_MIN_LENGTH'),
+      email: compte.email,
+    });
+    if (!verdict.ok) {
+      throw new BadRequestException({
+        message: 'Nouveau mot de passe refusé.',
+        details: verdict.erreurs,
+      });
+    }
+
+    await this.prisma.user.update({
+      where: { id: compte.id },
+      data: { passwordHash: await hashPassword(nouveau), mustChangePassword: false },
+    });
+    await this.tokens.revokeAllForUser(compte.id);
+
+    await this.audit.record({
+      tenantId: compte.tenantId,
+      userId: compte.id,
+      action: 'USER_SET',
+      ip,
+      detail: { acte: 'mot_de_passe_change', cible: compte.email, parSonTitulaire: true },
+    });
+
+    return this.tokens.issue({ ...this.identite(compte), mustChangePassword: false });
   }
 
   private identite(user: User): AuthUser {
@@ -162,6 +229,7 @@ export class AuthService {
       email: user.email,
       role: user.role,
       instanceAdmin: user.instanceAdmin,
+      mustChangePassword: user.mustChangePassword,
     };
   }
 

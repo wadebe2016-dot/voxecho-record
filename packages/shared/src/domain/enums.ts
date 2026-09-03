@@ -28,5 +28,7 @@ export const AUDIT_ACTIONS = [
   'RETENTION_SET',
   /** Publication d'une politique d'enregistrement sélectif (§9.23). */
   'POLICY_SET',
+  /** Création, modification ou réinitialisation d'un compte (§9.26). */
+  'USER_SET',
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

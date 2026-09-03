@@ -17,6 +17,8 @@ import { RecordingsModule } from './recordings/recordings.module';
 import { RetentionModule } from './retention/retention.module';
 import { AdministrationModule } from './administration/administration.module';
 import { PolicyModule } from './policy/policy.module';
+import { MotDePasseGuard } from './common/guards/mot-de-passe.guard';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -27,6 +29,7 @@ import { PolicyModule } from './policy/policy.module';
     AuditModule,
     AuthModule,
     IngestionModule,
+    UsersModule,
     RecordingsModule,
     RetentionModule,
     PolicyModule,
@@ -36,8 +39,10 @@ import { PolicyModule } from './policy/policy.module';
     HealthModule,
   ],
   providers: [
-    // Ordre volontaire : authentifier, puis cloisonner, puis autoriser.
+    // Ordre volontaire : authentifier, écarter un mot de passe provisoire,
+    // cloisonner, puis autoriser.
     { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: MotDePasseGuard },
     { provide: APP_GUARD, useClass: TenantGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
   ],

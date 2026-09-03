@@ -12,6 +12,12 @@ export interface AuthUser {
    * même titre que la désactivation d'un compte aujourd'hui.
    */
   readonly instanceAdmin: boolean;
+  /**
+   * Mot de passe provisoire à renouveler (§9.26). Tant qu'il est vrai, l'api
+   * ne laisse passer que le profil, le changement de mot de passe et la
+   * déconnexion.
+   */
+  readonly mustChangePassword: boolean;
 }
 
 /** Charge utile du jeton d'accès. */
@@ -22,6 +28,8 @@ export interface AccessTokenPayload {
   role: Role;
   /** Administrateur de l'instance (§9.22). Absent des jetons antérieurs. */
   adm?: boolean;
+  /** Mot de passe provisoire à renouveler (§9.26). */
+  chg?: boolean;
 }
 
 /** Charge utile du jeton de rafraîchissement. */

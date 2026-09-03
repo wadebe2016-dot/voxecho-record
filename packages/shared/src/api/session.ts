@@ -24,4 +24,6 @@ export interface ProfileResponse {
    * n'étant qu'un confort d'affichage (§9.9).
    */
   instanceAdmin: boolean;
+  /** Mot de passe provisoire à renouveler avant tout autre usage (§9.26). */
+  mustChangePassword: boolean;
 }

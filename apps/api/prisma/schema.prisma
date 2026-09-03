@@ -62,6 +62,11 @@ enum AuditAction {
   /// de ne pas enregistrer certains appels est au moins aussi lourd que
   /// raccourcir une conservation : c'est renoncer d'avance à une preuve.
   POLICY_SET
+
+  /// Création, changement de rôle, activation ou réinitialisation d'un compte
+  /// (CLAUDE.md §9.26). Donner à quelqu'un le droit d'entendre des
+  /// conversations de clients doit se lire au journal.
+  USER_SET
 }
 
 /// Cycle de vie d'une version de politique d'enregistrement.
@@ -119,6 +124,12 @@ model User {
   /// s'attribuer les pleins pouvoirs.
   instanceAdmin Boolean @default(false) @map("instance_admin")
   createdAt    DateTime @default(now()) @map("created_at")
+
+  /// Mot de passe provisoire à renouveler — CLAUDE.md §9.26. Tant qu'il est
+  /// vrai, l'api ne laisse passer que le profil, le changement de mot de passe
+  /// et la déconnexion : un compte créé par un administrateur ne doit pas
+  /// s'utiliser avec le mot de passe que cet administrateur a lu.
+  mustChangePassword Boolean @default(false) @map("must_change_password")
 
   // Verrouillage après échecs de connexion (§5).
   failedLoginAttempts Int       @default(0) @map("failed_login_attempts")

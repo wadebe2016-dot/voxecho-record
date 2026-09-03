@@ -17,3 +17,4 @@ export * from './api/purge.js';
 export * from './api/recordings.js';
 export * from './api/retention.js';
 export * from './api/session.js';
+export * from './api/users.js';
