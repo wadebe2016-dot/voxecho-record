@@ -46,9 +46,8 @@ export function LoginPage() {
       <div className="w-full max-w-sm">
         <header className="mb-8">
           <h1 className="text-xl font-semibold tracking-tight">VoxEcho Record</h1>
-          <p className="mt-0.5 text-xs uppercase tracking-wide text-ardoise-400">
-            Atlastech Solution
-          </p>
+          {/* Ni éditeur ni ville : le produit se présente par ce qu'il fait, et
+              cet écran est le premier que voit une DSI qui l'évalue (§9.20). */}
           <p className="mt-2 text-sm text-ardoise-600">
             Enregistrement d’appels de conformité. Accès réservé aux personnes habilitées ; chaque
             consultation est tracée.
@@ -121,8 +120,7 @@ export function LoginPage() {
         </form>
 
         <p className="mt-6 text-xs text-ardoise-400">
-          Atlastech Solution — Douala. Après plusieurs échecs, le compte est temporairement
-          verrouillé.
+          Après plusieurs échecs, le compte est temporairement verrouillé.
         </p>
       </div>
     </main>

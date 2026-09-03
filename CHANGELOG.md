@@ -397,3 +397,9 @@ contrôle.
   contient `/`, `+` et `=`, une connexion qui aboutit, et la même assemblée à
   l'ancienne qui échoue. Un garde-fou refuse toute concaténation d'URL
   réintroduite dans un compose. Décisions en §9.19.
+- Écran de connexion : le nom de l'éditeur et sa ville sont retirés. Le produit
+  se présente par ce qu'il fait — « VoxEcho Record, enregistrement d'appels de
+  conformité » — sans ancrage géographique. L'information de verrouillage après
+  plusieurs échecs reste : elle explique un refus qu'un auditeur rencontrerait
+  sinon sans comprendre. Le fuseau d'affichage, lui, ne bouge pas : une heure
+  d'appel est une donnée probante, pas un élément de présentation (§9.20).
