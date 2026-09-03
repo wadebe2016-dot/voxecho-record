@@ -372,3 +372,10 @@ contrôle.
 - Procédure d'installation pas-à-pas (`deploy/INSTALLATION.md`), exercice de
   restauration compris — celui que la réserve du §9.15 promettait de jouer avant
   toute mise en service. Décisions en §9.18.
+- `deploy/RUNBOOK.md` : les trente étapes de mise en service, numérotées, avec
+  pour chacune ce qu'elle exige (le jeton GitHub) et ce qu'elle produit — une
+  sortie à conserver, ou un secret à ne montrer à personne. `INSTALLATION.md` y
+  renvoie plutôt que de répéter les commandes : deux documents qui décrivent le
+  même geste finissent par diverger, et c'est celui qu'on ne lit pas qui reste
+  faux.
+
