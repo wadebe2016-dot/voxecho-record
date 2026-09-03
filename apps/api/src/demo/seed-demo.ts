@@ -4,6 +4,7 @@ import { resoudreCheminDeDonnees } from '../config/chemins';
 import { hashPassword } from '../auth/password';
 import { compteDemo } from './comptes-demo';
 import { deposerJeuDeDemonstration, SLUG_DEMONSTRATION } from './depots-demo';
+import { appliquerDatabaseUrl } from '../config/database-url';
 
 /**
  * Jeu de démonstration de `record.voxecho.cm` — CLAUDE.md §9.18.
@@ -31,6 +32,9 @@ const LOCATAIRE = {
 };
 
 async function main(): Promise<void> {
+  // Le point d'entrée de l'image construit DATABASE_URL ; une commande
+  // d'exploitation le court-circuite et doit donc la construire aussi (§9.19).
+  appliquerDatabaseUrl();
   const ingestDir = resoudreCheminDeDonnees(process.env.INGEST_DIR ?? './data/ingest');
 
   const comptes = [

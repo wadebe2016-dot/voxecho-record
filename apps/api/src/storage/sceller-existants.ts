@@ -4,6 +4,7 @@ import { join, resolve } from 'node:path';
 import { PrismaClient } from '@prisma/client';
 import { resoudreCheminDeDonnees } from '../config/chemins';
 import { estConteneur, sceller, TAILLE_CLE } from './coffre';
+import { appliquerDatabaseUrl } from '../config/database-url';
 
 /**
  * Scelle les pièces déjà rangées en clair — CLAUDE.md §9.13.
@@ -34,6 +35,9 @@ function lireOptions(argv: string[]): Options {
 }
 
 async function main(): Promise<void> {
+  // Le point d'entrée de l'image construit DATABASE_URL ; une commande
+  // d'exploitation le court-circuite et doit donc la construire aussi (§9.19).
+  appliquerDatabaseUrl();
   const options = lireOptions(process.argv.slice(2));
   const prisma = new PrismaClient();
 

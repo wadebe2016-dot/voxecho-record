@@ -6,6 +6,7 @@ import { analyserArguments } from './arguments';
 import { lignesDe } from './constat';
 import { lireManifeste, NOM_INVENTAIRE, NOM_MANIFESTE } from './manifeste';
 import { verifierBaseRestauree, type RapportBaseRestauree } from './base-restauree';
+import { appliquerDatabaseUrl } from '../config/database-url';
 
 /**
  * Constate une base restaurée — CLAUDE.md §9.15.
@@ -62,6 +63,9 @@ function afficher(rapport: RapportBaseRestauree, repertoire: string): void {
 }
 
 async function main(): Promise<void> {
+  // Le point d'entrée de l'image construit DATABASE_URL ; une commande
+  // d'exploitation le court-circuite et doit donc la construire aussi (§9.19).
+  appliquerDatabaseUrl();
   const arguments_ = analyserArguments(process.argv.slice(2), [], []);
   const racine = resoudreCheminDeDonnees(process.env.BACKUP_DIR ?? './data/backups');
   const positionnel = arguments_.positionnels[0];

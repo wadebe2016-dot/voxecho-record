@@ -1046,3 +1046,51 @@ demande alors de relancer le seed, ce qu'il sait faire sans dupliquer. Enfin, la
 clé maître de cette instance protège des conversations fabriquées : sa perte
 coûte un reseed, pas une preuve. Ce confort ne doit pas déteindre sur la
 procédure d'un client, où la même perte est définitive (§9.14).
+
+### 9.19 Une URL de connexion se construit, elle ne se concatène pas (hors jalon)
+
+Constaté à la mise en service de la démonstration : l'api redémarrait en boucle
+sur `P1013: invalid port number in database URL`, la base et le portail tournant
+normalement. Le compose assemblait l'URL de connexion par concaténation —
+`postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/…` — et le mot de
+passe, tiré en base64, contenait un `/`. Le premier `/` referme la partie
+autorité d'une URL : ce qui suit n'était plus un port.
+
+**Le message d'erreur désignait le mauvais coupable**, et c'est ce qui rend ce
+défaut coûteux : on cherche du côté du port, de la résolution du nom `db`, du
+réseau des conteneurs — jamais du mot de passe. Une correction qui se serait
+contentée de changer le générateur de secrets aurait fait disparaître le
+symptôme sans traiter la cause, et le prochain exploitant qui choisit son propre
+mot de passe l'aurait retrouvé, avec le même message trompeur.
+
+**La composition passe désormais les composants, et le produit construit
+l'URL** en pourcent-encodant l'identifiant et le mot de passe. Une
+`DATABASE_URL` fournie entière l'emporte toujours : c'est ce que donnent le
+développement et la CI, et un déploiement qui la fournit ne doit pas voir sa
+valeur refabriquée dans son dos.
+
+**Le point d'entrée de l'image la construit avant de migrer**, en appelant le
+même module que l'application — il n'y a donc qu'un seul encodage, écrit une
+fois, testé une fois. Les commandes d'exploitation (seed, sauvegarde, scellement)
+court-circuitent ce point d'entrée : elles appellent la même fonction en tête de
+leur exécution.
+
+**Le générateur de secrets du runbook évite malgré tout `/` et `+`.** Ce n'est
+pas une redondance inutile : ce mot de passe passe aussi par `psql`, `pg_dump` et
+les journaux d'exploitation, où un caractère gênant se paie en échappement
+oublié. L'encodage protège le produit ; le choix du caractère protège
+l'exploitant.
+
+**Ce qui le prouve** : un test crée un vrai rôle PostgreSQL dont le mot de passe
+contient `/`, `+` et `=`, s'y connecte par l'URL construite, et vérifie que la
+même connexion assemblée à l'ancienne échoue. Comparer deux chaînes écrites par
+la même main n'aurait rien prouvé. Un garde-fou refuse par ailleurs toute
+concaténation d'URL réintroduite dans un compose.
+
+**Réserve** — l'encodage traite l'identifiant et le mot de passe, pas le nom de
+base ni l'hôte, qui restent supposés sobres ; c'est vrai de tout déploiement
+raisonnable, et le jour où ce ne le serait plus, l'erreur porterait au moins sur
+un champ que l'exploitant a lui-même choisi. Par ailleurs, changer
+`POSTGRES_PASSWORD` après le premier démarrage ne suffit pas : le rôle a été créé
+dans le volume avec l'ancien, et c'est une opération d'administration de la base,
+pas une variable d'environnement.

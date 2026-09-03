@@ -42,7 +42,13 @@ services:
     environment:
       NODE_ENV: production
       TZ: ${TZ:-Africa/Douala}
-      DATABASE_URL: postgresql://${POSTGRES_USER:-voxecho}:${POSTGRES_PASSWORD:-changeme}@db:5432/${POSTGRES_DB:-voxecho}?schema=public
+      # Composants, jamais l'URL assemblée (§9.19) : le produit la construit
+      # en encodant l'identifiant et le mot de passe.
+      POSTGRES_HOST: db
+      POSTGRES_PORT: '5432'
+      POSTGRES_USER: ${POSTGRES_USER:-voxecho}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: ${POSTGRES_DB:-voxecho}
       API_PORT: 3000
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080}
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-changeme-access-secret}
