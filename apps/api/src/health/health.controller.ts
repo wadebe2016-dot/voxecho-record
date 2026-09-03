@@ -1,5 +1,7 @@
 import { Controller, Get } from '@nestjs/common';
+import type { InstanceInfoResponse } from '@voxecho/shared';
 import { Public } from '../common/decorators/public.decorator';
+import { AppConfig } from '../config/config.module';
 
 /**
  * Sonde de vie, sans authentification et sans information sensible :
@@ -15,5 +17,23 @@ export class HealthController {
       service: 'voxecho-record-api',
       time: new Date().toISOString(),
     };
+  }
+}
+
+/**
+ * Ce que le portail apprend avant toute connexion — CLAUDE.md §9.18.
+ *
+ * Publique par nécessité : l'écran de connexion l'interroge, et c'est
+ * précisément là que la mention « démonstration » doit apparaître. Elle ne
+ * révèle rien qu'un visiteur ne puisse constater par lui-même.
+ */
+@Controller('instance')
+export class InstanceController {
+  constructor(private readonly config: AppConfig) {}
+
+  @Public()
+  @Get()
+  info(): InstanceInfoResponse {
+    return { demo: this.config.get('INSTANCE_DEMO') };
   }
 }

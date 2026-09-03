@@ -1,5 +1,5 @@
-import { useState, type FormEvent } from 'react';
-import { ApiError } from '../api/client';
+import { useEffect, useState, type FormEvent } from 'react';
+import { api, ApiError } from '../api/client';
 import { useAuth } from '../auth/auth-context';
 
 export function LoginPage() {
@@ -8,6 +8,25 @@ export function LoginPage() {
   const [motDePasse, setMotDePasse] = useState('');
   const [erreur, setErreur] = useState<string | null>(null);
   const [envoi, setEnvoi] = useState(false);
+  const [demonstration, setDemonstration] = useState(false);
+
+  // Une instance de démonstration doit le dire, et le dire avant qu'on s'y
+  // connecte (§9.18) : un visiteur qui voit des appels, des empreintes et un
+  // journal d'audit n'a aucun moyen de savoir s'il regarde des conversations
+  // simulées ou celles des clients d'une banque. L'appel échoue en silence si
+  // l'api ne répond pas : l'écran de connexion doit rester utilisable.
+  useEffect(() => {
+    let vivant = true;
+    void api
+      .instance()
+      .then((info) => {
+        if (vivant) setDemonstration(info.demo);
+      })
+      .catch(() => undefined);
+    return () => {
+      vivant = false;
+    };
+  }, []);
 
   async function soumettre(evenement: FormEvent<HTMLFormElement>): Promise<void> {
     evenement.preventDefault();
@@ -27,11 +46,24 @@ export function LoginPage() {
       <div className="w-full max-w-sm">
         <header className="mb-8">
           <h1 className="text-xl font-semibold tracking-tight">VoxEcho Record</h1>
-          <p className="mt-1 text-sm text-ardoise-600">
+          <p className="mt-0.5 text-xs uppercase tracking-wide text-ardoise-400">
+            Atlastech Solution
+          </p>
+          <p className="mt-2 text-sm text-ardoise-600">
             Enregistrement d’appels de conformité. Accès réservé aux personnes habilitées ; chaque
             consultation est tracée.
           </p>
         </header>
+
+        {demonstration && (
+          <p
+            data-testid="bandeau-demonstration"
+            className="mb-6 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900"
+          >
+            <strong className="font-semibold">Instance de démonstration.</strong> Les appels
+            présentés sont fabriqués&nbsp;: aucune conversation réelle de client n’y figure.
+          </p>
+        )}
 
         <form
           onSubmit={soumettre}

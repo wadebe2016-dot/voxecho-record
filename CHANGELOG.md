@@ -347,3 +347,28 @@ contrôle.
 - La CI passe les scripts shell à `shellcheck` : `set -e` rend certaines
   tournures piégeuses, `[ test ] && action` interrompant le script quand le test
   est faux — c'est-à-dire dans le cas normal. Décisions en §9.17.
+
+### Démonstration record.voxecho.cm (hors jalon)
+
+- Composition de production (`deploy/`) : Caddy termine le TLS en amont du
+  livrable du §2, qui ne change pas — la chaîne devient Caddy → nginx → api, et
+  `TRUSTED_PROXIES` couvre le réseau des conteneurs pour que le journal d'audit
+  continue d'inscrire l'adresse du demandeur et non celle d'un relais.
+- Les images sont publiées sur GHCR par la CI à chaque `main`, taguées par SHA :
+  une t3.small a deux gigaoctets, la construction y échouerait. Revenir en
+  arrière est un changement de variable, pas une reconstruction.
+- `GET /api/instance` et mention « instance de démonstration » sur l'écran de
+  connexion : un visiteur ne doit pas pouvoir croire qu'il regarde les
+  conversations de vrais clients. C'est l'instance qui la commande, jamais le
+  portail seul — sinon elle apparaîtrait chez un client.
+- Jeu de démonstration déposé dans `INGEST_DIR`, jamais inséré en base : c'est
+  l'ingestion du produit qui range, empreint et scelle. Un dépôt volontairement
+  malformé garnit les quarantaines du tableau de bord.
+- Les mots de passe de démonstration viennent de l'environnement ; le seed
+  refuse un mot de passe court ou laissé à une valeur d'exemple. L'instance est
+  publique.
+- `robots.txt` en complément du `X-Robots-Tag` déjà servi, et marque de
+  l'éditeur sur l'écran de connexion.
+- Procédure d'installation pas-à-pas (`deploy/INSTALLATION.md`), exercice de
+  restauration compris — celui que la réserve du §9.15 promettait de jouer avant
+  toute mise en service. Décisions en §9.18.

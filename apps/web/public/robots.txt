@@ -1,0 +1,5 @@
+# Un enregistreur de conformité n'a rien à faire dans un index public.
+# L'en-tête X-Robots-Tag dit la même chose ; ce fichier est lu par les robots
+# qui ne demandent que lui.
+User-agent: *
+Disallow: /

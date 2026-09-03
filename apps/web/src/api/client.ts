@@ -3,6 +3,7 @@ import type {
   AuditListQuery,
   DashboardResponse,
   ExportIntegrite,
+  InstanceInfoResponse,
   ListenTicketResponse,
   LoginRequest,
   Page,
@@ -105,6 +106,12 @@ function messageDErreur(charge: unknown, status: number): string {
 }
 
 export const api = {
+  /**
+   * Ce que le portail apprend avant toute connexion (§9.18) : sert à dire, sur
+   * l'écran de connexion, qu'on regarde une démonstration. Sans jeton, donc.
+   */
+  instance: (): Promise<InstanceInfoResponse> => appeler('/instance', { auth: false }),
+
   connexion: (identifiants: LoginRequest): Promise<TokenPairResponse> =>
     appeler('/auth/login', { method: 'POST', body: identifiants, auth: false }),
 

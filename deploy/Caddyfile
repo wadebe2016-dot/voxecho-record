@@ -1,0 +1,45 @@
+# Terminaison TLS de l'instance de démonstration — CLAUDE.md §9.18.
+#
+# Caddy obtient et renouvelle seul le certificat Let's Encrypt par challenge
+# HTTP-01, ce qui suppose le port 80 joignable depuis l'extérieur et
+# l'enregistrement DNS en « DNS only » : un enregistreur de conformité ne fait
+# pas transiter des conversations de clients par un intermédiaire qui les
+# déchiffrerait au passage.
+
+{
+	# Adresse de contact pour les avis d'expiration de Let's Encrypt.
+	email {$ACME_EMAIL}
+}
+
+record.voxecho.cm {
+	# HSTS : l'api l'émet déjà pour /api quand API_BEHIND_TLS est vrai, mais
+	# le portail est servi par nginx, qui ne sait pas s'il est derrière TLS.
+	# C'est donc ici, au seul endroit qui le sache, qu'on le pose pour tout
+	# le site.
+	header Strict-Transport-Security "max-age=15552000; includeSubDomains"
+	# Rien ne doit annoncer le serveur ni sa version.
+	header -Server
+
+	# Pas de compression : le lecteur audio réclame des plages d'octets
+	# (§9.4), et une couche qui recompresse à la volée fausse les
+	# Content-Length et Content-Range dont dépend la réécoute.
+	reverse_proxy web:80 {
+		# L'adresse du demandeur, que nginx relaiera à l'api. Sans elle, le
+		# journal d'audit inscrirait l'adresse de Caddy (§9.16).
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto {scheme}
+
+		# Un export d'archive peut prendre du temps sur un gros appel.
+		transport http {
+			read_timeout 300s
+			write_timeout 300s
+		}
+	}
+
+	log {
+		output file /var/log/caddy/record.log {
+			roll_size 20mb
+			roll_keep 10
+		}
+	}
+}

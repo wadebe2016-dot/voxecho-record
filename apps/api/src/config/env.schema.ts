@@ -56,6 +56,13 @@ export const envSchema = z.object({
    */
   API_BEHIND_TLS: booleen.default('false'),
 
+  /**
+   * Instance de démonstration : le portail l'annonce à qui s'y connecte
+   * (§9.18). Une démonstration qui ne dit pas qu'elle en est une laisse
+   * croire que les conversations affichées sont celles de vrais clients.
+   */
+  INSTANCE_DEMO: booleen.default('false'),
+
   // Billet d'écoute : court, limité à un enregistrement et à son demandeur.
   // Sa durée borne aussi ce que dure « une écoute » au journal d'audit — le
   // lecteur qui redemande un billet ouvre une nouvelle consultation, tracée.
