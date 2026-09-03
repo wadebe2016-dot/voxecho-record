@@ -1094,3 +1094,33 @@ un champ que l'exploitant a lui-même choisi. Par ailleurs, changer
 `POSTGRES_PASSWORD` après le premier démarrage ne suffit pas : le rôle a été créé
 dans le volume avec l'ancien, et c'est une opération d'administration de la base,
 pas une variable d'environnement.
+
+### 9.20 L'écran de connexion se présente par ce que fait le produit (hors jalon)
+
+Le nom de l'éditeur et sa ville ont été retirés de l'écran de connexion :
+« VoxEcho Record — Enregistrement d'appels de conformité », sans ancrage
+géographique ni signature.
+
+C'est une décision de positionnement, prise sur un constat de terrain : une DSI
+bancaire qui évalue un enregistreur de conformité voit cet écran avant tout le
+reste, et un ancrage local y pèse plus lourd dans son jugement que ce que
+l'outil apporte. Le §1 vise d'ailleurs la zone CEMAC comme premier cadre
+d'application, non comme horizon — c'est la même ligne qu'au §9.9, où le
+fondement réglementaire a été formulé « exigences réglementaires bancaires »
+plutôt que par une cote de texte locale.
+
+**Ce qui reste sur l'écran** : le nom du produit, ce qu'il fait, l'avertissement
+que chaque consultation est tracée, et l'information de verrouillage après
+plusieurs échecs. Cette dernière n'est pas une signature mais une explication :
+sans elle, un auditeur verrouillé se heurte à un refus qu'il ne comprend pas.
+
+**Ce qui ne change pas** : le fuseau d'affichage reste Africa/Douala (§1), et
+c'est autre chose — l'heure à laquelle un appel a été passé est une donnée
+probante, pas un élément de présentation. L'éditeur reste nommé là où il
+engage : documents contractuels, dépôt, mentions légales du site commercial.
+
+**Réserve** — une page de connexion muette sur son éditeur ne peut pas le rester
+partout : dès qu'un client installe le produit chez lui, la mention légale doit
+être joignable quelque part, et la question se reposera lorsqu'un écran « à
+propos » ou une page d'aide existera. Le silence vaut ici parce que cet écran
+est une porte, pas une documentation.

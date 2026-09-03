@@ -42,10 +42,21 @@ describe('mention d’instance de démonstration', () => {
     expect(screen.queryByTestId('bandeau-demonstration')).toBeNull();
   });
 
-  it('porte la marque de l’éditeur', async () => {
+  it('se présente par ce qu’il fait, sans éditeur ni ville', async () => {
+    // Décision produit (§9.20) : cet écran est le premier que voit une DSI
+    // bancaire qui évalue l'outil, et un ancrage local y pèse plus lourd que
+    // ce qu'il apporte. Le nom de l'éditeur vit dans les documents
+    // contractuels, pas sur l'écran de connexion.
     simulerApi({});
     afficher(<LoginPage />, null);
 
-    expect(await screen.findByText('Atlastech Solution')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'VoxEcho Record' })).toBeInTheDocument();
+    expect(screen.getByText(/enregistrement d’appels de conformité/i)).toBeInTheDocument();
+    // L'information fonctionnelle du pied de page, elle, reste : elle explique
+    // un refus que l'utilisateur rencontrera sinon sans comprendre.
+    expect(screen.getByText(/temporairement verrouillé/i)).toBeInTheDocument();
+
+    expect(screen.queryByText(/atlastech/i)).toBeNull();
+    expect(screen.queryByText(/douala/i)).toBeNull();
   });
 });
