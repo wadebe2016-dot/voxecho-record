@@ -1,8 +1,11 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import {
+  INGEST_OPERATION_CATEGORIES,
   RETENTION_DAYS_DEFAULT,
   RETENTION_SCOPE_ALL,
+  type RetentionPolicyEntry,
   type RetentionPolicyResponse,
+  type RetentionPolicySetResponse,
 } from '@voxecho/shared';
 import { AuditService } from '../audit/audit.service';
 import { AppConfig } from '../config/config.module';
@@ -25,6 +28,68 @@ export class RetentionService {
   /** Le plancher de l'instance, que le portail affiche avant de laisser saisir. */
   get plancherJours(): number {
     return this.plancher;
+  }
+
+  /** Périmètres acceptés : le général, et une catégorie d'opération (§9.28). */
+  private exigerPerimetre(appliesTo: string): string {
+    if (appliesTo === RETENTION_SCOPE_ALL) return appliesTo;
+    if ((INGEST_OPERATION_CATEGORIES as readonly string[]).includes(appliesTo)) return appliesTo;
+    // Même règle qu'au §9.10 : une catégorie que personne n'a déclarée est une
+    // faute de frappe, et l'accepter créerait un catalogue par accident.
+    throw new BadRequestException(
+      `Périmètre inconnu : « ${RETENTION_SCOPE_ALL} » ou une catégorie d'opération (${INGEST_OPERATION_CATEGORIES.join(', ')}).`,
+    );
+  }
+
+  /**
+   * Toutes les politiques du locataire — CLAUDE.md §9.28.
+   *
+   * Une catégorie sans politique propre n'est pas une catégorie sans
+   * conservation : elle suit la générale, et c'est dit plutôt que laissé à
+   * deviner.
+   */
+  async lireEnsemble(tenantId: string): Promise<RetentionPolicySetResponse> {
+    const lignes = await this.prisma.retentionPolicy.findMany({ where: { tenantId } });
+    const parPerimetre = new Map(lignes.map((ligne) => [ligne.appliesTo, ligne]));
+
+    const entree = (appliesTo: string): RetentionPolicyEntry => {
+      const ligne = parPerimetre.get(appliesTo);
+      const generale = parPerimetre.get(RETENTION_SCOPE_ALL);
+      return {
+        appliesTo,
+        days: ligne?.days ?? generale?.days ?? RETENTION_DAYS_DEFAULT,
+        belowFloorReason: ligne?.belowFloorReason ?? null,
+        updatedAt: (ligne?.updatedAt ?? new Date(0)).toISOString(),
+        enregistree: ligne !== undefined,
+      };
+    };
+
+    return {
+      generale: entree(RETENTION_SCOPE_ALL),
+      parCategorie: INGEST_OPERATION_CATEGORIES.map((categorie) => entree(categorie)),
+      minDays: this.plancher,
+    };
+  }
+
+  /**
+   * Durée applicable à un appel — la politique de sa catégorie si elle
+   * existe, la générale sinon.
+   *
+   * **La plus précise l'emporte, et non la plus longue.** Le §9.10 laissait les
+   * deux ouvertes ; retenir la plus longue rendrait toute politique de
+   * catégorie incapable de raccourcir, alors que c'est précisément l'usage
+   * attendu — conserver dix ans les ordres de change et deux ans le reste
+   * suppose de pouvoir faire les deux. Ce qui protège contre un
+   * raccourcissement discret n'est pas cette règle mais le plancher de
+   * l'instance, qui exige un motif écrit sous son seuil (§9.6).
+   */
+  async joursApplicables(tenantId: string, categorie: string | null): Promise<number> {
+    const ensemble = await this.lireEnsemble(tenantId);
+    if (categorie === null) return ensemble.generale.days;
+    const propre = ensemble.parCategorie.find(
+      (entree) => entree.appliesTo === categorie && entree.enregistree,
+    );
+    return propre?.days ?? ensemble.generale.days;
   }
 
   /**
@@ -76,15 +141,22 @@ export class RetentionService {
       );
     }
 
-    const avant = await this.lire(user.tenantId);
+    const perimetre = this.exigerPerimetre(dto.appliesTo ?? RETENTION_SCOPE_ALL);
+    const ensembleAvant = await this.lireEnsemble(user.tenantId);
+    const avant =
+      perimetre === RETENTION_SCOPE_ALL
+        ? ensembleAvant.generale
+        : (ensembleAvant.parCategorie.find((entree) => entree.appliesTo === perimetre) ??
+          ensembleAvant.generale);
+
     const apres = await this.prisma.retentionPolicy.upsert({
       where: {
-        tenantId_appliesTo: { tenantId: user.tenantId, appliesTo: RETENTION_SCOPE_ALL },
+        tenantId_appliesTo: { tenantId: user.tenantId, appliesTo: perimetre },
       },
       update: { days: dto.days, belowFloorReason: sousLePlancher ? motif : null },
       create: {
         tenantId: user.tenantId,
-        appliesTo: RETENTION_SCOPE_ALL,
+        appliesTo: perimetre,
         days: dto.days,
         belowFloorReason: sousLePlancher ? motif : null,
       },
@@ -96,6 +168,7 @@ export class RetentionService {
       action: 'RETENTION_SET',
       ip,
       detail: {
+        perimetre,
         // L'ancienne valeur autant que la nouvelle : « passé de 730 à 90 »
         // se lit, « mis à 90 » se devine.
         avantJours: avant.days,
@@ -122,8 +195,17 @@ export class RetentionService {
    * Utilisé par la purge (lot 02) et par la fiche d'appel : un auditeur doit
    * pouvoir répondre à « jusqu'à quand cet appel est-il conservé ? ».
    */
-  async echeance(tenantId: string, startedAt: Date): Promise<Date> {
-    const { days } = await this.lire(tenantId);
+  async echeance(
+    tenantId: string,
+    startedAt: Date,
+    categorie: string | null = null,
+  ): Promise<Date> {
+    const days = await this.joursApplicables(tenantId, categorie);
+    return this.echeanceDepuis(startedAt, days);
+  }
+
+  /** Échéance d'un appel pour une durée donnée, sans relire la politique. */
+  echeanceDepuis(startedAt: Date, days: number): Date {
     const echeance = new Date(startedAt);
     echeance.setUTCDate(echeance.getUTCDate() + days);
     return echeance;

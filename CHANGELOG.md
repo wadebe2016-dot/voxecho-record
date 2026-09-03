@@ -523,3 +523,14 @@ contrôle.
   que libpq refuse, et les outils PostgreSQL n'ont que faire de ce paramètre.
   Décisions et réserves en §9.27 — dont celle-ci : les horodatages déjà écrits
   restent décalés, puisqu'un journal append-only ne se corrige pas.
+- Conservation par catégorie d'opération (api) : chaque catégorie peut porter sa
+  propre durée, et **la plus précise l'emporte** — la réserve du §9.10 penchait
+  pour la plus longue, mais cette règle aurait rendu toute politique de
+  catégorie incapable de raccourcir, donc inutile. Ce qui protège d'un
+  raccourcissement discret reste le plancher de l'instance et son motif écrit.
+- Une catégorie sans politique propre suit la générale, et la réponse le dit :
+  on distingue « décidé à 730 » de « hérité de 730 ».
+- Le rapport de purge fige désormais **toutes** les durées, pas une seule, et
+  l'exécution rejoue ce document. Un rapport devient inexécutable dès qu'une
+  durée a bougé, et le refus le dit en français plutôt qu'en JSON.
+- Décisions et réserves en §9.28.

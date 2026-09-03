@@ -1496,3 +1496,56 @@ pilote. Par ailleurs, la vraie solution de fond serait des colonnes
 `timestamptz`, qui ne dépendent d'aucune session : c'est une migration lourde
 sur des tables dont l'une est protégée en écriture, à envisager si un autre
 symptôme du même genre apparaît.
+
+### 9.28 La conservation se décline par catégorie, et la plus précise l'emporte (S6)
+
+Le §9.10 avait posé `Recording.operationCategory` en annonçant qu'elle
+porterait un jour des durées différenciées, et laissé deux points à trancher.
+Les voici tranchés.
+
+**La politique la plus précise l'emporte, et non la plus longue.** La réserve
+du §9.10 penchait pour la plus longue, « puisqu'en conservation c'est le doute
+qui doit profiter à la preuve ». À l'écriture, cette règle s'est révélée
+contraire à l'usage : elle rendrait toute politique de catégorie incapable de
+raccourcir, donc inutile dans le cas réel — conserver dix ans les ordres de
+change et un an les appels internes suppose de pouvoir faire les deux, et c'est
+l'argument économique du produit.
+
+Ce qui protège contre un raccourcissement discret n'est pas cette règle : c'est
+le **plancher de l'instance**, qui exige un motif écrit sous son seuil et
+l'inscrit au journal (§9.6). Il s'applique à chaque politique, générale comme
+catégorielle. Le doute profite donc toujours à la preuve, mais par un garde-fou
+qui se lit plutôt que par une règle de priorité qu'on découvrirait à
+l'exécution.
+
+**Une catégorie sans politique propre suit la générale**, et l'écran le dit
+plutôt que d'afficher un vide. La réponse porte pour chaque catégorie sa durée
+effective **et** l'information de savoir si elle est enregistrée : sans quoi on
+ne distinguerait pas « décidé à 730 » de « hérité de 730 ».
+
+**Le rapport de purge fige toutes les durées, pas une seule.** `PurgeRun`
+portait `policyDays` et un `cutoff` uniques ; il faut désormais une échéance par
+périmètre. `policyDocument` les enregistre, et l'exécution **rejoue ce
+document** — jamais les durées du jour. C'est la règle du §9.7 étendue : ce qui
+a été autorisé doit être exactement ce qui est détruit, et un rapport devient
+inexécutable dès qu'une seule durée a bougé.
+
+Le refus le dit en français — « catégorie operation_change suit la générale →
+3650 jours » — et non en JSON : un exploitant lit un message, pas une structure
+de données.
+
+**Le second point du §9.10 reste sans objet.** « Ce qu'il advient d'un appel
+dont la catégorie change après coup » ne se pose pas : la catégorie vient du
+producteur à l'ingestion, et aucune route ne la modifie. Le jour où un écran le
+permettrait, il faudra décider si l'échéance se recalcule — et la réponse sera
+probablement non pour un appel déjà purgeable, sous peine de rendre la purge
+dépendante d'une saisie.
+
+**Réserve** — le catalogue de catégories reste la liste fixe du contrat §3. La
+table `OperationCategory` par locataire, annoncée au §9.10, reste à faire ; tant
+qu'elle n'existe pas, une banque ne peut pas déclarer ses propres catégories, et
+donc pas ses propres durées. Par ailleurs, le premier filtre de recensement
+retient la borne la plus lointaine puis affine appel par appel : correct, mais
+il lit plus de lignes que nécessaire quand une catégorie conserve dix ans et les
+autres un an. Sur les volumes visés c'est sans conséquence ; au-delà, ce sera un
+recensement par catégorie plutôt qu'un filtrage après coup.

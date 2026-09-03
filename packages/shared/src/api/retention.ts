@@ -22,10 +22,38 @@ export const RETENTION_DAYS_MIN = 1;
 export const RETENTION_DAYS_MAX = 7300;
 
 /**
- * Seul périmètre reconnu aujourd'hui. La colonne existe pour qu'une politique
- * par sens d'appel ou par service puisse s'ajouter sans migration.
+ * Périmètre général : ce qui s'applique à défaut de politique plus précise.
  */
 export const RETENTION_SCOPE_ALL = 'all';
+
+/**
+ * Périmètres reconnus — CLAUDE.md §9.28. Le général, plus une politique par
+ * catégorie d'opération : une confirmation de chèque et un ordre de change
+ * n'engagent pas la banque de la même façon, et ne relèvent donc pas
+ * nécessairement des mêmes durées (§9.10).
+ */
+export type RetentionScope = string;
+
+/** Une politique, générale ou pour une catégorie d'opération. */
+export interface RetentionPolicyEntry {
+  appliesTo: RetentionScope;
+  days: number;
+  /** Motif de dérogation, quand la durée passe sous le plancher (§9.6). */
+  belowFloorReason: string | null;
+  updatedAt: string;
+  /** Faux quand aucune politique n'est enregistrée : c'est le défaut produit. */
+  enregistree: boolean;
+}
+
+/**
+ * L'ensemble des politiques d'un locataire. Une catégorie sans politique
+ * propre suit la générale — l'écran le dit plutôt que d'afficher un vide.
+ */
+export interface RetentionPolicySetResponse {
+  generale: RetentionPolicyEntry;
+  parCategorie: RetentionPolicyEntry[];
+  minDays: number;
+}
 
 /** Politique de conservation en vigueur pour un locataire. */
 export interface RetentionPolicyResponse {
@@ -51,6 +79,11 @@ export interface SetRetentionRequest {
   days: number;
   /** Obligatoire si et seulement si `days` passe sous le plancher. */
   belowFloorReason?: string;
+  /**
+   * Périmètre visé : `all` ou une catégorie d'opération. Absent, c'est la
+   * politique générale qu'on règle.
+   */
+  appliesTo?: RetentionScope;
 }
 
 /** Conservation forcée d'un enregistrement. */

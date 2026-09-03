@@ -376,7 +376,9 @@ describe('purge', () => {
         .post(`/api/purge/reports/${id}/execute`)
         .send({ reason: MOTIF_PURGE })
         .expect(409);
-      expect(JSON.stringify(refus.body)).toMatch(/conservation est passée/);
+      expect(JSON.stringify(refus.body)).toMatch(
+        /conservation est passée à générale 30 jours → 1095 jours/,
+      );
     });
 
     it('ne s’exécute pas deux fois', async () => {

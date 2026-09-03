@@ -3,7 +3,13 @@ import { rm } from 'node:fs/promises';
 import { join, resolve, sep } from 'node:path';
 import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import type { Prisma, PurgeRun, Recording } from '@prisma/client';
-import type { Page, PurgeReportDetail, PurgeReportItem, PurgeReportSummary } from '@voxecho/shared';
+import type {
+  Page,
+  PurgeReportDetail,
+  PurgeReportItem,
+  PurgeReportSummary,
+  RetentionPolicySetResponse,
+} from '@voxecho/shared';
 import { AuditService } from '../audit/audit.service';
 import { resoudreCheminDeDonnees } from '../config/chemins';
 import { AppConfig } from '../config/config.module';
@@ -55,9 +61,10 @@ export class PurgeService {
    * qu'on détruit laisserait croire qu'il n'y avait rien à épargner.
    */
   async simuler(user: AuthUser): Promise<PurgeReportSummary> {
-    const { days } = await this.retention.lire(user.tenantId);
-    const cutoff = echeance(days);
-    const candidats = await this.recenser(user.tenantId, cutoff);
+    const politiques = await this.retention.lireEnsemble(user.tenantId);
+    const durees = dureesParPerimetre(politiques);
+    const cutoff = echeance(politiques.generale.days);
+    const candidats = await this.recenser(user.tenantId, echeancesDepuis(durees));
 
     const aDetruire = candidats.filter((c) => !c.blocked);
     const epargnes = candidats.filter((c) => c.blocked);
@@ -65,8 +72,11 @@ export class PurgeService {
     const run = await this.prisma.purgeRun.create({
       data: {
         tenantId: user.tenantId,
-        policyDays: days,
+        policyDays: politiques.generale.days,
         cutoff,
+        // Toutes les durées appliquées, figées : l'exécution rejoue ce
+        // document, elle ne recalcule pas à la date du jour (§9.7, §9.28).
+        policyDocument: durees as unknown as Prisma.InputJsonValue,
         candidateCount: aDetruire.length,
         candidateBytes: somme(aDetruire),
         blockedCount: epargnes.length,
@@ -193,14 +203,20 @@ export class PurgeService {
       );
     }
 
-    const { days } = await this.retention.lire(user.tenantId);
-    if (days !== run.policyDays) {
+    const politiques = await this.retention.lireEnsemble(user.tenantId);
+    const durees = dureesParPerimetre(politiques);
+    const figees = (run.policyDocument as Record<string, number> | null) ?? {
+      all: run.policyDays,
+    };
+    if (JSON.stringify(durees) !== JSON.stringify(figees)) {
       throw new ConflictException(
-        `La conservation est passée de ${run.policyDays} à ${days} jours depuis ce rapport : il faut en établir un nouveau.`,
+        `La conservation est passée à ${decrireEcart(figees, durees)} depuis ce rapport : il faut en établir un nouveau.`,
       );
     }
 
-    const actuels = await this.recenser(user.tenantId, run.cutoff);
+    // Les échéances rejouées sont celles du rapport, pas celles d'aujourd'hui :
+    // ce qui a été autorisé doit être exactement ce qui est détruit (§9.7).
+    const actuels = await this.recenser(user.tenantId, echeancesDepuis(figees));
     if (empreinte(actuels) !== run.fingerprint) {
       throw new ConflictException(
         'Les enregistrements concernés ont changé depuis ce rapport : il faut en établir un nouveau avant de purger.',
@@ -323,11 +339,21 @@ export class PurgeService {
    * L'échéance est passée en paramètre plutôt que recalculée : l'exécution
    * doit rejouer le rapport, pas en produire un autre.
    */
-  private async recenser(tenantId: string, cutoff: Date): Promise<Candidat[]> {
-    const recordings = await this.prisma.recording.findMany({
-      where: { tenantId, status: { in: [...PURGEABLES] }, startedAt: { lt: cutoff } },
-      select: { id: true, sizeBytes: true, startedAt: true },
+  private async recenser(tenantId: string, echeances: Map<string, Date>): Promise<Candidat[]> {
+    // La borne la plus lointaine sert de premier filtre ; chaque appel est
+    // ensuite jugé sur l'échéance de sa propre catégorie (§9.28).
+    const bornes = [...echeances.values()];
+    const plusLointaine = new Date(Math.max(...bornes.map((borne) => borne.getTime())));
+
+    const candidats = await this.prisma.recording.findMany({
+      where: { tenantId, status: { in: [...PURGEABLES] }, startedAt: { lt: plusLointaine } },
+      select: { id: true, sizeBytes: true, startedAt: true, operationCategory: true },
       orderBy: { startedAt: 'asc' },
+    });
+
+    const recordings = candidats.filter((recording) => {
+      const echu = echeances.get(recording.operationCategory) ?? echeances.get('all');
+      return echu !== undefined && recording.startedAt < echu;
     });
     if (recordings.length === 0) return [];
 
@@ -367,6 +393,44 @@ export class PurgeService {
     executedByUser: { select: { email: true } },
     cancelledByUser: { select: { email: true } },
   } as const;
+}
+
+/**
+ * Les durées appliquées, par périmètre — CLAUDE.md §9.28.
+ *
+ * Une catégorie sans politique propre n'apparaît pas : elle suit la générale,
+ * et l'inscrire ferait croire à une décision qui n'a pas été prise.
+ */
+function dureesParPerimetre(politiques: RetentionPolicySetResponse): Record<string, number> {
+  const durees: Record<string, number> = { all: politiques.generale.days };
+  for (const entree of politiques.parCategorie) {
+    if (entree.enregistree) durees[entree.appliesTo] = entree.days;
+  }
+  return durees;
+}
+
+/**
+ * Décrit en français ce qui a changé entre deux jeux de durées. Un exploitant
+ * lit « générale 730 → 1095 jours », pas deux objets JSON.
+ */
+function decrireEcart(avant: Record<string, number>, apres: Record<string, number>): string {
+  const perimetres = [...new Set([...Object.keys(avant), ...Object.keys(apres)])].sort();
+  const nommer = (perimetre: string): string =>
+    perimetre === 'all' ? 'générale' : `catégorie ${perimetre}`;
+  const jours = (valeur: number | undefined): string =>
+    valeur === undefined ? 'suit la générale' : `${valeur} jours`;
+
+  return perimetres
+    .filter((perimetre) => avant[perimetre] !== apres[perimetre])
+    .map(
+      (perimetre) => `${nommer(perimetre)} ${jours(avant[perimetre])} → ${jours(apres[perimetre])}`,
+    )
+    .join(', ');
+}
+
+/** Une date d'échéance par périmètre, à partir des durées figées. */
+function echeancesDepuis(durees: Record<string, number>): Map<string, Date> {
+  return new Map(Object.entries(durees).map(([perimetre, jours]) => [perimetre, echeance(jours)]));
 }
 
 /** Date avant laquelle un appel est échu, au regard d'une durée en jours. */
