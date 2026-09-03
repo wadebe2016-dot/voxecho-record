@@ -1,6 +1,6 @@
 # Installation de `record.voxecho.cm`
 
-Instance de démonstration, Ubuntu 24.04 sur t3.small, IP `15.188.164.226`,
+Instance de évaluation, Ubuntu 24.04 sur t3.small, IP `15.188.164.226`,
 `record.voxecho.cm` en DNS only (nuage gris) chez Cloudflare — le flux ne
 transite par aucun intermédiaire qui le déchiffrerait au passage, ce qui est la
 moindre des choses pour un enregistreur de conformité.

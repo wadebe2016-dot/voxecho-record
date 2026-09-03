@@ -1124,3 +1124,43 @@ partout : dès qu'un client installe le produit chez lui, la mention légale doi
 être joignable quelque part, et la question se reposera lorsqu'un écran « à
 propos » ou une page d'aide existera. Le silence vaut ici parce que cet écran
 est une porte, pas une documentation.
+
+### 9.21 « Version d'évaluation » plutôt que « démonstration » (hors jalon)
+
+Amende le vocabulaire du §9.18, dont la décision de fond ne change pas : une
+instance servie sur l'internet public avec des appels fabriqués doit le dire, et
+c'est l'instance qui le commande.
+
+**Le mot change parce qu'il n'est pas neutre.** Une « démonstration » se regarde
+comme une vitrine ; une « version d'évaluation » s'essaie comme un produit qu'on
+envisage d'acheter. La DSI bancaire à qui l'on ouvre `record.voxecho.cm` n'est
+pas venue voir un spectacle, elle est venue vérifier si l'outil tient. C'est la
+même ligne que le §9.20 : ce que le produit dit de lui-même compte autant que ce
+qu'il fait, sur un marché où la crédibilité de l'éditeur conditionne l'examen
+technique.
+
+**Ce que le mot ne change pas.** Le bandeau reste, et il dit toujours la même
+chose : les appels sont fabriqués, aucune conversation réelle de client n'y
+figure. C'est la protection du §9.18 — un visiteur ne doit pas pouvoir croire
+qu'il regarde les clients d'une banque — et elle vaut quel que soit le nom qu'on
+donne à l'instance.
+
+**Le locataire et les comptes portent des noms crédibles.** « Banque de la CEMAC
+(démonstration) » annonçait un décor ; « Banque Méridienne » se lit comme un
+établissement, et les adresses `@banque-meridienne.cm` comme celles d'un service
+conformité. Le nom est fictif à dessein : emprunter celui d'un établissement réel
+transformerait une évaluation en usurpation, et les journaux d'audit de
+l'instance porteraient le nom d'une banque qui n'a rien demandé.
+
+**Ce qui n'a pas été touché**, et pourquoi. Le jeu de données de développement
+(`apps/api/prisma/seed.ts`) garde son vocabulaire : il ne sort jamais d'un poste
+de travail, et le renommer aurait déplacé des dizaines d'assertions de test sans
+rien changer pour un client. Le test de sortie du jalon S3 s'appelle toujours
+« démo bout-en-bout » : c'est le nom que lui donne le §7, et l'aligner
+demanderait de modifier le brief pour une question de vocabulaire interne.
+
+**Réserve** — le renommage touche des variables d'environnement
+(`INSTANCE_DEMO` → `INSTANCE_EVALUATION`, `DEMO_*` → `EVAL_*`) et les adresses
+des comptes. Une instance déjà installée ne se met pas à jour toute seule : son
+fichier `.env` garde les anciens noms, et les comptes déjà créés gardent leurs
+anciennes adresses. C'est le prix d'un renommage tardif, et il se paie une fois.

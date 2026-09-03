@@ -9,23 +9,23 @@ import {
 } from '@voxecho/shared';
 
 /**
- * Dépôts du jeu de démonstration — CLAUDE.md §9.18.
+ * Dépôts du jeu d'évaluation — CLAUDE.md §9.18 et §9.21.
  *
  * Ils passent par `INGEST_DIR`, comme le fera la capture : c'est le chemin
  * réel du produit, contrat §3 compris, qui les range, les empreint et les
- * scelle. Une démonstration remplie par des insertions directes en base
- * montrerait des enregistrements que l'ingestion n'a jamais vus — exactement
- * ce qu'un contrôleur ne doit pas trouver, et ce qu'aucun test ne vérifierait.
+ * scelle. Une instance remplie par des insertions directes en base montrerait
+ * des enregistrements que l'ingestion n'a jamais vus — exactement ce qu'un
+ * contrôleur ne doit pas trouver, et ce qu'aucun test ne vérifierait.
  */
 
-export const SLUG_DEMONSTRATION = 'banque-cemac';
+export const SLUG_EVALUATION = 'banque-meridienne';
 
 export interface OptionsDepot {
   ingestDir: string;
   slug?: string;
   /** Profondeur du jeu, en jours écoulés. */
   jours?: number;
-  /** Durée maximale d'un appel : un jeu de démonstration n'a pas à peser. */
+  /** Durée maximale d'un appel : un jeu d'évaluation n'a pas à peser. */
   dureeMaxSec?: number;
   /** Ajoute un dépôt malformé, pour que les quarantaines ne soient pas vides. */
   avecQuarantaine?: boolean;
@@ -93,8 +93,8 @@ export interface ResultatDepot {
   repertoire: string;
 }
 
-export async function deposerJeuDeDemonstration(options: OptionsDepot): Promise<ResultatDepot> {
-  const slug = options.slug ?? SLUG_DEMONSTRATION;
+export async function deposerJeuDEvaluation(options: OptionsDepot): Promise<ResultatDepot> {
+  const slug = options.slug ?? SLUG_EVALUATION;
   const jours = options.jours ?? 12;
   const dureeMax = options.dureeMaxSec ?? 480;
   // Un jeu réduit — celui des tests — peut demander des appels plus courts que

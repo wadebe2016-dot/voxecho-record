@@ -1,4 +1,4 @@
-# Composition de l'instance de démonstration — CLAUDE.md §9.18.
+# Composition de l'instance d'évaluation — CLAUDE.md §9.18 et §9.21.
 #
 # Le livrable du §2 ne change pas : api, portail servi par nginx, PostgreSQL.
 # Caddy s'ajoute **devant**, il ne remplace rien — la chaîne devient
@@ -39,7 +39,9 @@ x-api-env: &api-env
   BACKUP_DIR: /backups
   INGEST_POLL_ENABLED: 'true'
   INGEST_POLL_MS: 5000
-  INSTANCE_DEMO: ${INSTANCE_DEMO:-true}
+  # Version d'évaluation : le portail le dit à qui s'y connecte, plutôt que de
+  # laisser croire à de vraies conversations de clients (§9.21).
+  INSTANCE_EVALUATION: ${INSTANCE_EVALUATION:-true}
 
 services:
   db:
@@ -78,9 +80,9 @@ services:
   # Outil de garnissage, lancé à la demande et jamais au démarrage :
   #   docker compose --profile outils run --rm seed
   #
-  # Il porte les mots de passe des comptes de démonstration, qui n'ont donc
-  # aucune raison de vivre en permanence dans l'environnement de l'api. Son
-  # point d'entrée court-circuite les migrations : l'api les a déjà appliquées.
+  # Il porte les mots de passe des comptes d'évaluation, qui n'ont donc aucune
+  # raison de vivre en permanence dans l'environnement de l'api. Son point
+  # d'entrée court-circuite les migrations : l'api les a déjà appliquées.
   seed:
     profiles: ['outils']
     image: ghcr.io/wadebe2016-dot/voxecho-record-api:${VOXECHO_TAG:-latest}
@@ -89,17 +91,17 @@ services:
         condition: service_healthy
     environment:
       <<: *api-env
-      DEMO_ADMIN_EMAIL: ${DEMO_ADMIN_EMAIL:-admin@demo.voxecho.cm}
-      DEMO_ADMIN_PASSWORD: ${DEMO_ADMIN_PASSWORD}
-      DEMO_AUDITOR_EMAIL: ${DEMO_AUDITOR_EMAIL:-auditeur@demo.voxecho.cm}
-      DEMO_AUDITOR_PASSWORD: ${DEMO_AUDITOR_PASSWORD}
-      DEMO_SUPERVISOR_EMAIL: ${DEMO_SUPERVISOR_EMAIL:-superviseur@demo.voxecho.cm}
-      DEMO_SUPERVISOR_PASSWORD: ${DEMO_SUPERVISOR_PASSWORD}
+      EVAL_ADMIN_EMAIL: ${EVAL_ADMIN_EMAIL:-admin@banque-meridienne.cm}
+      EVAL_ADMIN_PASSWORD: ${EVAL_ADMIN_PASSWORD}
+      EVAL_AUDITOR_EMAIL: ${EVAL_AUDITOR_EMAIL:-auditeur@banque-meridienne.cm}
+      EVAL_AUDITOR_PASSWORD: ${EVAL_AUDITOR_PASSWORD}
+      EVAL_SUPERVISOR_EMAIL: ${EVAL_SUPERVISOR_EMAIL:-superviseur@banque-meridienne.cm}
+      EVAL_SUPERVISOR_PASSWORD: ${EVAL_SUPERVISOR_PASSWORD}
     volumes:
       - audio-data:/data
       - backup-data:/backups
     entrypoint: ['node']
-    command: ['apps/api/dist/demo/seed-demo.js']
+    command: ['apps/api/dist/evaluation/seed-evaluation.js']
 
   web:
     image: ghcr.io/wadebe2016-dot/voxecho-record-web:${VOXECHO_TAG:-latest}

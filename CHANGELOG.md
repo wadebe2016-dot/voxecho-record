@@ -403,3 +403,13 @@ contrôle.
   plusieurs échecs reste : elle explique un refus qu'un auditeur rencontrerait
   sinon sans comprendre. Le fuseau d'affichage, lui, ne bouge pas : une heure
   d'appel est une donnée probante, pas un élément de présentation (§9.20).
+- Vocabulaire : « version d'évaluation » remplace « démonstration » — bandeau du
+  portail, route `/api/instance` (`evaluation` et non plus `demo`), variables
+  d'environnement (`INSTANCE_EVALUATION`, `EVAL_*`), composition, runbook. Une
+  démonstration se regarde ; une version d'évaluation s'essaie (§9.21).
+- Le jeu d'évaluation porte des noms crédibles : locataire « Banque
+  Méridienne », comptes `@banque-meridienne.cm`. Le nom est fictif à dessein —
+  emprunter celui d'un établissement réel transformerait une évaluation en
+  usurpation.
+- Le bandeau d'avertissement demeure, au mot près : les appels sont fabriqués,
+  aucune conversation réelle de client n'y figure.

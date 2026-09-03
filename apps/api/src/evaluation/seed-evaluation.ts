@@ -2,24 +2,24 @@ import { PrismaClient, Role } from '@prisma/client';
 import { RETENTION_DAYS_DEFAULT } from '@voxecho/shared';
 import { resoudreCheminDeDonnees } from '../config/chemins';
 import { hashPassword } from '../auth/password';
-import { compteDemo } from './comptes-demo';
-import { deposerJeuDeDemonstration, SLUG_DEMONSTRATION } from './depots-demo';
+import { compteEvaluation } from './comptes-evaluation';
+import { deposerJeuDEvaluation, SLUG_EVALUATION } from './depots-evaluation';
 import { appliquerDatabaseUrl } from '../config/database-url';
 
 /**
- * Jeu de démonstration de `record.voxecho.cm` — CLAUDE.md §9.18.
+ * Jeu d'évaluation de `record.voxecho.cm` — CLAUDE.md §9.18 et §9.21.
  *
- *   node apps/api/dist/demo/seed-demo.js
+ *   node apps/api/dist/evaluation/seed-evaluation.js
  *
  * Compilé, et non lancé par `tsx` : l'image de production est élaguée de ses
  * dépendances de développement, et un seed qui ne tournerait qu'en
- * développement ne servirait à rien le jour où il faut regarnir la démo.
+ * développement ne servirait à rien le jour où il faut regarnir l'instance.
  *
  * Il **dépose** des appels dans `INGEST_DIR` plutôt que d'écrire des lignes en
  * base : c'est le chemin réel du produit, contrat §3 compris, qui les range,
- * les empreint et les scelle. Une démonstration remplie par des insertions
- * directes montrerait des enregistrements que l'ingestion n'a jamais vus —
- * précisément ce qu'un contrôleur ne doit pas trouver.
+ * les empreint et les scelle. Une instance remplie par des insertions directes
+ * montrerait des enregistrements que l'ingestion n'a jamais vus — précisément
+ * ce qu'un contrôleur ne doit pas trouver.
  *
  * Il est **idempotent** : relancé, il complète sans dupliquer.
  */
@@ -27,8 +27,8 @@ import { appliquerDatabaseUrl } from '../config/database-url';
 const prisma = new PrismaClient();
 
 const LOCATAIRE = {
-  name: 'Banque de la CEMAC (démonstration)',
-  slug: SLUG_DEMONSTRATION,
+  name: 'Banque Méridienne',
+  slug: SLUG_EVALUATION,
 };
 
 async function main(): Promise<void> {
@@ -38,9 +38,14 @@ async function main(): Promise<void> {
   const ingestDir = resoudreCheminDeDonnees(process.env.INGEST_DIR ?? './data/ingest');
 
   const comptes = [
-    compteDemo(Role.ADMIN, 'DEMO_ADMIN', 'admin@demo.voxecho.cm', process.env),
-    compteDemo(Role.AUDITOR, 'DEMO_AUDITOR', 'auditeur@demo.voxecho.cm', process.env),
-    compteDemo(Role.SUPERVISOR, 'DEMO_SUPERVISOR', 'superviseur@demo.voxecho.cm', process.env),
+    compteEvaluation(Role.ADMIN, 'EVAL_ADMIN', 'admin@banque-meridienne.cm', process.env),
+    compteEvaluation(Role.AUDITOR, 'EVAL_AUDITOR', 'auditeur@banque-meridienne.cm', process.env),
+    compteEvaluation(
+      Role.SUPERVISOR,
+      'EVAL_SUPERVISOR',
+      'superviseur@banque-meridienne.cm',
+      process.env,
+    ),
   ];
 
   const locataire = await prisma.tenant.upsert({
@@ -65,9 +70,9 @@ async function main(): Promise<void> {
 
   const dejaIngeres = await prisma.recording.count({ where: { tenantId: locataire.id } });
   if (dejaIngeres > 0) {
-    console.warn(`Démonstration déjà garnie : ${dejaIngeres} appel(s). Aucun dépôt ajouté.`);
+    console.warn(`Instance déjà garnie : ${dejaIngeres} appel(s). Aucun dépôt ajouté.`);
   } else {
-    const depot = await deposerJeuDeDemonstration({ ingestDir });
+    const depot = await deposerJeuDEvaluation({ ingestDir });
     console.warn(
       `${depot.appels} appel(s) et ${depot.quarantaines} dépôt(s) non conforme(s) déposés dans ${depot.repertoire}.`,
     );
