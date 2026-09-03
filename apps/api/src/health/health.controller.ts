@@ -24,7 +24,7 @@ export class HealthController {
  * Ce que le portail apprend avant toute connexion — CLAUDE.md §9.18.
  *
  * Publique par nécessité : l'écran de connexion l'interroge, et c'est
- * précisément là que la mention « démonstration » doit apparaître. Elle ne
+ * précisément là que la mention « version d'évaluation » doit apparaître. Elle
  * révèle rien qu'un visiteur ne puisse constater par lui-même.
  */
 @Controller('instance')
@@ -34,6 +34,6 @@ export class InstanceController {
   @Public()
   @Get()
   info(): InstanceInfoResponse {
-    return { demo: this.config.get('INSTANCE_DEMO') };
+    return { evaluation: this.config.get('INSTANCE_EVALUATION') };
   }
 }

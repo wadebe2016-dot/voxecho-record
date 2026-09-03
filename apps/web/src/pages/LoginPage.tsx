@@ -8,10 +8,10 @@ export function LoginPage() {
   const [motDePasse, setMotDePasse] = useState('');
   const [erreur, setErreur] = useState<string | null>(null);
   const [envoi, setEnvoi] = useState(false);
-  const [demonstration, setDemonstration] = useState(false);
+  const [evaluation, setEvaluation] = useState(false);
 
-  // Une instance de démonstration doit le dire, et le dire avant qu'on s'y
-  // connecte (§9.18) : un visiteur qui voit des appels, des empreintes et un
+  // Une version d'évaluation doit le dire, et le dire avant qu'on s'y
+  // connecte (§9.18, §9.21) : un visiteur qui voit des appels, des empreintes et un
   // journal d'audit n'a aucun moyen de savoir s'il regarde des conversations
   // simulées ou celles des clients d'une banque. L'appel échoue en silence si
   // l'api ne répond pas : l'écran de connexion doit rester utilisable.
@@ -20,7 +20,7 @@ export function LoginPage() {
     void api
       .instance()
       .then((info) => {
-        if (vivant) setDemonstration(info.demo);
+        if (vivant) setEvaluation(info.evaluation);
       })
       .catch(() => undefined);
     return () => {
@@ -54,13 +54,13 @@ export function LoginPage() {
           </p>
         </header>
 
-        {demonstration && (
+        {evaluation && (
           <p
-            data-testid="bandeau-demonstration"
+            data-testid="bandeau-evaluation"
             className="mb-6 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900"
           >
-            <strong className="font-semibold">Instance de démonstration.</strong> Les appels
-            présentés sont fabriqués&nbsp;: aucune conversation réelle de client n’y figure.
+            <strong className="font-semibold">Version d’évaluation.</strong> Les appels présentés
+            sont fabriqués&nbsp;: aucune conversation réelle de client n’y figure.
           </p>
         )}
 

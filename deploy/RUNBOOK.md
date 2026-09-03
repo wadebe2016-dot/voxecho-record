@@ -1,6 +1,6 @@
 # Runbook — mise en service de `record.voxecho.cm`
 
-Trente étapes, dans l'ordre, à exécuter sur l'instance de démonstration
+Trente étapes, dans l'ordre, à exécuter sur l'instance d'évaluation
 (`voxecho-demo`, Ubuntu 24.04, t3.small, `15.188.164.226`) en utilisateur
 `ubuntu` via EC2 Instance Connect.
 
@@ -134,7 +134,7 @@ b64 = lambda n: base64.b64encode(secrets.token_bytes(n)).decode()
 # où un caractère gênant se paie en échappements oubliés.
 pose('POSTGRES_PASSWORD', secrets.token_urlsafe(24)); pose('JWT_ACCESS_SECRET', b64(48))
 pose('JWT_REFRESH_SECRET', b64(48)); pose('STORAGE_MASTER_KEY', b64(32))
-for r in ('ADMIN','AUDITOR','SUPERVISOR'): pose(f'DEMO_{r}_PASSWORD', secrets.token_urlsafe(18))
+for r in ('ADMIN','AUDITOR','SUPERVISOR'): pose(f'EVAL_{r}_PASSWORD', secrets.token_urlsafe(18))
 p.write_text(s); print('secrets générés')
 PY
 ```
@@ -192,7 +192,7 @@ $C logs --tail 40 caddy
 ## Garnissage (21 à 22)
 
 **21. — →** — le garnissage tourne dans un service à part, lancé à la demande :
-les mots de passe des comptes de démonstration n'ont aucune raison de vivre en
+les mots de passe des comptes d'évaluation n'ont aucune raison de vivre en
 permanence dans l'environnement de l'api. La sortie n'affiche que les adresses.
 
 Les appels sont **déposés dans `INGEST_DIR`**, comme le fera la capture : c'est
@@ -206,7 +206,7 @@ $C --profile outils run --rm seed
 **22. — ×** — les identifiants des trois comptes, pour se connecter au portail.
 
 ```bash
-grep '^DEMO_' deploy/.env
+grep '^EVAL_' deploy/.env
 ```
 
 ## Vérifications (23 à 27)
@@ -224,8 +224,8 @@ curl -sI https://record.voxecho.cm | head -20
 curl -s https://record.voxecho.cm/api/health && echo
 ```
 
-**25. — →** — attendu : `{"demo":true}`. C'est ce qui déclenche la mention
-« instance de démonstration » sur l'écran de connexion.
+**25. — →** — attendu : `{"evaluation":true}`. C'est ce qui déclenche la
+mention « version d'évaluation » sur l'écran de connexion.
 
 ```bash
 curl -s https://record.voxecho.cm/api/instance && echo

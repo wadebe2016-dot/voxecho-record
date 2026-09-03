@@ -108,7 +108,7 @@ function messageDErreur(charge: unknown, status: number): string {
 export const api = {
   /**
    * Ce que le portail apprend avant toute connexion (§9.18) : sert à dire, sur
-   * l'écran de connexion, qu'on regarde une démonstration. Sans jeton, donc.
+   * l'écran de connexion, qu'on regarde une version d'évaluation. Sans jeton.
    */
   instance: (): Promise<InstanceInfoResponse> => appeler('/instance', { auth: false }),
 
