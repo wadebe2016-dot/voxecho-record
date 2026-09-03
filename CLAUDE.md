@@ -1342,42 +1342,53 @@ pas une retouche. Par ailleurs, le manuel vit à côté du code : rien ne garant
 qu'il suive une évolution d'écran, sinon la discipline. Le jour où il divergera,
 c'est lui qu'un utilisateur croira.
 
-### 9.25 Deux usages, deux navigations (S6)
+### 9.25 Une seule façon de naviguer (S6)
 
 La barre horizontale portait cinq entrées et devait en accueillir une dizaine :
-comptes, conservation, sources, sauvegarde, locataires, politiques. Elle n'y
-suffisait plus.
+comptes, conservation, sources, sauvegarde, locataires, politiques.
 
-**Le choix n'est pas « tout en sidebar ».** Deux usages coexistent et n'ont pas
-les mêmes besoins. Un auditeur passe sa journée sur trois écrans et travaille
-sur des listes denses — un tableau de neuf colonnes, un journal d'audit — où
-deux cents pixels de menu permanent se paient en colonnes tronquées.
-L'administrateur, lui, navigue entre des écrans de réglages qu'aucune barre
-horizontale ne tiendra.
+Un menu latéral avait d'abord été essayé pour les écrans de réglages. Il a été
+retiré : il faisait cohabiter **deux façons de naviguer** selon l'écran où l'on
+se trouvait — des onglets ici, une colonne là — et serrait le contenu de pages
+qui n'en avaient pas besoin. Une interface professionnelle se parcourt d'une
+seule manière.
 
-**La barre du haut reste celle de l'usage quotidien** — tableau de bord,
-enregistrements, journal — plus une porte unique, « Configuration ». Les écrans
-de réglages ont leur propre menu vertical, groupé par domaine : conformité,
-accès, capture, exploitation, instance.
+**Un onglet sans sous-section est un lien ; un onglet qui en a s'ouvre au
+clic**, par-dessus le contenu. C'est le modèle d'une barre de menu ordinaire, et
+il vaut pour toute l'interface : rien à réapprendre en passant d'un écran à
+l'autre, et le déroulant ne prend de place que le temps qu'on le lit.
 
-**Seules les entrées qui existent sont affichées.** Un menu qui annonce des
-écrans à venir fait perdre du temps à qui les cherche ; les sections se
-rempliront lot par lot. C'est la leçon du §9.5, où un lien mort avait été
-assumé faute de mieux — ici rien ne l'impose.
+**Au clic, pas au survol.** Un menu qui s'ouvre au passage de la souris s'ouvre
+aussi quand on ne le voulait pas, et n'existe pas au doigt. Il se referme à
+Échap, au clic ailleurs et après navigation — un menu resté ouvert derrière
+l'écran suivant finit par être cliqué par mégarde.
 
-**Les URL ne changent pas.** `/politiques` et `/administration` restent ce
-qu'elles sont : le runbook et le manuel y renvoient, et une réorganisation de
-menu n'est pas une raison de casser des liens écrits ailleurs.
+**Accessible, et pas seulement cliquable.** Le modèle retenu est celui d'un
+« disclosure » de navigation : un bouton qui déclare ce qu'il commande
+(`aria-expanded`, `aria-controls`) et des liens ordinaires. Pas de `role="menu"`,
+qui obligerait à gérer les flèches sans rien apporter à une navigation. Les
+tests vérifient l'ouverture au clavier et l'ordre de tabulation.
+
+**Sur petit écran, les entrées passent à la ligne** plutôt que de défiler : un
+conteneur qui défile coupe ce qui en déborde, et couperait donc le déroulant
+lui-même.
+
+**Seules les entrées qui existent sont affichées**, et un onglet dont aucune
+entrée n'est accessible disparaît au lieu de s'ouvrir sur rien. Les sections se
+rempliront lot par lot. Les URL, elles, ne changent pas : le runbook et le
+manuel y renvoient, et une réorganisation de menu n'est pas une raison de casser
+des liens écrits ailleurs.
 
 Les libellés de boutons suivent la même exigence de banalité : « Créer »,
 « Modifier », « Publier », « Supprimer », « Désactiver ». « Commencer une
-politique » et « Abandonner » disaient la même chose dans une langue que
-personne n'attend dans un logiciel de gestion.
+politique » et « Abandonner » disaient la chose juste dans une langue que
+personne n'attend d'un logiciel de gestion.
 
-**Réserve** — la sidebar est fixe et sans repli : à moins de 1 024 pixels de
-large, elle serrera le contenu. Le portail est fait pour un poste de travail, et
-c'est un compromis assumé tant qu'il n'est pas consulté sur tablette ; ce jour-là
-il faudra un menu escamotable, ce qui est un lot et non une retouche.
+**Réserve** — l'infobulle et le déroulant reposent sur le clic et le clavier,
+ce qui couvre le poste de travail et le tactile. Reste qu'un déroulant à quatre
+sections sur un écran de téléphone sera long à parcourir : le jour où le portail
+sera réellement consulté sur mobile, il faudra un repli complet de la barre
+(bouton unique, panneau plein écran) — ce sera un lot, pas une retouche.
 
 ### 9.26 Un compte se crée, se désactive, et ne se devine pas (S6)
 

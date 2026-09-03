@@ -4,7 +4,6 @@ import userEvent from '@testing-library/user-event';
 import type { PolicyVersionDetail } from '@voxecho/shared';
 import { PolitiquesPage } from '../src/pages/PolitiquesPage';
 import { AppShell } from '../src/components/AppShell';
-import { ConfigurationShell } from '../src/components/ConfigurationShell';
 import { afficher, PROFIL_AUDITEUR, profilPour, reponse, simulerApi } from './helpers';
 
 const EN_VIGUEUR: PolicyVersionDetail = {
@@ -118,27 +117,15 @@ describe('politiques d’enregistrement', () => {
     await waitFor(() => expect(publier).toBeEnabled());
   });
 
-  it('ouvre la configuration aux trois rôles depuis la barre du haut', () => {
+  it('ouvre « Politiques » aux trois rôles, en lien direct', () => {
     simulerApi({});
     for (const role of ['ADMIN', 'SUPERVISOR', 'AUDITOR'] as const) {
       afficher(<AppShell>contenu</AppShell>, profilPour(role));
-      expect(screen.getAllByRole('link', { name: 'Configuration' }).length).toBeGreaterThan(0);
+      const nav = screen.getAllByRole('navigation', { name: 'Navigation principale' })[0];
+      expect(
+        within(nav as HTMLElement).getByRole('link', { name: 'Politiques' }),
+      ).toBeInTheDocument();
     }
-  });
-
-  it('présente « Politiques » dans le menu vertical de configuration', () => {
-    simulerApi({});
-    afficher(
-      <ConfigurationShell>
-        <span>contenu</span>
-      </ConfigurationShell>,
-      profilPour('AUDITOR'),
-    );
-
-    const menu = screen.getByRole('navigation', { name: 'Configuration' });
-    expect(within(menu).getByRole('link', { name: 'Politiques' })).toBeInTheDocument();
-    // Les réglages d'instance ne s'ouvrent pas à qui ne l'administre pas.
-    expect(within(menu).queryByRole('link', { name: 'Réglages' })).toBeNull();
   });
 
   it('ne présente aucun libellé de menu qu’on puisse confondre avec un autre', () => {
