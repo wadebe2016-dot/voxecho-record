@@ -117,11 +117,31 @@ describe('politiques d’enregistrement', () => {
     await waitFor(() => expect(publier).toBeEnabled());
   });
 
-  it('ouvre l’entrée de navigation aux trois rôles', () => {
+  it('ouvre l’entrée de navigation aux trois rôles, sous un libellé distinct', () => {
     simulerApi({});
     for (const role of ['ADMIN', 'SUPERVISOR', 'AUDITOR'] as const) {
       afficher(<AppShell>contenu</AppShell>, profilPour(role));
-      expect(screen.getAllByRole('link', { name: 'Enregistrement' }).length).toBeGreaterThan(0);
+      expect(screen.getAllByRole('link', { name: 'Politiques' }).length).toBeGreaterThan(0);
+    }
+  });
+
+  it('ne présente aucun libellé de menu qu’on puisse confondre avec un autre', () => {
+    // « Enregistrement » et « Enregistrements » se distinguaient d'une lettre
+    // pour deux écrans sans rapport : les politiques et la liste des appels.
+    simulerApi({});
+    afficher(<AppShell>contenu</AppShell>, { ...profilPour('ADMIN'), instanceAdmin: true });
+
+    const libelles = screen
+      .getAllByRole('link')
+      .map((lien) => (lien.textContent ?? '').trim().toLowerCase());
+
+    // Aucun libellé ne doit être le préfixe d'un autre : c'est ce qui rendait
+    // la paire précédente illisible d'un coup d'œil.
+    for (const libelle of libelles) {
+      const voisins = libelles.filter(
+        (autre) => autre !== libelle && (autre.startsWith(libelle) || libelle.startsWith(autre)),
+      );
+      expect(voisins).toEqual([]);
     }
   });
 
