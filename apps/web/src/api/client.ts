@@ -4,6 +4,7 @@ import type {
   DashboardResponse,
   ExportIntegrite,
   InstanceInfoResponse,
+  InstanceSettingsResponse,
   ListenTicketResponse,
   LoginRequest,
   Page,
@@ -122,6 +123,9 @@ export const api = {
     appeler('/auth/logout', { method: 'POST', body: { refreshToken: refreshToken ?? undefined } }),
 
   profil: (): Promise<ProfileResponse> => appeler('/auth/me'),
+
+  /** Réglages de l'instance, en lecture seule (§9.22). */
+  reglagesInstance: (): Promise<InstanceSettingsResponse> => appeler('/administration/reglages'),
 
   enregistrements: (query: RecordingListQuery): Promise<Page<RecordingListItem>> =>
     appeler('/recordings', { query: query as Record<string, string | number | undefined> }),

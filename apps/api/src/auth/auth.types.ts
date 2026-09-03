@@ -6,6 +6,12 @@ export interface AuthUser {
   readonly tenantId: string;
   readonly email: string;
   readonly role: Role;
+  /**
+   * Administrateur de l'instance — CLAUDE.md §9.22. Porté par le jeton comme
+   * le rôle : la révocation prend donc effet à l'expiration de l'accès, au
+   * même titre que la désactivation d'un compte aujourd'hui.
+   */
+  readonly instanceAdmin: boolean;
 }
 
 /** Charge utile du jeton d'accès. */
@@ -14,6 +20,8 @@ export interface AccessTokenPayload {
   tid: string;
   email: string;
   role: Role;
+  /** Administrateur de l'instance (§9.22). Absent des jetons antérieurs. */
+  adm?: boolean;
 }
 
 /** Charge utile du jeton de rafraîchissement. */

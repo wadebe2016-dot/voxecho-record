@@ -11,6 +11,7 @@ export const PROFIL_AUDITEUR: ProfileResponse = {
   role: 'AUDITOR',
   tenantId: 't-1',
   tenantName: 'Banque de démonstration CEMAC',
+  instanceAdmin: false,
 };
 
 /** Réponse `fetch` minimale, comme celle du serveur. */

@@ -29,6 +29,7 @@ export class TokensService {
       tid: user.tenantId,
       email: user.email,
       role: user.role,
+      adm: user.instanceAdmin,
     };
     const accessToken = await this.jwt.signAsync(accessPayload, {
       secret: this.config.get('JWT_ACCESS_SECRET'),
@@ -64,6 +65,9 @@ export class TokensService {
         tenantId: payload.tid,
         email: payload.email,
         role: payload.role,
+        // Absent des jetons émis avant le §9.22 : sans le drapeau, on
+        // n'accorde rien. Un privilège ne se déduit jamais d'un silence.
+        instanceAdmin: payload.adm === true,
       };
     } catch {
       throw new UnauthorizedException('Jeton invalide ou expiré.');

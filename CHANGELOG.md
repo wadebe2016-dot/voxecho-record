@@ -413,3 +413,22 @@ contrôle.
   usurpation.
 - Le bandeau d'avertissement demeure, au mot près : les appels sont fabriqués,
   aucune conversation réelle de client n'y figure.
+
+### S6 — Console d'administration (en cours)
+
+- Socle de la console : section « Administration » réservée à l'administrateur
+  de **l'instance**, distinct de l'ADMIN d'un locataire. Le §9.9 avait laissé
+  cette confusion en réserve ; une console la rendait intenable.
+- `User.instanceAdmin` : un privilège porté à part plutôt qu'un quatrième rôle
+  qui aurait recoupé les trois autres. Il se donne par la commande
+  `admin:instance`, jamais depuis le portail — un privilège qui se donnerait
+  depuis l'écran qu'il déverrouille ne protégerait de rien.
+- Durcissement : les événements système du journal (ceux qu'aucun locataire ne
+  réclame, §9.2) ne sont plus lisibles par tout ADMIN, mais par le seul
+  administrateur de l'instance. Sur une instance multi-locataire, l'ancien
+  comportement donnait à chaque banque un regard sur les incidents des autres.
+- Écran des réglages en lecture seule : chaque valeur est accompagnée de son
+  effet, et celles qui ne se changent pas ici portent la raison de leur lecture
+  seule — un champ grisé sans explication se lit comme un défaut. Aucun secret
+  n'y figure : la clé maître est désignée par son empreinte publique.
+- Décisions et réserves en §9.22.

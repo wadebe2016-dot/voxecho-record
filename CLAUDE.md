@@ -1164,3 +1164,60 @@ demanderait de modifier le brief pour une question de vocabulaire interne.
 des comptes. Une instance déjà installée ne se met pas à jour toute seule : son
 fichier `.env` garde les anciens noms, et les comptes déjà créés gardent leurs
 anciennes adresses. C'est le prix d'un renommage tardif, et il se paie une fois.
+
+### 9.22 Administrer un locataire n'est pas administrer l'instance (S6)
+
+Premier lot de la console d'administration, et paiement d'une dette annoncée :
+le §9.9 avait laissé en réserve que « les trois rôles confondent aujourd'hui
+deux axes : l'administration de l'instance et l'habilitation métier ». Tant que
+le produit se réglait par des variables d'environnement, la confusion ne coûtait
+rien. Une console la rend intenable : régler la conservation de sa banque et
+régler l'instance qui héberge toutes les banques ne sont pas la même
+responsabilité.
+
+**Un privilège porté à part, pas un quatrième rôle.** `User.instanceAdmin`
+s'ajoute aux trois rôles sans les recouper — c'est exactement ce que le §9.9
+recommandait. Un ADMIN reste l'administrateur de son locataire ; certains sont
+en outre administrateurs de l'instance. Un quatrième rôle aurait obligé à
+choisir entre administrer et auditer, alors que ces axes sont indépendants.
+
+**Il ne se donne pas depuis le portail.** La promotion passe par une commande
+d'exploitation (`admin:instance`), donc par un accès au serveur. Un privilège
+qui se donnerait depuis l'écran qu'il déverrouille ne protégerait de rien : un
+compte ADMIN compromis s'attribuerait les pleins pouvoirs sur les réglages qui
+décident, précisément, de la valeur probante du journal (§9.16). La commande
+refuse par ailleurs de promouvoir un compte qui n'est pas déjà ADMIN, ou qui est
+désactivé — un chemin détourné vers les pleins droits reste un chemin.
+
+**Durcissement immédiat : le périmètre système du journal suit le privilège.**
+Les événements qu'aucun locataire ne réclame (§9.2) étaient lisibles par tout
+ADMIN ; sur une instance qui sert plusieurs banques, cela revenait à donner à
+chacune un regard sur les incidents des autres. Ils relèvent désormais de
+l'administrateur de l'instance. C'est un retrait d'accès, assumé.
+
+**Le premier écran ne change rien, il montre.** C'est déjà beaucoup : répondre à
+« quelle conservation minimale impose cette instance ? » ou « à quels relais
+fait-elle confiance ? » supposait jusqu'ici d'ouvrir un fichier sur le serveur.
+Chaque réglage est accompagné de son effet en une phrase, et ceux qui ne se
+changent pas ici — `TRUSTED_PROXIES`, le plancher de conservation — portent la
+**raison** de leur lecture seule. Un champ grisé sans explication se lit comme
+un défaut ; celui-ci expose une décision.
+
+**Aucun secret n'y figure.** La clé maître est désignée par son empreinte
+publique (§9.14) ; les secrets de jetons ne sont même pas nommés. Une console de
+conformité n'est pas un endroit où l'on va chercher des secrets, et c'est testé.
+
+**La consultation ne s'inscrit pas au journal**, comme la lecture du journal
+lui-même (§9.11) : tracer chaque ouverture d'un écran de réglages noierait les
+actes sous les regards. Ce sont les changements qui se traceront — ce lot n'en
+permet aucun.
+
+**Réserve** — le privilège voyage dans le jeton d'accès, comme le rôle : une
+révocation prend effet à l'expiration de l'accès, quinze minutes par défaut.
+C'est le même délai que pour la désactivation d'un compte aujourd'hui, et le
+rendre immédiat demanderait de relire l'utilisateur en base à chaque requête —
+un coût qu'on ne paiera que si un incident le justifie. Par ailleurs, une
+instance sans aucun administrateur d'instance est une instance qu'on ne peut
+plus régler sans accès au serveur : la commande le dit lorsqu'elle n'en trouve
+aucun, mais rien n'empêche de révoquer le dernier. Un garde-fou viendra quand la
+console permettra de révoquer, c'est-à-dire au lot des accès.

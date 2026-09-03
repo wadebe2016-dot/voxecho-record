@@ -55,10 +55,20 @@ async function main(): Promise<void> {
   });
 
   for (const { role, email, motDePasse } of comptes) {
+    // L'ADMIN de l'instance d'évaluation administre aussi l'instance : sans
+    // cela, la console d'administration ne serait ouverte à personne et il
+    // faudrait un accès au serveur pour la déverrouiller (§9.22).
+    const instanceAdmin = role === Role.ADMIN;
     await prisma.user.upsert({
       where: { email },
-      update: { role, active: true },
-      create: { tenantId: locataire.id, email, role, passwordHash: await hashPassword(motDePasse) },
+      update: { role, active: true, instanceAdmin },
+      create: {
+        tenantId: locataire.id,
+        email,
+        role,
+        instanceAdmin,
+        passwordHash: await hashPassword(motDePasse),
+      },
     });
   }
 

@@ -42,14 +42,16 @@ describe('journal d’audit', () => {
     banque = (await prisma.tenant.create({ data: { name: 'Banque A', slug: 'banque-a' } })).id;
     microfinance = (await prisma.tenant.create({ data: { name: 'MFI B', slug: 'mfi-b' } })).id;
 
-    for (const [email, tenantId, role] of [
-      ['admin@a.cm', banque, 'ADMIN'],
-      ['superviseur@a.cm', banque, 'SUPERVISOR'],
-      ['auditeur@a.cm', banque, 'AUDITOR'],
-      ['admin@b.cm', microfinance, 'ADMIN'],
+    // Le périmètre système relève de l'instance, non du rôle (§9.22) :
+    // `admin@a.cm` l'administre, `admin@b.cm` n'administre que son locataire.
+    for (const [email, tenantId, role, instanceAdmin] of [
+      ['admin@a.cm', banque, 'ADMIN', true],
+      ['superviseur@a.cm', banque, 'SUPERVISOR', false],
+      ['auditeur@a.cm', banque, 'AUDITOR', false],
+      ['admin@b.cm', microfinance, 'ADMIN', false],
     ] as const) {
       const cree = await prisma.user.create({
-        data: { tenantId, email, passwordHash, role },
+        data: { tenantId, email, passwordHash, role, instanceAdmin },
       });
       if (email === 'auditeur@a.cm') auditeurId = cree.id;
     }
@@ -210,6 +212,14 @@ describe('journal d’audit', () => {
     it('restent hors de portée d’un AUDITOR', async () => {
       await lire(await jeton('auditeur@a.cm'), '?scope=system').expect(403);
       await lire(await jeton('auditeur@a.cm'), '?scope=all').expect(403);
+    });
+
+    it('restent hors de portée d’un ADMIN qui n’administre que son locataire', async () => {
+      // Durcissement du §9.22 : ces événements sont ceux qu'aucun locataire ne
+      // réclame (§9.2). Les ouvrir à tout ADMIN revenait à donner à chaque
+      // banque hébergée un regard sur les incidents des autres.
+      await lire(await jeton('admin@b.cm'), '?scope=system').expect(403);
+      await lire(await jeton('admin@b.cm'), '?scope=all').expect(403);
     });
 
     it('se joignent au journal du locataire quand l’ADMIN le demande', async () => {

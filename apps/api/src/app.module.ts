@@ -15,12 +15,14 @@ import { StorageModule } from './storage/storage.module';
 import { PurgeModule } from './purge/purge.module';
 import { RecordingsModule } from './recordings/recordings.module';
 import { RetentionModule } from './retention/retention.module';
+import { AdministrationModule } from './administration/administration.module';
 
 @Module({
   imports: [
     AppConfigModule,
     PrismaModule,
     StorageModule,
+    AdministrationModule,
     AuditModule,
     AuthModule,
     IngestionModule,

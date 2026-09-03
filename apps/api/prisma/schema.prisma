@@ -92,6 +92,18 @@ model User {
   passwordHash String   @map("password_hash")
   role         Role
   active       Boolean  @default(true)
+
+  /// Administrateur de l'instance, et non d'un locataire — CLAUDE.md §9.22.
+  /// Le §9.9 avait laissé la réserve : les trois rôles confondent
+  /// l'administration de l'instance et l'habilitation métier. Le privilège est
+  /// porté à part plutôt que par un quatrième rôle qui recouperait mal les
+  /// autres : un ADMIN reste l'administrateur de son locataire, certains sont
+  /// en plus administrateurs de l'instance.
+  ///
+  /// Il ne se donne pas depuis le portail : c'est une commande d'exploitation
+  /// (`admin:instance`), pour qu'un compte ADMIN compromis ne puisse pas
+  /// s'attribuer les pleins pouvoirs.
+  instanceAdmin Boolean @default(false) @map("instance_admin")
   createdAt    DateTime @default(now()) @map("created_at")
 
   // Verrouillage après échecs de connexion (§5).
