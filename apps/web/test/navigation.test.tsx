@@ -65,10 +65,10 @@ describe('navigation principale', () => {
     await userEvent.keyboard('{Enter}');
     expect(onglet).toHaveAttribute('aria-expanded', 'true');
 
-    // Le lien du déroulant vient dans l'ordre de tabulation : un menu qu'un
-    // clavier ne peut pas parcourir n'est pas une navigation.
+    // Le premier lien du déroulant vient dans l'ordre de tabulation : un menu
+    // qu'un clavier ne peut pas parcourir n'est pas une navigation.
     await userEvent.tab();
-    expect(screen.getByRole('link', { name: 'Réglages' })).toHaveFocus();
+    expect(screen.getByRole('link', { name: 'Comptes' })).toHaveFocus();
   });
 
   it('déclare le déroulant qu’il commande, pour les lecteurs d’écran', async () => {

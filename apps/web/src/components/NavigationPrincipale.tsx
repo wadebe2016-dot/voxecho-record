@@ -42,6 +42,10 @@ const NAVIGATION: Entree[] = [
     libelle: 'Administration',
     sections: [
       {
+        titre: 'Accès',
+        liens: [{ chemin: '/comptes', libelle: 'Comptes', capacite: 'gererComptes' }],
+      },
+      {
         titre: 'Instance',
         liens: [
           {

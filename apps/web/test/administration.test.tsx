@@ -53,15 +53,22 @@ describe('console d’administration', () => {
     expect(screen.getByRole('link', { name: 'Réglages' })).toBeInTheDocument();
   });
 
-  it('ne montre pas même l’onglet à un ADMIN qui n’administre que son locataire', () => {
+  it('ne montre pas les réglages à un ADMIN qui n’administre que son locataire', async () => {
     simulerApi({});
-
-    // Administrer sa banque n'est pas administrer l'instance : sans entrée
-    // accessible, l'onglet lui-même disparaît plutôt que de s'ouvrir sur rien.
     afficher(<AppShell>contenu</AppShell>, profilPour('ADMIN'));
-    expect(screen.queryByRole('button', { name: /Administration/ })).toBeNull();
 
+    // Il a bien un onglet Administration — il y gère ses comptes — mais
+    // administrer sa banque n'est pas administrer l'instance.
+    await userEvent.click(screen.getByRole('button', { name: /Administration/ }));
+    expect(screen.getByRole('link', { name: 'Comptes' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Réglages' })).toBeNull();
+  });
+
+  it('ne montre aucun onglet d’administration à un auditeur', () => {
+    simulerApi({});
     afficher(<AppShell>contenu</AppShell>, PROFIL_AUDITEUR);
+
+    // Sans entrée accessible, l'onglet disparaît plutôt que de s'ouvrir sur rien.
     expect(screen.queryByRole('button', { name: /Administration/ })).toBeNull();
   });
 

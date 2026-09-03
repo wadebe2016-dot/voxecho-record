@@ -168,6 +168,44 @@ purgé garde sa fiche et ne pèse plus rien, il est compté à part.
 Les jours sans appel sont dessinés à zéro plutôt qu'omis — un graphe qui saute
 les journées vides dessine une activité continue là où le service a chômé.
 
+## Comptes
+
+Réservés à l'administrateur du locataire. Un compte **ne se supprime pas, il se
+désactive** : le journal d'audit référence son auteur, et l'effacer effacerait
+le lien vers ce qu'il a écouté.
+
+À la création, le produit engendre un **mot de passe provisoire** affiché une
+seule fois — il n'est stocké nulle part en clair, et l'écran de création est le
+seul endroit où il paraîtra. Son titulaire doit le remplacer à la première
+connexion : tant qu'il ne l'a pas fait, aucun autre écran ne lui est accessible,
+et l'api refuse tout le reste.
+
+Le mot de passe provisoire s'écrit en quatre groupes de quatre caractères, sans
+`O` ni `0`, sans `I` ni `1` : il se dicte au téléphone.
+
+**Réinitialiser** un compte engendre un nouveau provisoire, révoque les sessions
+ouvertes et lève un éventuel verrouillage.
+
+Un administrateur **ne modifie pas son propre compte** : se rétrograder ou se
+désactiver soi-même reviendrait à se fermer la porte de l'intérieur. Un autre
+administrateur le fait.
+
+Le **dernier administrateur de l'instance** ne peut être ni rétrogradé, ni
+désactivé, ni révoqué : sans lui, la console d'administration se fermerait à
+tout le monde.
+
+### Politique de mot de passe
+
+Longueur minimale de douze caractères par défaut, réglable à l'installation.
+Sont refusés les suites courantes, les mots de passe contenant l'adresse de leur
+titulaire, et ceux formés de trop peu de caractères distincts.
+
+**Il n'y a pas d'expiration périodique**, et c'est délibéré : imposer un
+changement tous les trimestres produit des variantes numérotées et des
+pense-bêtes. La protection tient au verrouillage après cinq échecs, à la
+limitation par adresse, et au renouvellement imposé des mots de passe
+provisoires (§9.26).
+
 ## Administration de l'instance
 
 Réservée aux administrateurs de **l'instance**, distincts des administrateurs

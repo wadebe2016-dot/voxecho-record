@@ -6,6 +6,12 @@ export interface EtatAuth {
   chargement: boolean;
   connexion: (email: string, motDePasse: string) => Promise<void>;
   deconnexion: () => Promise<void>;
+  /**
+   * Renouvelle le mot de passe et remplace les jetons : le drapeau « à
+   * renouveler » voyage dans le jeton, et sans cela le compte resterait bloqué
+   * jusqu'à son expiration (§9.26).
+   */
+  changerMotDePasse: (ancien: string, nouveau: string) => Promise<void>;
 }
 
 export const AuthContext = createContext<EtatAuth | null>(null);

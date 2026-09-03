@@ -499,3 +499,14 @@ contrôle.
   conteneur qui défile couperait le déroulant.
 - Un onglet dont aucune entrée n'est accessible disparaît au lieu de s'ouvrir
   sur rien.
+- Écrans des comptes (`Administration ▾ › Accès › Comptes`) : liste, création
+  avec mot de passe provisoire affiché une seule fois, changement de rôle,
+  activation, réinitialisation. L'écran n'offre pas de modifier son propre
+  compte, que l'api refuse de toute façon.
+- Écran de renouvellement du mot de passe : seul écran atteignable tant qu'un
+  provisoire n'a pas été remplacé, et la déconnexion y reste offerte — un écran
+  dont on ne peut pas sortir est un piège.
+- `ApiError` porte désormais les détails rendus par l'api : une politique de mot
+  de passe refusée dit ce qu'elle attend, au lieu de laisser deviner.
+- Manuel complété : comptes, mots de passe provisoires, politique de mot de
+  passe.
