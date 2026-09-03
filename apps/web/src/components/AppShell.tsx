@@ -8,18 +8,34 @@ interface Entree {
   chemin: string;
   libelle: string;
   capacite: Capacite;
+  /**
+   * Réservée à l'administrateur de l'instance (§9.22). Ce n'est pas un rôle
+   * mais un privilège porté à part : un ADMIN administre son locataire, il
+   * n'administre pas forcément l'instance qui l'héberge.
+   */
+  instanceSeulement?: boolean;
 }
 
 const NAVIGATION: Entree[] = [
   { chemin: '/tableau-de-bord', libelle: 'Tableau de bord', capacite: 'consulterTableauDeBord' },
   { chemin: '/enregistrements', libelle: 'Enregistrements', capacite: 'consulterEnregistrements' },
   { chemin: '/journal', libelle: 'Journal d’audit', capacite: 'consulterJournalAudit' },
+  {
+    chemin: '/administration',
+    libelle: 'Administration',
+    capacite: 'administrerInstance',
+    instanceSeulement: true,
+  },
 ];
 
 /** Bandeau locataire + navigation filtrée par rôle (masquage d'affichage). */
 export function AppShell({ children }: { children: ReactNode }) {
   const { profil, deconnexion } = useAuth();
-  const entrees = NAVIGATION.filter((entree) => peut(profil?.role, entree.capacite));
+  const entrees = NAVIGATION.filter(
+    (entree) =>
+      peut(profil?.role, entree.capacite) &&
+      (entree.instanceSeulement !== true || profil?.instanceAdmin === true),
+  );
 
   return (
     <div className="flex min-h-full flex-col">

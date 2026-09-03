@@ -18,6 +18,12 @@ export const CAPACITES = {
   consulterJournalAudit: ['ADMIN', 'AUDITOR'],
   gererComptes: ['ADMIN'],
   gererRetention: ['ADMIN'],
+  /**
+   * Console d'administration. Le rôle ne suffit pas : l'entrée est en outre
+   * réservée à qui administre l'instance (§9.22), ce que le profil dit et que
+   * l'api vérifie de toute façon.
+   */
+  administrerInstance: ['ADMIN'],
 } as const satisfies Record<string, readonly Role[]>;
 
 export type Capacite = keyof typeof CAPACITES;

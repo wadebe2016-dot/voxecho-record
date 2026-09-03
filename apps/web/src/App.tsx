@@ -6,6 +6,7 @@ import { JournalPage } from './pages/JournalPage';
 import { LoginPage } from './pages/LoginPage';
 import { RecordingsPage } from './pages/RecordingsPage';
 import { TableauDeBordPage } from './pages/TableauDeBordPage';
+import { AdministrationPage } from './pages/AdministrationPage';
 
 export function App() {
   return (
@@ -38,6 +39,7 @@ function Portail() {
         <Route path="/tableau-de-bord" element={<TableauDeBordPage />} />
         <Route path="/enregistrements" element={<RecordingsPage />} />
         <Route path="/journal" element={<JournalPage />} />
+        <Route path="/administration" element={<AdministrationPage />} />
         <Route path="*" element={<Navigate to="/enregistrements" replace />} />
       </Routes>
     </AppShell>

@@ -134,6 +134,7 @@ export class AuthService {
     role: string;
     tenantId: string;
     tenantName: string;
+    instanceAdmin: boolean;
   }> {
     const compte = await this.prisma.user.findFirst({
       where: { id: user.userId, tenantId: user.tenantId },
@@ -148,6 +149,9 @@ export class AuthService {
       role: compte.role,
       tenantId: compte.tenantId,
       tenantName: compte.tenant.name,
+      // Relu en base, non repris du jeton : une révocation prononcée pendant
+      // une session doit se voir au prochain chargement du portail.
+      instanceAdmin: compte.instanceAdmin,
     };
   }
 
@@ -157,6 +161,7 @@ export class AuthService {
       tenantId: user.tenantId,
       email: user.email,
       role: user.role,
+      instanceAdmin: user.instanceAdmin,
     };
   }
 

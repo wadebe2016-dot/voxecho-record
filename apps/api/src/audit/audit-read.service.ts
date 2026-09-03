@@ -97,7 +97,9 @@ export class AuditReadService {
    */
   private construireFiltre(user: AuthUser, query: ListAuditDto): Prisma.AuditEventWhereInput {
     const scope: AuditScope = query.scope ?? 'tenant';
-    if (scope !== 'tenant' && user.role !== 'ADMIN') {
+    // Les événements qu'aucun locataire ne réclame (§9.2) relèvent de
+    // l'instance, pas d'un ADMIN de locataire : le §9.22 sépare les deux.
+    if (scope !== 'tenant' && !user.instanceAdmin) {
       // Les dépôts qu'aucun locataire ne réclame ne regardent que
       // l'administrateur de l'instance (§9.2).
       throw new ForbiddenException(

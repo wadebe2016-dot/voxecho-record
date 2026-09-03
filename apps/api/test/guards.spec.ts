@@ -4,6 +4,7 @@ import type { Role } from '@prisma/client';
 import { RolesGuard } from '../src/common/guards/roles.guard';
 import { TenantGuard } from '../src/common/guards/tenant.guard';
 import { ROLES_KEY } from '../src/common/decorators/roles.decorator';
+import { ADMIN_INSTANCE_KEY } from '../src/common/decorators/admin-instance.decorator';
 import type { AuthUser } from '../src/auth/auth.types';
 
 const AUDITEUR: AuthUser = {
@@ -11,6 +12,7 @@ const AUDITEUR: AuthUser = {
   tenantId: 't-banque',
   email: 'auditeur@a.cm',
   role: 'AUDITOR',
+  instanceAdmin: false,
 };
 
 function contexte(requete: Record<string, unknown>): ExecutionContext {
@@ -80,5 +82,37 @@ describe('garde de cloisonnement', () => {
 
   it('ne cloisonne pas une route publique (aucune identité)', () => {
     expect(guard.canActivate(contexte({ params: {}, query: {}, body: {} }))).toBe(true);
+  });
+
+  describe('administration de l’instance', () => {
+    /** Reflector qui répond comme si `@AdminInstance()` était posé. */
+    function reflectorInstance(): Reflector {
+      return {
+        getAllAndOverride: (cle: string) => (cle === ADMIN_INSTANCE_KEY ? true : undefined),
+      } as unknown as Reflector;
+    }
+
+    it('refuse un ADMIN de locataire qui n’administre pas l’instance', () => {
+      // Le cœur du §9.22 : administrer sa banque n'est pas administrer
+      // l'instance qui héberge toutes les banques.
+      const garde = new RolesGuard(reflectorInstance());
+      const adminLocataire: AuthUser = { ...AUDITEUR, role: 'ADMIN', instanceAdmin: false };
+
+      expect(() => garde.canActivate(contexte({ user: adminLocataire }))).toThrow(
+        ForbiddenException,
+      );
+    });
+
+    it('laisse passer l’administrateur de l’instance', () => {
+      const garde = new RolesGuard(reflectorInstance());
+      const adminInstance: AuthUser = { ...AUDITEUR, role: 'ADMIN', instanceAdmin: true };
+
+      expect(garde.canActivate(contexte({ user: adminInstance }))).toBe(true);
+    });
+
+    it('refuse une requête sans identité', () => {
+      const garde = new RolesGuard(reflectorInstance());
+      expect(() => garde.canActivate(contexte({}))).toThrow(ForbiddenException);
+    });
   });
 });
