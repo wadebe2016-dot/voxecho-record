@@ -10,6 +10,30 @@
 
 name: voxecho-record
 
+# Environnement partagé par l'api et les outils d'exploitation qui tournent
+# depuis la même image (seed, sauvegarde) : ils doivent voir exactement la même
+# base, le même stockage et la même clé, sinon ils travailleraient à côté.
+x-api-env: &api-env
+  NODE_ENV: production
+  TZ: Africa/Douala
+  DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public
+  API_PORT: 3000
+  CORS_ORIGINS: https://record.voxecho.cm
+  JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+  JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+  TRUSTED_PROXIES: ${TRUSTED_PROXIES:-172.16.0.0/12}
+  API_BEHIND_TLS: 'true'
+  STORAGE_ENCRYPTION_ENABLED: 'true'
+  STORAGE_MASTER_KEY: ${STORAGE_MASTER_KEY}
+  STORAGE_KEY_REF: ${STORAGE_KEY_REF:-k1}
+  INGEST_DIR: /data/ingest
+  STORAGE_DIR: /data/storage
+  QUARANTINE_DIR: /data/quarantine
+  BACKUP_DIR: /backups
+  INGEST_POLL_ENABLED: 'true'
+  INGEST_POLL_MS: 5000
+  INSTANCE_DEMO: ${INSTANCE_DEMO:-true}
+
 services:
   db:
     image: postgres:16-alpine
@@ -32,38 +56,9 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    environment:
-      NODE_ENV: production
-      TZ: Africa/Douala
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public
-      API_PORT: 3000
-      # Portail et api partagent l'origine : aucune origine tierce autorisée.
-      CORS_ORIGINS: https://record.voxecho.cm
-      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
-      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
-      # Caddy puis nginx relaient : sans cette déclaration, toutes les entrées
-      # du journal d'audit porteraient l'adresse d'un conteneur (§9.16).
-      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-172.16.0.0/12}
-      # Caddy termine le TLS : l'api peut promettre HSTS sans mentir.
-      API_BEHIND_TLS: 'true'
-      # Le chiffrement au repos est actif : c'est le produit tel qu'il sera
-      # livré, et le scénario de contrôle se joue chiffré (§9.13). La clé
-      # maître ne vit pas dans le dépôt et doit être sauvegardée AILLEURS —
-      # une base restaurée sans elle ne rend rien (§9.14).
-      STORAGE_ENCRYPTION_ENABLED: 'true'
-      STORAGE_MASTER_KEY: ${STORAGE_MASTER_KEY}
-      STORAGE_KEY_REF: ${STORAGE_KEY_REF:-k1}
-      INGEST_DIR: /data/ingest
-      STORAGE_DIR: /data/storage
-      QUARANTINE_DIR: /data/quarantine
-      # Volume distinct des preuves : une sauvegarde rangée sur le disque
-      # qu'elle protège ne protège de rien.
-      BACKUP_DIR: /backups
-      INGEST_POLL_ENABLED: 'true'
-      INGEST_POLL_MS: 5000
-      # Instance de démonstration : le portail le dit à qui s'y connecte,
-      # plutôt que de laisser croire à de vraies conversations de clients.
-      INSTANCE_DEMO: ${INSTANCE_DEMO:-true}
+    # Les commentaires de chacune de ces variables sont au-dessus, sur
+    # `x-api-env` : c'est le même environnement pour l'api et ses outils.
+    environment: *api-env
     volumes:
       - audio-data:/data
       - backup-data:/backups
@@ -72,6 +67,32 @@ services:
       interval: 30s
       timeout: 5s
       retries: 5
+
+  # Outil de garnissage, lancé à la demande et jamais au démarrage :
+  #   docker compose --profile outils run --rm seed
+  #
+  # Il porte les mots de passe des comptes de démonstration, qui n'ont donc
+  # aucune raison de vivre en permanence dans l'environnement de l'api. Son
+  # point d'entrée court-circuite les migrations : l'api les a déjà appliquées.
+  seed:
+    profiles: ['outils']
+    image: ghcr.io/wadebe2016-dot/voxecho-record-api:${VOXECHO_TAG:-latest}
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      <<: *api-env
+      DEMO_ADMIN_EMAIL: ${DEMO_ADMIN_EMAIL:-admin@demo.voxecho.cm}
+      DEMO_ADMIN_PASSWORD: ${DEMO_ADMIN_PASSWORD}
+      DEMO_AUDITOR_EMAIL: ${DEMO_AUDITOR_EMAIL:-auditeur@demo.voxecho.cm}
+      DEMO_AUDITOR_PASSWORD: ${DEMO_AUDITOR_PASSWORD}
+      DEMO_SUPERVISOR_EMAIL: ${DEMO_SUPERVISOR_EMAIL:-superviseur@demo.voxecho.cm}
+      DEMO_SUPERVISOR_PASSWORD: ${DEMO_SUPERVISOR_PASSWORD}
+    volumes:
+      - audio-data:/data
+      - backup-data:/backups
+    entrypoint: ['node']
+    command: ['apps/api/dist/demo/seed-demo.js']
 
   web:
     image: ghcr.io/wadebe2016-dot/voxecho-record-web:${VOXECHO_TAG:-latest}

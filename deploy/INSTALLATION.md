@@ -109,10 +109,14 @@ contrat §3 compris, qui les range, les empreint et les scelle. Une démonstrati
 remplie par des insertions directes montrerait des enregistrements que
 l'ingestion n'a jamais vus.
 
+Le garnissage tourne dans un service à part, lancé à la demande : les mots de
+passe des comptes de démonstration n'ont aucune raison de vivre en permanence
+dans l'environnement de l'api.
+
 ```bash
 cd /opt/voxecho
 docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env \
-  exec api node apps/api/dist/demo/seed-demo.js
+  --profile outils run --rm seed
 ```
 
 Les identifiants des trois comptes sont dans `deploy/.env`
