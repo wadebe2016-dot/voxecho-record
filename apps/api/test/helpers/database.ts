@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 import { config as loadEnv } from 'dotenv';
 import { PrismaClient } from '@prisma/client';
+import { avecFuseauUtc } from '../../src/config/database-url';
 
 /**
  * Les tests d'intégration travaillent dans des schémas PostgreSQL dédiés de
@@ -34,7 +35,9 @@ export function testDatabaseUrl(schema: string = testSchema()): string {
   }
   const url = new URL(brut);
   url.searchParams.set('schema', schema);
-  return url.toString();
+  // Comme en production : la session est en UTC, quel que soit le réglage du
+  // serveur (§9.27).
+  return avecFuseauUtc(url.toString());
 }
 
 /** Applique les migrations à un schéma de test (appelé par le setup global). */

@@ -1447,3 +1447,52 @@ le mot de passe provisoire circule aujourd'hui de la main à la main : c'est
 acceptable pour un service conformité de quelques personnes, et cela demandera
 un envoi par courriel — donc le SMTP du lot 08 — dès qu'un client aura des
 dizaines de comptes à ouvrir.
+
+### 9.27 L'heure d'un journal n'est pas une affaire de réglage serveur (S6)
+
+Signalé depuis la démonstration : le journal d'audit affichait une heure de
+trop. Le diagnostic a montré autre chose qu'un défaut d'affichage — le portail
+formate correctement en Africa/Douala. C'est **ce qui est écrit** qui était
+faux.
+
+**Le mécanisme.** Les colonnes d'horodatage sont des `timestamp` **sans
+fuseau**, et celles qui portent `DEFAULT CURRENT_TIMESTAMP` — `audit_events.at`
+et tous les `created_at` — prennent la valeur du fuseau de la **session**. Une
+base réglée sur Africa/Douala y écrit 13 h 56 quand il est 12 h 56 UTC. L'api
+relit cette colonne comme de l'UTC, le portail la convertit en heure de Douala,
+et affiche 14 h 56. Une heure de trop, dans un journal append-only qu'aucune
+route ne peut corriger.
+
+Pire : les dates posées par l'application (`publishedAt`, `startedAt`) restaient
+justes. Deux familles d'horodatages divergeaient donc **à l'intérieur de la même
+base**, et un enregistrement paraissait créé une heure après l'appel qu'il
+décrit.
+
+**Le produit impose le fuseau à sa connexion**, plutôt que de s'en remettre au
+serveur : l'url porte `options=-c timezone=UTC`. Trois raisons. Un client
+fournira sa propre base, dont le réglage ne nous regarde pas. Le fuseau est figé
+dans `postgresql.conf` **à l'initialisation du volume** — corriger la variable
+d'environnement d'un compose ne change donc rien à une base déjà créée, ce qui
+rend toute consigne d'exploitation illusoire. Et l'api n'a pas à savoir dans
+quel pays tourne sa base : elle écrit en UTC, l'affichage convertit.
+
+**Un contrôle au démarrage refuse une session qui n'est pas en UTC**, comme la
+validation d'environnement du §2 refuse un secret d'exemple. Mieux vaut ne pas
+démarrer qu'écrire des horodatages faux dans un journal qu'on ne pourra pas
+corriger.
+
+**Deux pièges rencontrés en chemin**, tous deux attrapés par les tests.
+`URLSearchParams` encode l'espace en `+`, que libpq lit littéralement : `pg_dump`
+refusait de se connecter sur « unrecognized configuration parameter
+"+timezone" ». Le paramètre est donc écrit à la main en `%20`, et retiré de
+l'url passée aux outils PostgreSQL, qui n'ont que faire du fuseau de session.
+
+**Réserve** — les horodatages déjà écrits restent décalés : ils ne se corrigent
+pas, précisément parce que le journal est append-only. Sur une instance
+d'évaluation, la réponse est de regarnir ; sur une instance en service, il
+faudra dater la correction et savoir que les entrées antérieures portent le
+décalage — c'est une raison de plus pour que ce contrôle existe avant le premier
+pilote. Par ailleurs, la vraie solution de fond serait des colonnes
+`timestamptz`, qui ne dépendent d'aucune session : c'est une migration lourde
+sur des tables dont l'une est protégée en écriture, à envisager si un autre
+symptôme du même genre apparaît.

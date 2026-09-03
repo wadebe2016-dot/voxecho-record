@@ -245,6 +245,9 @@ describe('constat d’après-restauration', () => {
       const url = new URL(testDatabaseUrl());
       url.pathname = `/${base}`;
       url.searchParams.delete('schema');
+      // `options` porte le fuseau imposé à l'api (§9.27) ; `URL.toString()`
+      // y encoderait l'espace en `+`, que libpq refuse.
+      url.searchParams.delete('options');
       execFileSync('psql', [url.toString(), '-v', 'ON_ERROR_STOP=1', '-c', commande], {
         stdio: 'pipe',
       });
