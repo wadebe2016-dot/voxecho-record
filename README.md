@@ -157,6 +157,17 @@ Le scénario de contrôle qui les met bout à bout — `apps/api/test/controle-c
 contrôleur interroge le périmètre, l'intégrité, les habilitations, les
 destructions, le journal, puis la capacité à restaurer.
 
+## La capture (S5)
+
+`tools/freeswitch/post-enregistrement.sh` est l'autre bout du contrat §3 : le
+script que FreeSWITCH appelle à la fin de chaque appel pour déposer la paire
+wav + json. Il ne parle jamais à l'api. Son intégration au dialplan est
+documentée dans `tools/freeswitch/README.md`.
+
+Le transport entre le site de capture et le portail (WireGuard), le profil SIP
+récepteur et l'approvisionnement CUCM par AXL relèvent du kit de branchement,
+qui ne peut être validé qu'avec le CUCM.
+
 ## Durcissement
 
 - L'adresse du demandeur n'est lue dans `X-Forwarded-For` que si le relais est

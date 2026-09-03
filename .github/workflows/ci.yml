@@ -71,6 +71,13 @@ jobs:
       - name: Construire les types partagés
         run: pnpm --filter @voxecho/shared build
 
+      # Le script post-enregistrement est du bash livré sur la machine de
+      # capture : il est vérifié comme le reste du dépôt. `set -e` y rend
+      # certaines tournures piégeuses — `[ test ] && action` interrompt le
+      # script quand le test est faux, c'est-à-dire dans le cas normal.
+      - name: Lint des scripts shell
+        run: shellcheck tools/freeswitch/*.sh
+
       - name: Lint
         run: pnpm lint
 
