@@ -918,3 +918,70 @@ oubliées — oublier un attaquant discret est le prix à payer pour ne pas se
 laisser épuiser par un attaquant nombreux. Enfin, la terminaison TLS elle-même
 n'est pas dans ce lot : elle appartient au déploiement de `record.voxecho.cm`,
 et tant qu'elle n'est pas posée, `API_BEHIND_TLS` doit rester faux.
+
+### 9.17 Le script de capture vit ici, mais ne connaît rien d'ici (S5)
+
+Premier lot du S5, ouvert sans CUCM parce qu'il n'en a pas besoin. Le §7
+annonce qu'au branchement réel, « AUCUN changement n'est attendu dans `apps/` ;
+si un changement est nécessaire, c'est un bug du contrat, à corriger dans le
+contrat ». Une promesse pareille se vérifie avant le jour du branchement, pas
+pendant : découvrir un bug du contrat en labo, avec le CUCM sous les yeux et
+l'intégrateur qui attend, coûte une journée ; le découvrir maintenant coûte une
+correction.
+
+**Le script vit dans le dépôt, la capture reste dehors.** `tools/freeswitch/`
+n'est pas une entorse au §3 : rien dans `apps/` ne l'importe, et lui n'importe
+rien de `apps/`. Il est l'**implémentation de référence** du contrat, au même
+titre que le simulateur du §4 — l'un montre ce qu'un producteur doit écrire,
+l'autre le fabrique sans téléphonie. Le laisser hors dépôt aurait signifié qu'il
+vieillisse séparément du contrat qu'il applique, et que personne ne s'aperçoive
+d'une divergence avant une mise en service.
+
+**En bash, pas en TypeScript.** Le reste du dépôt est en Node ; ce script ne
+peut pas l'être. Il s'exécute sur un FreeSWITCH de production, où exiger Node
+serait une contrainte d'exploitation imposée à un intégrateur qui n'a rien
+demandé. Il n'utilise donc que des utilitaires ordinaires — pas même `jq`, dont
+l'absence sur une machine de capture serait découverte au premier appel : le
+json est écrit à la main, ce qui n'est acceptable que parce que **tous les
+champs sont validés avant d'être écrits**, et refusés sinon.
+
+**Il refuse au lieu de deviner.** Fréquence autre que 8 kHz, wav tronqué au
+regard de la durée annoncée, horodatage sans fuseau, sens, source ou catégorie
+hors contrat, locataire qui ne peut pas être un nom de répertoire, option
+inconnue — chacun de ces cas arrête le script. Le portail les mettrait de toute
+façon en quarantaine, avec un événement d'audit et un fichier à reprendre à la
+main : mieux vaut échouer sur la machine de capture, bruyamment, pendant que
+l'appel est encore frais. Une option inconnue est refusée pour la même raison
+qu'au §9.16 : un dialplan qui croit transmettre une information que personne ne
+lit doit s'en apercevoir tout de suite.
+
+**Le fichier de travail ne passe jamais sous surveillance.** La paire est
+préparée hors d'`INGEST_DIR` puis déplacée par un renommage, atomique sur un
+même système de fichiers. Un temporaire déposé sous surveillance partirait en
+quarantaine à chaque appel, le portail ne reconnaissant que `.wav` et `.json` —
+la protection du §3 se serait retournée contre le producteur qu'elle sert.
+
+**Il ne connaît pas la liste des locataires**, et ne peut donc pas savoir si le
+slug qu'on lui donne existe. C'est voulu : l'interroger supposerait un accès à
+l'api, c'est-à-dire la fin de la frontière du §3. Le portail tranche seul, et un
+dépôt visant un locataire inconnu part en quarantaine sans locataire à qui
+l'attribuer (§9.2). La faute de frappe se paie donc d'un aller-retour ; c'est
+moins cher qu'un couplage.
+
+**Le contrat est vérifié des deux côtés.** Les tests de `tools/freeswitch`
+relisent le dépôt avec les validateurs du contrat eux-mêmes, comme au S2 pour le
+simulateur ; `apps/api/test/capture-freeswitch.spec.ts` le fait ingérer par le
+portail, sans aménagement. Ce n'est pas la même vérification : un dépôt peut
+satisfaire le schéma et rester inexploitable. Aucun changement n'a été
+nécessaire dans `apps/` — le contrat tient.
+
+**Réserve** — ce que ce lot ne peut pas prouver, c'est que FreeSWITCH appellera
+le script avec les bonnes variables. Le dialplan documenté est plausible, il
+n'est pas éprouvé : `strftime(%z)` rend `+0100` là où le contrat attend
+`+01:00`, et c'est exactement le genre de détail qui ne se découvre qu'en labo.
+Le script refuse cette forme plutôt que de la corriger, parce que corriger
+silencieusement un horodatage serait s'autoriser à réécrire une donnée probante.
+Par ailleurs, la conversion d'un enregistrement qui ne serait pas en 8 kHz n'est
+pas outillée : on la refuse, et c'est `record_sample_rate` qu'on règle. Si un
+jour une capture impose un autre format, la conversion devra être une étape
+déclarée et tracée, jamais un rattrapage silencieux dans ce script.

@@ -322,3 +322,28 @@ contrôle.
   portail casserait en production seulement, là où aucun test ne regarde.
 - Décisions et réserves en §9.16 — dont le compteur en mémoire, exact pour une
   instance par client (§9.1) et à revoir le jour où il y en aurait deux.
+
+### S5 — Branchement réel (en cours)
+
+- `tools/freeswitch/post-enregistrement.sh` : le script que FreeSWITCH appelle
+  à la fin de chaque appel, qui dépose la paire wav+json du contrat §3. En bash
+  et sans dépendance — on ne peut pas supposer Node installé sur une machine de
+  capture. Il ne parle jamais à l'api : il écrit deux fichiers, et c'est tout ce
+  que la frontière du §3 autorise.
+- Il refuse au lieu de deviner : fréquence autre que 8 kHz, wav tronqué au
+  regard de la durée annoncée, horodatage sans fuseau, sens ou catégorie hors
+  contrat, locataire qui ne peut pas être un nom de répertoire, option inconnue.
+  Le portail les mettrait en quarantaine ; mieux vaut échouer sur la machine de
+  capture, pendant que l'appel est encore frais.
+- La paire est préparée hors d'`INGEST_DIR` puis déplacée par un renommage
+  atomique : un fichier de travail déposé sous surveillance partirait en
+  quarantaine à chaque appel.
+- **Le contrat tient : aucun changement n'a été nécessaire dans `apps/`.** Le
+  dépôt est relu par les validateurs du contrat eux-mêmes, puis ingéré par le
+  portail dans `apps/api/test/capture-freeswitch.spec.ts` — c'est là que se
+  vérifie la promesse du §7, avant le jour du branchement plutôt que pendant.
+- Dialplan d'intégration documenté (`tools/freeswitch/README.md`), avec le piège
+  connu : `strftime(%z)` rend `+0100` là où le contrat attend `+01:00`.
+- La CI passe les scripts shell à `shellcheck` : `set -e` rend certaines
+  tournures piégeuses, `[ test ] && action` interrompant le script quand le test
+  est faux — c'est-à-dire dans le cas normal. Décisions en §9.17.
