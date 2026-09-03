@@ -3,6 +3,8 @@ export * from './ingestion/contract.js';
 export * from './ingestion/filename.js';
 export * from './ingestion/layout.js';
 export * from './ingestion/wav.js';
+export * from './policy/contract.js';
+export * from './policy/decision.js';
 export * from './api/administration.js';
 export * from './api/audit.js';
 export * from './api/dashboard.js';
