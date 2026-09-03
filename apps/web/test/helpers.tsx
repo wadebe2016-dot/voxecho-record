@@ -57,6 +57,7 @@ export function afficher(
     chargement: false,
     connexion: () => Promise.resolve(),
     deconnexion: () => Promise.resolve(),
+    changerMotDePasse: () => Promise.resolve(),
   };
   return render(
     <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>

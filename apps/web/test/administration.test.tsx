@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import type { InstanceSettingsResponse, ProfileResponse } from '@voxecho/shared';
 import { AdministrationPage } from '../src/pages/AdministrationPage';
-import { ConfigurationShell } from '../src/components/ConfigurationShell';
+import { AppShell } from '../src/components/AppShell';
 import { afficher, PROFIL_AUDITEUR, profilPour, reponse, simulerApi } from './helpers';
 
 const REGLAGES: InstanceSettingsResponse = {
@@ -44,23 +45,31 @@ const ADMIN_INSTANCE: ProfileResponse = { ...profilPour('ADMIN'), instanceAdmin:
  * et c'est précisément ce que le §9.9 demande d'éviter.
  */
 describe('console d’administration', () => {
-  it('n’ouvre les réglages d’instance qu’à son administrateur', () => {
+  it('n’ouvre les réglages d’instance qu’à son administrateur', async () => {
     simulerApi({});
+    afficher(<AppShell>contenu</AppShell>, ADMIN_INSTANCE);
 
-    afficher(<ConfigurationShell>contenu</ConfigurationShell>, ADMIN_INSTANCE);
+    await userEvent.click(screen.getByRole('button', { name: /Administration/ }));
     expect(screen.getByRole('link', { name: 'Réglages' })).toBeInTheDocument();
   });
 
-  it('ne les montre pas à un ADMIN qui n’administre que son locataire', () => {
+  it('ne montre pas les réglages à un ADMIN qui n’administre que son locataire', async () => {
     simulerApi({});
+    afficher(<AppShell>contenu</AppShell>, profilPour('ADMIN'));
 
-    // Administrer sa banque n'est pas administrer l'instance : le portail ne
-    // doit pas suggérer le contraire.
-    afficher(<ConfigurationShell>contenu</ConfigurationShell>, profilPour('ADMIN'));
+    // Il a bien un onglet Administration — il y gère ses comptes — mais
+    // administrer sa banque n'est pas administrer l'instance.
+    await userEvent.click(screen.getByRole('button', { name: /Administration/ }));
+    expect(screen.getByRole('link', { name: 'Comptes' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Réglages' })).toBeNull();
+  });
 
-    afficher(<ConfigurationShell>contenu</ConfigurationShell>, PROFIL_AUDITEUR);
-    expect(screen.queryByRole('link', { name: 'Réglages' })).toBeNull();
+  it('ne montre aucun onglet d’administration à un auditeur', () => {
+    simulerApi({});
+    afficher(<AppShell>contenu</AppShell>, PROFIL_AUDITEUR);
+
+    // Sans entrée accessible, l'onglet disparaît plutôt que de s'ouvrir sur rien.
+    expect(screen.queryByRole('button', { name: /Administration/ })).toBeNull();
   });
 
   it('affiche les réglages, et réserve l’explication à l’aide contextuelle', async () => {

@@ -50,6 +50,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const changerMotDePasse = useCallback(async (ancien: string, nouveau: string) => {
+    jetons.enregistrer(await api.changerMotDePasse(ancien, nouveau));
+    setProfil(await api.profil());
+  }, []);
+
   const deconnexion = useCallback(async () => {
     try {
       await api.deconnexion(jetons.rafraichissement());
@@ -62,8 +67,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const valeur = useMemo<EtatAuth>(
-    () => ({ profil, chargement, connexion, deconnexion }),
-    [profil, chargement, connexion, deconnexion],
+    () => ({ profil, chargement, connexion, deconnexion, changerMotDePasse }),
+    [profil, chargement, connexion, deconnexion, changerMotDePasse],
   );
 
   return <AuthContext.Provider value={valeur}>{children}</AuthContext.Provider>;

@@ -7,7 +7,8 @@ import { LoginPage } from './pages/LoginPage';
 import { RecordingsPage } from './pages/RecordingsPage';
 import { TableauDeBordPage } from './pages/TableauDeBordPage';
 import { AdministrationPage } from './pages/AdministrationPage';
-import { ConfigurationShell } from './components/ConfigurationShell';
+import { ComptesPage } from './pages/ComptesPage';
+import { MotDePassePage } from './pages/MotDePassePage';
 import { PolitiquesPage } from './pages/PolitiquesPage';
 
 export function App() {
@@ -35,28 +36,21 @@ function Portail() {
     return <LoginPage />;
   }
 
+  // Mot de passe provisoire : aucun autre écran n'est atteignable. L'api le
+  // refuse de toute façon (§9.26) ; le portail évite d'y conduire.
+  if (profil.mustChangePassword) {
+    return <MotDePassePage />;
+  }
+
   return (
     <AppShell>
       <Routes>
         <Route path="/tableau-de-bord" element={<TableauDeBordPage />} />
         <Route path="/enregistrements" element={<RecordingsPage />} />
         <Route path="/journal" element={<JournalPage />} />
-        <Route
-          path="/politiques"
-          element={
-            <ConfigurationShell>
-              <PolitiquesPage />
-            </ConfigurationShell>
-          }
-        />
-        <Route
-          path="/administration"
-          element={
-            <ConfigurationShell>
-              <AdministrationPage />
-            </ConfigurationShell>
-          }
-        />
+        <Route path="/politiques" element={<PolitiquesPage />} />
+        <Route path="/comptes" element={<ComptesPage />} />
+        <Route path="/administration" element={<AdministrationPage />} />
         <Route path="*" element={<Navigate to="/enregistrements" replace />} />
       </Routes>
     </AppShell>

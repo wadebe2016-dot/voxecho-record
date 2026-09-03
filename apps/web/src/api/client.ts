@@ -8,6 +8,10 @@ import type {
   PolicyVersionDetail,
   PolicyVersionSummary,
   RecordingPolicy,
+  Role,
+  TemporaryPasswordResponse,
+  UpdateUserRequest,
+  UserSummary,
   ListenTicketResponse,
   LoginRequest,
   Page,
@@ -23,6 +27,12 @@ export class ApiError extends Error {
   constructor(
     readonly status: number,
     message: string,
+    /**
+     * Détails rendus par l'api quand un refus en compte plusieurs — une
+     * politique de mot de passe, par exemple. Les afficher évite de laisser
+     * l'utilisateur deviner ce qu'on attend de lui (§9.26).
+     */
+    readonly details?: string[],
   ) {
     super(message);
     this.name = 'ApiError';
@@ -96,7 +106,12 @@ async function appeler<T>(chemin: string, options: Options = {}): Promise<T> {
 
   const charge: unknown = await reponse.json().catch(() => null);
   if (!reponse.ok) {
-    throw new ApiError(reponse.status, messageDErreur(charge, reponse.status));
+    const details = (charge as { details?: unknown } | null)?.details;
+    throw new ApiError(
+      reponse.status,
+      messageDErreur(charge, reponse.status),
+      Array.isArray(details) ? details.map(String) : undefined,
+    );
   }
   return charge as T;
 }
@@ -126,6 +141,22 @@ export const api = {
     appeler('/auth/logout', { method: 'POST', body: { refreshToken: refreshToken ?? undefined } }),
 
   profil: (): Promise<ProfileResponse> => appeler('/auth/me'),
+
+  /** Renouvellement du mot de passe : rend une paire de jetons neuve (§9.26). */
+  changerMotDePasse: (ancien: string, nouveau: string): Promise<TokenPairResponse> =>
+    appeler('/auth/password', { method: 'POST', body: { ancien, nouveau } }),
+
+  /** Comptes du locataire — CLAUDE.md §9.26. */
+  comptes: (): Promise<UserSummary[]> => appeler('/users'),
+
+  creerCompte: (email: string, role: Role): Promise<TemporaryPasswordResponse> =>
+    appeler('/users', { method: 'POST', body: { email, role } }),
+
+  modifierCompte: (id: string, modification: UpdateUserRequest): Promise<UserSummary> =>
+    appeler(`/users/${id}`, { method: 'PATCH', body: modification }),
+
+  reinitialiserCompte: (id: string): Promise<TemporaryPasswordResponse> =>
+    appeler(`/users/${id}/reinitialiser`, { method: 'POST' }),
 
   /** Réglages de l'instance, en lecture seule (§9.22). */
   reglagesInstance: (): Promise<InstanceSettingsResponse> => appeler('/administration/reglages'),

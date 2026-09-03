@@ -489,3 +489,24 @@ contrôle.
   désactivé ni révoqué — ni par la console, ni par la commande. La réserve du
   §9.22 est levée.
 - `USER_SET` s'ajoute au journal, avec l'avant et l'après de chaque changement.
+- Navigation revue : le menu latéral est retiré au profit d'un modèle unique —
+  un onglet sans sous-section est un lien, un onglet qui en a s'ouvre au clic
+  par-dessus le contenu. Deux façons de naviguer selon l'écran, c'était une de
+  trop (§9.25).
+- Le déroulant se ferme à Échap, au clic ailleurs et après navigation ; il
+  s'ouvre au clavier et déclare ce qu'il commande (`aria-expanded`,
+  `aria-controls`). Sur petit écran, les entrées passent à la ligne — un
+  conteneur qui défile couperait le déroulant.
+- Un onglet dont aucune entrée n'est accessible disparaît au lieu de s'ouvrir
+  sur rien.
+- Écrans des comptes (`Administration ▾ › Accès › Comptes`) : liste, création
+  avec mot de passe provisoire affiché une seule fois, changement de rôle,
+  activation, réinitialisation. L'écran n'offre pas de modifier son propre
+  compte, que l'api refuse de toute façon.
+- Écran de renouvellement du mot de passe : seul écran atteignable tant qu'un
+  provisoire n'a pas été remplacé, et la déconnexion y reste offerte — un écran
+  dont on ne peut pas sortir est un piège.
+- `ApiError` porte désormais les détails rendus par l'api : une politique de mot
+  de passe refusée dit ce qu'elle attend, au lieu de laisser deviner.
+- Manuel complété : comptes, mots de passe provisoires, politique de mot de
+  passe.
