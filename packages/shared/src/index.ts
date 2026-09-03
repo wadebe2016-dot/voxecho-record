@@ -6,6 +6,7 @@ export * from './ingestion/wav.js';
 export * from './api/audit.js';
 export * from './api/dashboard.js';
 export * from './api/export.js';
+export * from './api/instance.js';
 export * from './api/pagination.js';
 export * from './api/playback.js';
 export * from './api/purge.js';

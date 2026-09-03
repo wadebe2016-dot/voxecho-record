@@ -108,17 +108,36 @@ jobs:
     name: Construction des images
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # Les images sont publiées sur GHCR à chaque `main` : l'instance de
+    # démonstration est une t3.small de 2 Go, où construire ces images
+    # échouerait. Elle ne fait que tirer.
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v4
 
       - uses: docker/setup-buildx-action@v3
+
+      # Publication seulement depuis `main` : une branche de travail se
+      # construit pour être vérifiée, elle n'a rien à envoyer au registre.
+      - name: Connexion à GHCR
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Image de l'api
         uses: docker/build-push-action@v6
         with:
           context: .
           file: apps/api/Dockerfile
-          push: false
+          push: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
+          tags: |
+            ghcr.io/${{ github.repository }}-api:latest
+            ghcr.io/${{ github.repository }}-api:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -127,6 +146,9 @@ jobs:
         with:
           context: .
           file: apps/web/Dockerfile
-          push: false
+          push: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
+          tags: |
+            ghcr.io/${{ github.repository }}-web:latest
+            ghcr.io/${{ github.repository }}-web:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

@@ -985,3 +985,64 @@ Par ailleurs, la conversion d'un enregistrement qui ne serait pas en 8 kHz n'est
 pas outillée : on la refuse, et c'est `record_sample_rate` qu'on règle. Si un
 jour une capture impose un autre format, la conversion devra être une étape
 déclarée et tracée, jamais un rattrapage silencieux dans ce script.
+
+### 9.18 Une démonstration doit dire qu'elle en est une (hors jalon)
+
+Mise en ligne de `record.voxecho.cm`, après le durcissement du §9.16 et avant
+le kit de branchement. Quatre décisions.
+
+**Le portail annonce l'instance de démonstration, et c'est l'instance qui le
+commande.** Un visiteur qui voit des appels, des empreintes, un journal
+d'audit et un lecteur audio n'a aucun moyen de savoir s'il regarde des
+conversations fabriquées ou celles des clients d'une banque. Le laisser dans ce
+doute serait le dark-pattern que le §6 proscrit, et le plus grave qui soit pour
+un produit dont toute la valeur est la preuve. La mention ne peut pas non plus
+être figée dans l'image, sinon elle apparaîtrait chez un client et jetterait un
+doute sur des pièces qui, elles, sont réelles : elle vient donc d'une route
+publique, `GET /api/instance`, que l'écran de connexion interroge avant toute
+session. Si l'api ne répond pas, l'écran reste utilisable et ne dit rien — une
+panne se constate en essayant de se connecter, pas devant un écran vide.
+
+**Le jeu de démonstration passe par `INGEST_DIR`, jamais par des insertions en
+base.** C'est le chemin réel du produit — contrat §3, empreinte à l'ingestion,
+scellement — qui range ces appels. Garnir la base directement aurait montré des
+enregistrements que l'ingestion n'a jamais vus, avec des empreintes qu'aucun
+calcul n'a produites : un contrôleur qui compare une pièce à sa fiche trouverait
+tout juste, mais rien n'aurait été prouvé. Un dépôt volontairement malformé
+accompagne le lot, pour que les quarantaines du tableau de bord ne soient pas
+vides : la chaîne doit se montrer en train d'écarter sans détruire en silence.
+
+**Les mots de passe de démonstration viennent de l'environnement, et le seed
+refuse les valeurs devinables.** L'instance est publique ; des identifiants
+écrits dans le dépôt y ouvriraient un portail qui sert de l'audio et affiche un
+journal d'audit, et la première démonstration faite à un client se ferait sur
+une instance que n'importe qui a pu visiter avant lui. C'est la règle du §2 —
+« pas de secret en dur », « secret d'exemple refusé » — appliquée là où on est
+le plus tenté d'y déroger, parce que « ce n'est qu'une démo ».
+
+**Les images sont construites par la CI, jamais sur l'instance.** Une t3.small a
+deux gigaoctets de mémoire : la construction y échouerait, et un déploiement qui
+compile sur la machine de production n'est de toute façon pas reproductible.
+GHCR reçoit une image par commit de `main`, taguée par SHA ; revenir en arrière
+est un changement de variable, pas une reconstruction.
+
+**Le TLS est terminé par Caddy, en amont de nginx qui ne change pas.** Le
+livrable du §2 reste ce qu'un client installerait chez lui ; la démonstration
+lui ajoute une couche, elle ne le réécrit pas. Conséquence à ne pas manquer : la
+chaîne devient Caddy → nginx → api, et `TRUSTED_PROXIES` doit couvrir le réseau
+des conteneurs, faute de quoi toutes les entrées du journal porteraient
+l'adresse d'un relais — le défaut que le §9.16 vient de corriger reviendrait par
+la porte du déploiement. Caddy ne compresse rien : la réécoute réclame des
+plages d'octets (§9.4), et une couche qui recompresse à la volée fausserait les
+`Content-Length` et `Content-Range` dont elle dépend.
+
+**Réserve** — l'enregistrement DNS est en « DNS only » pour que les
+conversations ne transitent par aucun intermédiaire qui les déchiffrerait au
+passage ; l'adresse de l'instance est donc publique, et c'est le groupe de
+sécurité qui la protège. Par ailleurs, une démonstration vieillit : les appels
+du jeu portent des dates relatives au jour du seed, et une instance laissée six
+mois montrera un tableau de bord vide sur ses trente derniers jours. Regarnir
+demande alors de relancer le seed, ce qu'il sait faire sans dupliquer. Enfin, la
+clé maître de cette instance protège des conversations fabriquées : sa perte
+coûte un reseed, pas une preuve. Ce confort ne doit pas déteindre sur la
+procédure d'un client, où la même perte est définitive (§9.14).
