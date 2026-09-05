@@ -704,7 +704,7 @@ pièce déjà altérée figerait l'altération sous un sceau qui la rendrait ens
 **Réserve** — la perte de la clé maître rend le stockage définitivement
 illisible : c'est la propriété recherchée, et c'est aussi le risque. Sa garde
 et sa sauvegarde sortent du produit, et devront être traitées avec la
-sauvegarde de la base (lot 07) plutôt qu'à côté — une base restaurée sans sa
+sauvegarde de la base (lot 07 du S4) plutôt qu'à côté — une base restaurée sans sa
 clé ne rend rien. Par ailleurs le scellement charge le fichier entier en
 mémoire : sans conséquence sur des appels de quelques mégaoctets, à revoir en
 flux si des enregistrements bien plus longs devaient apparaître. Enfin, la
@@ -1285,12 +1285,12 @@ enregistrements. Un brouillon, lui, ne trace rien : c'est un travail en cours
 sans effet sur la capture, comme la simulation de purge du §9.7.
 
 **Réserve** — ce lot construit le référentiel ; **rien ne l'applique encore**.
-La politique sera publiée aux connecteurs (lot 05) puis appliquée à la source
-(lot 06), et c'est seulement là qu'un appel cessera d'être enregistré. Tant que
+La politique sera publiée aux connecteurs (lot 06) puis appliquée à la source
+(lot 07), et c'est seulement là qu'un appel cessera d'être enregistré. Tant que
 ce n'est pas fait, une politique publiée est une intention, et l'écran ne doit
 pas laisser croire l'inverse. Par ailleurs, `on_demand` et la pause pour saisie
 sensible sont **déclarés** ici et exécutés par le connecteur : si un PBX ne sait
-pas les tenir, la politique promettra plus que la capture ne fera — le lot 06
+pas les tenir, la politique promettra plus que la capture ne fera — le lot 07
 devra dire ce qu'un connecteur sait faire, et refuser de publier une politique
 qu'il ne peut pas appliquer. Enfin, les listes de numéros s'écrivent une ligne à
 la fois dans une zone de texte : robuste et copiable depuis un tableur, mais
@@ -1445,7 +1445,7 @@ c'est le mieux qu'on puisse faire sans renoncer à l'unicité globale ; le jour 
 l'offre mutualisée du §9.1 arrivera, ce cas disparaîtra avec elle. Par ailleurs,
 le mot de passe provisoire circule aujourd'hui de la main à la main : c'est
 acceptable pour un service conformité de quelques personnes, et cela demandera
-un envoi par courriel — donc le SMTP du lot 08 — dès qu'un client aura des
+un envoi par courriel — donc le SMTP du lot 05 — dès qu'un client aura des
 dizaines de comptes à ouvrir.
 
 ### 9.27 L'heure d'un journal n'est pas une affaire de réglage serveur (S6)
@@ -1795,8 +1795,8 @@ réponse écrite la question « qu'a détruit la purge du 5 septembre ? ».
 l'empreinte d'une politique par `JSON.stringify` d'un document relu en `jsonb`.
 Elle est aujourd'hui cohérente, les deux côtés de la comparaison passant par la
 base ; elle ne le resterait pas si un connecteur recalculait l'empreinte depuis
-le json qu'il reçoit, ce que le §9.23 prévoit. Ce sera à traiter au lot de
-publication aux connecteurs, par une sérialisation canonique comme celle du
+le json qu'il reçoit, ce que le §9.23 prévoit. Ce sera à traiter au **lot 06** (publication aux
+connecteurs), par une sérialisation canonique comme celle du
 certificat — et non par une retouche discrète, puisqu'elle changerait les
 empreintes déjà publiées. Par ailleurs, l'écran de conservation vide le champ
 de motif après enregistrement d'une dérogation alors que la durée reste sous le
@@ -1865,3 +1865,41 @@ l'écart, mais il demandera une reprise : rejouer un tel rapport doit constater
 ce qui a déjà disparu plutôt que de s'en étonner. Englober la boucle dans la
 transaction n'est pas la réponse — on n'ouvre pas une transaction de base le
 temps d'effacer des fichiers.
+
+### 9.35 L'ordre des lots du S6 suit ce qui peut s'éprouver (S6)
+
+Renumérotation décidée après la clôture du lot 03, et inscrite ici parce que
+plusieurs réserves des §9.23, §9.26 et §9.33 renvoient à des numéros de lot.
+
+| Lot | Objet |
+| --- | --- |
+| 01 | Socle de la console, privilège d'administrateur d'instance (§9.22) |
+| 02 | Accès : comptes, mots de passe provisoires (§9.26) |
+| 03 | Conformité : conservation, holds, purge, certificat (§9.28 à §9.34) |
+| 04 | Politiques d'enregistrement sélectif — référentiel (§9.23) |
+| **05** | **Réglages Réseau, Annuaire, Supervision, et état de l'instance** |
+| 06 | Publication des politiques aux connecteurs |
+| 07 | Application des politiques à la source |
+| 08 | Sources de capture |
+| 09 | Exploitation et sauvegarde |
+| 10 | Multi-locataire |
+| 11 | Général |
+
+**Le motif est ce qui peut être éprouvé, et non ce qui vient logiquement
+après.** L'annuaire et la supervision sont des prérequis d'un pilote bancaire —
+une DSI ne déploie pas un outil dont les comptes vivent à part de son AD, ni
+qu'aucune supervision ne surveille — et l'un comme l'autre se testent dès
+aujourd'hui sur l'instance d'évaluation. La publication des politiques aux
+connecteurs, elle, ne peut être éprouvée qu'une fois la capture réelle en place
+(S5, FreeSWITCH ou CUCM) : la livrer avant reviendrait à écrire du code que
+personne ne peut mettre en défaut, ce que le §9.23 reprochait déjà à une
+politique publiée que rien n'applique.
+
+**Conséquence à ne pas manquer** : le lot 05 est le premier à toucher à
+l'authentification depuis le §9.26. La règle du dernier administrateur y est
+étendue — il devra toujours rester un administrateur **local** actif, sans quoi
+un annuaire injoignable fermerait la console à tout le monde.
+
+**Réserve** — cette table vieillira dès que l'ordre bougera de nouveau. Elle
+n'existe que parce que des réserves renvoient à des numéros ; le jour où un lot
+sera renuméroté sans qu'elle le soit, c'est elle qu'on croira.

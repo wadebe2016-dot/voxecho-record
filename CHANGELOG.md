@@ -416,6 +416,15 @@ contrôle.
 
 ### S6 — Console d'administration (en cours)
 
+Ordre des lots, après renumérotation (§9.35) : 01 socle, 02 accès,
+03 conformité, 04 politiques (référentiel), **05 réglages réseau, annuaire,
+supervision et état de l'instance**, 06 publication des politiques aux
+connecteurs, 07 application à la source, 08 sources de capture,
+09 exploitation et sauvegarde, 10 multi-locataire, 11 général. L'annuaire et
+la supervision passent devant parce qu'ils conditionnent un pilote bancaire et
+s'éprouvent dès maintenant, quand la publication aux connecteurs attend la
+capture réelle du S5.
+
 - Socle de la console : section « Administration » réservée à l'administrateur
   de **l'instance**, distinct de l'ADMIN d'un locataire. Le §9.9 avait laissé
   cette confusion en réserve ; une console la rendait intenable.
