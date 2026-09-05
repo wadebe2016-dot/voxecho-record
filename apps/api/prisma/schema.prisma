@@ -298,6 +298,13 @@ model PurgeRun {
   blockedCount   Int    @map("blocked_count")
   blockedBytes   BigInt @map("blocked_bytes")
 
+  /// Empreinte du certificat de destruction, calculée à l'exécution —
+  /// CLAUDE.md §9.31. Elle porte sur le contenu, non sur le fichier : le PDF
+  /// et le CSV du même rapport rendent la même valeur, et un contrôleur peut
+  /// vérifier des mois plus tard que le certificat qu'on lui présente est
+  /// bien celui qui a été délivré.
+  certificateSha256 String? @map("certificate_sha256")
+
   /// Empreinte de l'ensemble énuméré (identifiants triés, état de hold
   /// compris). Si le monde a changé entre la lecture et l'exécution, elle ne
   /// concorde plus et l'exécution est refusée : ce qui a été autorisé n'est
@@ -329,6 +336,9 @@ model PurgeRun {
 /// Une ligne du rapport. Les appels épargnés par une conservation forcée y
 /// figurent au même titre que les candidats : un rapport qui ne montrerait
 /// que ce qu'on détruit laisserait croire qu'il n'y avait rien à épargner.
+/// Une ligne d'un rapport de purge. Elle porte ce qu'il faut pour écrire le
+/// certificat de destruction sans relire l'enregistrement — qui, lui, n'aura
+/// peut-être plus de fichier (CLAUDE.md §9.31).
 model PurgeRunItem {
   id          String           @id @default(uuid()) @db.Uuid
   tenantId    String           @map("tenant_id") @db.Uuid
@@ -340,6 +350,13 @@ model PurgeRunItem {
   /// étaient quand la décision a été prise.
   sizeBytes BigInt   @map("size_bytes")
   startedAt DateTime @map("started_at")
+
+  /// Catégorie d'opération et durée qui lui a été appliquée — CLAUDE.md §9.31.
+  /// Le certificat de destruction doit dire au nom de quelle durée chaque
+  /// pièce a été détruite, et l'enregistrement n'a plus de fichier pour en
+  /// témoigner. Nuls pour les rapports antérieurs à cette exigence.
+  operationCategory String? @map("operation_category")
+  policyDays        Int?    @map("policy_days")
 
   blocked        Boolean
   blockingReason String? @map("blocking_reason")

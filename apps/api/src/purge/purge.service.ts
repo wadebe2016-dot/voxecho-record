@@ -14,6 +14,7 @@ import { AuditService } from '../audit/audit.service';
 import { resoudreCheminDeDonnees } from '../config/chemins';
 import { AppConfig } from '../config/config.module';
 import { PrismaService } from '../prisma/prisma.service';
+import { CertificatService } from './certificat.service';
 import type { AuthUser } from '../auth/auth.types';
 import { LegalHoldsService } from '../retention/legal-holds.service';
 import { RetentionService } from '../retention/retention.service';
@@ -32,9 +33,11 @@ type RunAvecComptes = PurgeRun & {
 
 /** Ce qu'un balayage d'échéance trouve, avant toute décision. */
 interface Candidat {
-  recording: Pick<Recording, 'id' | 'sizeBytes' | 'startedAt'>;
+  recording: Pick<Recording, 'id' | 'sizeBytes' | 'startedAt' | 'operationCategory'>;
   blocked: boolean;
   blockingReason: string | null;
+  /** Durée qui a décidé du sort de cet appel — CLAUDE.md §9.31. */
+  policyDays: number;
 }
 
 @Injectable()
@@ -47,6 +50,7 @@ export class PurgeService {
     private readonly audit: AuditService,
     private readonly retention: RetentionService,
     private readonly holds: LegalHoldsService,
+    private readonly certificats: CertificatService,
     config: AppConfig,
   ) {
     this.storageDir = resoudreCheminDeDonnees(config.get('STORAGE_DIR'));
@@ -64,7 +68,7 @@ export class PurgeService {
     const politiques = await this.retention.lireEnsemble(user.tenantId);
     const durees = dureesParPerimetre(politiques);
     const cutoff = echeance(politiques.generale.days);
-    const candidats = await this.recenser(user.tenantId, echeancesDepuis(durees));
+    const candidats = await this.recenser(user.tenantId, echeancesDepuis(durees), durees);
 
     const aDetruire = candidats.filter((c) => !c.blocked);
     const epargnes = candidats.filter((c) => c.blocked);
@@ -89,6 +93,8 @@ export class PurgeService {
             recordingId: c.recording.id,
             sizeBytes: c.recording.sizeBytes,
             startedAt: c.recording.startedAt,
+            operationCategory: c.recording.operationCategory,
+            policyDays: c.policyDays,
             blocked: c.blocked,
             blockingReason: c.blockingReason,
             outcome: c.blocked ? ('blocked' as const) : ('candidate' as const),
@@ -216,7 +222,7 @@ export class PurgeService {
 
     // Les échéances rejouées sont celles du rapport, pas celles d'aujourd'hui :
     // ce qui a été autorisé doit être exactement ce qui est détruit (§9.7).
-    const actuels = await this.recenser(user.tenantId, echeancesDepuis(figees));
+    const actuels = await this.recenser(user.tenantId, echeancesDepuis(figees), figees);
     if (empreinte(actuels) !== run.fingerprint) {
       throw new ConflictException(
         'Les enregistrements concernés ont changé depuis ce rapport : il faut en établir un nouveau avant de purger.',
@@ -252,6 +258,20 @@ export class PurgeService {
       },
       include: this.comptes,
     });
+
+    // L'empreinte du certificat est figée ici, à l'instant de la destruction —
+    // pas au premier téléchargement (§9.31). Un certificat délivré des mois
+    // plus tard doit porter la valeur de ce jour-là.
+    const certificat = await this.certificats.construire(user.tenantId, run.id);
+    const empreinteCertificat = this.certificats.empreinte(certificat);
+    await this.prisma.purgeRun.update({
+      where: { id: run.id },
+      data: { certificateSha256: empreinteCertificat },
+    });
+
+    this.logger.log(
+      `Purge ${run.id} exécutée : ${detruits} pièce(s), certificat ${empreinteCertificat.slice(0, 16)}…`,
+    );
 
     return versResume(acheve);
   }
@@ -339,7 +359,11 @@ export class PurgeService {
    * L'échéance est passée en paramètre plutôt que recalculée : l'exécution
    * doit rejouer le rapport, pas en produire un autre.
    */
-  private async recenser(tenantId: string, echeances: Map<string, Date>): Promise<Candidat[]> {
+  private async recenser(
+    tenantId: string,
+    echeances: Map<string, Date>,
+    durees: Record<string, number>,
+  ): Promise<Candidat[]> {
     // La borne la plus lointaine sert de premier filtre ; chaque appel est
     // ensuite jugé sur l'échéance de sa propre catégorie (§9.28).
     const bornes = [...echeances.values()];
@@ -367,6 +391,9 @@ export class PurgeService {
       recording,
       blocked: sousHold.has(recording.id),
       blockingReason: motifs.get(recording.id) ?? null,
+      // Le certificat devra dire au nom de quelle durée la pièce a été
+      // détruite, et l'enregistrement n'aura plus de fichier pour en témoigner.
+      policyDays: durees[recording.operationCategory] ?? durees.all ?? 0,
     }));
   }
 

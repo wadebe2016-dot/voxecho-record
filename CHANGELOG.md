@@ -549,3 +549,18 @@ contrôle.
   et tourne en CI. La règle vient d'un défaut réel : une colonne `NOT NULL`
   sans défaut passait sur une base vide et aurait empêché l'api de démarrer
   chez un client ayant déjà des conservations.
+- **Certificat de destruction** : tout rapport de purge exécuté se télécharge en
+  PDF et en CSV — enregistrements détruits avec leur catégorie et la durée qui
+  leur a été appliquée, politique rejouée, auteur, horodatage, et les
+  conservations forcées épargnées avec leur motif.
+- L'empreinte SHA-256 porte sur le **contenu** et non sur le fichier : les deux
+  formats rendent la même valeur, figée à l'instant de la destruction. Chaque
+  téléchargement s'inscrit au journal comme un `EXPORT`.
+- `PurgeRunItem` retient désormais la catégorie et la durée appliquée : le
+  certificat doit dire au nom de quelle conservation chaque pièce est tombée, et
+  l'enregistrement détruit n'a plus rien pour en témoigner.
+- `scripts/migrate-check.sh` peuple désormais la base d'essai en lisant le
+  schéma réel — colonnes obligatoires, types, clés étrangères — au lieu d'une
+  liste écrite à la main, qui s'était cassée dès le lot suivant. Dix tables
+  peuplées automatiquement, et la réserve du §9.30 est levée.
+- Décisions et réserves en §9.31.
