@@ -1,6 +1,10 @@
 import { Body, Controller, Get, Post, Param, Put, Req } from '@nestjs/common';
 import type { Request } from 'express';
-import type { LegalHoldResponse, RetentionPolicyResponse } from '@voxecho/shared';
+import type {
+  LegalHoldResponse,
+  RetentionPolicyResponse,
+  RetentionPolicySetResponse,
+} from '@voxecho/shared';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import type { AuthUser } from '../auth/auth.types';
@@ -25,6 +29,13 @@ export class RetentionController {
   @Get()
   lire(@CurrentUser() user: AuthUser): Promise<RetentionPolicyResponse> {
     return this.retention.lire(user.tenantId);
+  }
+
+  /** Toutes les politiques : la générale et celles par catégorie (§9.28). */
+  @Roles('ADMIN', 'SUPERVISOR', 'AUDITOR')
+  @Get('ensemble')
+  lireEnsemble(@CurrentUser() user: AuthUser): Promise<RetentionPolicySetResponse> {
+    return this.retention.lireEnsemble(user.tenantId);
   }
 
   @Roles('ADMIN')

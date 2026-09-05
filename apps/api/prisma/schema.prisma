@@ -288,6 +288,11 @@ model PurgeRun {
   policyDays Int      @map("policy_days")
   cutoff     DateTime
 
+  /// Durées appliquées à chaque périmètre, figées — CLAUDE.md §9.28. Une
+  /// seule durée ne suffit plus dès qu'une catégorie d'opération a la sienne,
+  /// et l'exécution doit rejouer exactement ce qui a été autorisé.
+  policyDocument Json? @map("policy_document") @db.JsonB
+
   candidateCount Int    @map("candidate_count")
   candidateBytes BigInt @map("candidate_bytes")
   blockedCount   Int    @map("blocked_count")

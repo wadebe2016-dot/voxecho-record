@@ -20,4 +20,13 @@ export class SetRetentionDto {
   @MinLength(10, { message: 'motif : au moins dix caractères, pas une initiale' })
   @MaxLength(500)
   belowFloorReason?: string;
+
+  /**
+   * Périmètre visé : `all` ou une catégorie d'opération (§9.28). Le service
+   * tranche ce qui est reconnu — lui seul connaît le catalogue.
+   */
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  appliesTo?: string;
 }
