@@ -13,6 +13,7 @@ export const PROFIL_AUDITEUR: ProfileResponse = {
   tenantName: 'Banque de démonstration CEMAC',
   instanceAdmin: false,
   mustChangePassword: false,
+  fuseau: 'Africa/Douala',
 };
 
 /** Réponse `fetch` minimale, comme celle du serveur. */

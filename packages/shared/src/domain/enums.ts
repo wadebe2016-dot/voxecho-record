@@ -36,5 +36,9 @@ export const AUDIT_ACTIONS = [
   'POLICY_SET',
   /** Création, modification ou réinitialisation d'un compte (§9.26). */
   'USER_SET',
+  /** Changement d'un réglage d'instance (§9.36). */
+  'SETTINGS_SET',
+  /** Test d'un réglage, inscrit en échec comme en succès (§9.36). */
+  'SETTINGS_TEST',
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

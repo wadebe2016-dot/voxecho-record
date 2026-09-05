@@ -10,6 +10,7 @@ import { AuditService } from '../audit/audit.service';
 import { AppConfig } from '../config/config.module';
 import { PrismaService } from '../prisma/prisma.service';
 import type { AuthUser, TokenPair } from './auth.types';
+import { ReseauService } from '../settings/reseau.service';
 import { LimitationConnexion } from './limitation-connexion.service';
 import { hashPassword, verifyPassword } from './password';
 import { verifierMotDePasse } from './password-policy';
@@ -31,6 +32,7 @@ export class AuthService {
     private readonly audit: AuditService,
     private readonly config: AppConfig,
     private readonly limitation: LimitationConnexion,
+    private readonly reseau: ReseauService,
   ) {}
 
   async login(email: string, password: string, ip: string | null): Promise<TokenPair> {
@@ -143,6 +145,7 @@ export class AuthService {
     tenantName: string;
     instanceAdmin: boolean;
     mustChangePassword: boolean;
+    fuseau: string;
   }> {
     const compte = await this.prisma.user.findFirst({
       where: { id: user.userId, tenantId: user.tenantId },
@@ -157,6 +160,10 @@ export class AuthService {
       role: compte.role,
       tenantId: compte.tenantId,
       tenantName: compte.tenant.name,
+      // Le fuseau d'affichage vient de l'instance (§9.36) : le portail formate
+      // toutes ses dates avec, et ne saurait pas seul dans quel fuseau
+      // présenter l'heure d'un appel.
+      fuseau: await this.reseau.fuseau(),
       // Relu en base, non repris du jeton : une révocation prononcée pendant
       // une session doit se voir au prochain chargement du portail.
       instanceAdmin: compte.instanceAdmin,

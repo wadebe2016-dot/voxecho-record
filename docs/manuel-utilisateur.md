@@ -330,6 +330,57 @@ node apps/api/dist/administration/admin-instance.js --lister
 Un privilège qui se donnerait depuis l'écran qu'il déverrouille ne protégerait
 de rien.
 
+### Onglet Réseau
+
+*Administration › Instance › Réglages › Réseau.* Réservé à l'administrateur de
+l'instance.
+
+**Fuseau horaire.** Le fuseau dans lequel le portail présente toutes ses dates.
+Il ne touche pas à la base, qui écrit toujours en UTC et dont l'api vérifie le
+réglage au démarrage : changer le fuseau change l'affichage, jamais ce qui est
+écrit.
+
+**État de l'horloge**, en lecture seule, rafraîchi toutes les minutes : source,
+décalage, stratum, dernière synchronisation. Quatre états :
+
+| État | Ce qu'il dit |
+| --- | --- |
+| Synchronisée | décalage sous 500 ms |
+| Dérive | décalage au-delà de 500 ms |
+| Non synchronisée | décalage au-delà de 5 s, aucune source, ou aucune synchronisation depuis 24 h |
+| État indisponible | le relevé manque ou date de plus de cinq minutes |
+
+Tant que l'horloge est **non synchronisée**, un bandeau rouge s'affiche en tête
+de toute la console, pour les trois rôles : un auditeur qui relève une empreinte
+doit savoir que l'heure inscrite à côté n'est peut-être pas défendable.
+
+« État indisponible » ne lève pas ce bandeau. Ce n'est pas la même chose : l'un
+dit qu'on a lu l'horloge et qu'elle ne suit plus, l'autre qu'on n'a pas su la
+lire. Un bandeau qui crierait pour le second userait l'avertissement.
+
+**Comment le relevé est produit.** L'api ne peut pas interroger `chronyd`
+elle-même — son socket de commande est un socket datagramme unix, que Node
+n'ouvre pas. Le compose de production lance un conteneur `horloge` qui partage
+le réseau de l'hôte, exécute `chronyc -c tracking` toutes les trente secondes et
+dépose la sortie dans un volume que l'api lit (`CHRONY_ETAT_FICHIER`). Ce
+conteneur ne règle rien : c'est un relevé, pas un agent. Sur une installation
+qui ne peut pas l'employer, n'importe quelle tâche planifiée écrivant le même
+fichier fait l'affaire — le produit ignore qui l'écrit.
+
+**Serveurs de temps et résolution de noms** ne s'affichent que sur un boîtier
+installé (`VOXECHO_DEPLOY_MODE=onprem`). En nuage, une ligne dit qui rend le
+service à la place du produit. Sur un boîtier, la valeur saisie est **conservée
+et affichée, jamais appliquée** : l'écriture de la configuration de l'hôte
+viendra avec l'agent `voxecho-hostd`. Le bouton « Tester » vérifie ce qu'on peut
+vérifier — que les noms se résolvent — et s'inscrit au journal, en échec comme
+en succès.
+
+**Relais de confiance.** Les adresses dont l'en-tête `X-Forwarded-For` est cru,
+donc ce qui décide de l'adresse inscrite au journal d'audit (§9.16). La
+**variable d'environnement l'emporte** sur la valeur saisie : un administrateur
+ne doit pas pouvoir fausser depuis l'interface l'adresse inscrite à son nom dans
+un journal que rien ne peut corriger. L'onglet dit laquelle des deux s'applique.
+
 ### Réglages en lecture seule
 
 Certains réglages s'affichent sans pouvoir être modifiés depuis la console :

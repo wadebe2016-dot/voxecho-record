@@ -83,6 +83,15 @@ enum AuditAction {
   /// (CLAUDE.md §9.26). Donner à quelqu'un le droit d'entendre des
   /// conversations de clients doit se lire au journal.
   USER_SET
+
+  /// Changement d'un réglage d'instance (CLAUDE.md §9.36). Porte la clé, les
+  /// versions et les valeurs avant/après ; les secrets y sont masqués.
+  SETTINGS_SET
+
+  /// Test d'un réglage — horloge, annuaire, supervision. Inscrit en échec
+  /// comme en succès : un test qui ne laisserait trace qu'en réussissant ne
+  /// servirait qu'à se rassurer.
+  SETTINGS_TEST
 }
 
 /// Cycle de vie d'une version de politique d'enregistrement.
@@ -91,6 +100,34 @@ enum PolicyStatus {
   draft
   /// Publiée : immuable, et opposable. Un déclencheur en base l'y contraint.
   published
+}
+
+/// Réglages de l'instance — CLAUDE.md §9.36.
+///
+/// Au niveau de l'instance, jamais du locataire : ils commandent ce que
+/// l'installation fait, non ce qu'une banque décide. Une ligne par **section**
+/// et non par champ, pour que le journal d'audit porte un avant/après cohérent.
+/// La valeur par défaut vit dans le code : une table vide est une instance qui
+/// fonctionne, et une ligne absente ne dit pas la même chose qu'une ligne nulle.
+model InstanceSetting {
+  /// La clé est l'identifiant : jamais deux valeurs concurrentes pour un même
+  /// réglage.
+  key String @id
+
+  /// Le contenu de la section. Les secrets y figurent chiffrés, sous la forme
+  /// `{ chiffre: "…" }` — jamais en clair, jamais rendus par l'api.
+  value Json
+
+  /// Incrémentée à chaque écriture. L'écriture porte la version lue et l'api
+  /// la refuse si elle a bougé : deux administrateurs modifiant la même
+  /// section s'écraseraient sans cela.
+  version Int @default(1)
+
+  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedBy String?  @map("updated_by") @db.Uuid
+  editeur   User?    @relation(fields: [updatedBy], references: [id], onDelete: Restrict)
+
+  @@map("instance_settings")
 }
 
 model Tenant {
@@ -162,6 +199,7 @@ model User {
   purgeRunsCancelled PurgeRun[]     @relation("PurgeRunCancelledBy")
   policiesCreated    RecordingPolicyVersion[] @relation("PolicyCreatedBy")
   policiesPublished  RecordingPolicyVersion[] @relation("PolicyPublishedBy")
+  reglagesModifies   InstanceSetting[]
 
   @@index([tenantId])
   @@map("users")

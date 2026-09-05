@@ -16,6 +16,13 @@ name: voxecho-record
 x-api-env: &api-env
   NODE_ENV: production
   TZ: Africa/Douala
+  # Mode de déploiement (§9.36) : masque les sections de réglages qui n'ont de
+  # sens que sur un boîtier installé chez le client.
+  VOXECHO_DEPLOY_MODE: ${VOXECHO_DEPLOY_MODE:-cloud}
+  # Relevé d'horloge, écrit par le conteneur `horloge` ci-dessous. L'api le lit
+  # et ignore qui l'écrit : son absence donne « indisponible », jamais
+  # « non synchronisé ».
+  CHRONY_ETAT_FICHIER: /etat/horloge.csv
   # Composants, jamais l'URL assemblée : un mot de passe tiré au hasard
   # contient tôt ou tard `/` ou `+`, et une URL concaténée sans encodage se
   # termine en « invalid port number » (§9.19). Le produit la construit.
@@ -73,11 +80,37 @@ services:
     volumes:
       - audio-data:/data
       - backup-data:/backups
+      - horloge-etat:/etat:ro
     healthcheck:
       test: ['CMD-SHELL', 'curl -fsS http://localhost:3000/api/health || exit 1']
       interval: 30s
       timeout: 5s
       retries: 5
+
+  # Relevé de l'horloge de l'hôte — CLAUDE.md §9.36.
+  #
+  # L'api ne peut pas interroger chronyd elle-même : son socket de commande est
+  # un socket datagramme unix, que Node n'ouvre pas. Ce conteneur partage le
+  # réseau de l'hôte, interroge le démon sur son port de commande local, et
+  # dépose la sortie brute de `chronyc -c tracking` dans un volume que l'api lit.
+  #
+  # Il n'écrit rien d'autre et ne règle rien : c'est un relevé, pas un agent.
+  # Si on le retire, l'écran dit « état indisponible » — jamais « synchronisé ».
+  horloge:
+    image: alpine:3.20
+    restart: unless-stopped
+    network_mode: host
+    command:
+      - /bin/sh
+      - -c
+      - |
+        apk add --no-cache chrony >/dev/null 2>&1 || true
+        while true; do
+          chronyc -c -h 127.0.0.1 tracking > /etat/horloge.csv.tmp 2>/dev/null             && mv /etat/horloge.csv.tmp /etat/horloge.csv
+          sleep 30
+        done
+    volumes:
+      - horloge-etat:/etat
 
   # Outil de garnissage, lancé à la demande et jamais au démarrage :
   #   docker compose --profile outils run --rm seed
@@ -131,6 +164,7 @@ services:
       - caddy-logs:/var/log/caddy
 
 volumes:
+  horloge-etat:
   db-data:
   audio-data:
   backup-data:

@@ -1903,3 +1903,92 @@ un annuaire injoignable fermerait la console à tout le monde.
 **Réserve** — cette table vieillira dès que l'ordre bougera de nouveau. Elle
 n'existe que parce que des réserves renvoient à des numéros ; le jour où un lot
 sera renuméroté sans qu'elle le soit, c'est elle qu'on croira.
+
+### 9.36 Les réglages d'instance : une table, un chiffrement dérivé, un journal (S6)
+
+Socle du lot 05. Décisions arrêtées avant tout code, et qui valent pour les
+quatre sous-lots.
+
+**Une table clé/valeur au niveau instance, `instance_settings`.** La clé *est*
+l'identifiant — jamais deux valeurs concurrentes pour un même réglage — et la
+valeur est un **JSON par section**, non par champ : `reseau.ntp` porte ses trois
+serveurs d'un bloc. Une section se lit, s'écrit et se journalise entière, ce qui
+donne au journal un avant/après cohérent que des clés éparses ne donneraient
+pas. La contrepartie est assumée : deux administrateurs modifiant la même
+section s'écraseraient, et c'est le `version` qui l'empêche — l'écriture porte
+la version lue et l'api la refuse si elle a bougé, comme l'empreinte d'un
+rapport de purge refuse une exécution sur un ensemble qui a changé (§9.7).
+
+**La valeur par défaut vit dans le code, jamais dans une ligne.** Une table vide
+est une instance qui fonctionne, et le seed n'y insère rien. Une ligne absente
+et une ligne à `null` ne disent pas la même chose : « jamais réglé » et « réglé
+à rien ».
+
+**Les secrets sont chiffrés sous une clé dérivée, pas sous la clé maître.**
+Chaque secret vit dans le JSON de sa section sous la forme `{chiffre: "…"}`,
+chiffré avec une clé tirée en HKDF de la clé maître sous le contexte
+`voxecho-record:reglages:v1` — le motif du §9.13 pour les clés par fichier et du
+§9.14 pour l'empreinte publique. Employer la clé maître directement aurait lié
+deux sujets qui n'ont pas à l'être : une rotation de clé de coffre (non
+outillée, §9.13) aurait rendu du même coup l'annuaire injoignable et la
+supervision muette. Conséquence assumée : `STORAGE_MASTER_KEY` devient
+nécessaire dès qu'un secret de réglage est saisi, même sur une instance qui ne
+scelle pas son stockage — l'api le dit au démarrage plutôt qu'à la première
+saisie.
+
+L'api ne rend **jamais** un secret : `********` en lecture, et un champ
+« remplacer » explicite en écriture. Un champ de mot de passe pré-rempli d'une
+valeur masquée est un piège — on le renvoie tel quel sans le vouloir.
+
+**`SETTINGS_SET` et `SETTINGS_TEST` s'ajoutent au §5**, écrits par le seul
+chemin du §9.34. La trace porte la clé, les versions et les valeurs avant/après.
+Un secret y figure `********` **des deux côtés**, accompagné d'un booléen
+`secretRemplace` : sans lui, deux masques identiques ne diraient pas si le
+secret a changé. Le test d'un réglage se journalise **en échec comme en
+succès** — un test qui ne laisserait trace que lorsqu'il réussit ne servirait
+qu'à se rassurer.
+
+**`TRUSTED_PROXIES` : l'environnement l'emporte sur la base.** Le §9.22
+l'exposait en lecture seule ; il devient modifiable, mais la variable
+d'environnement, si elle est renseignée, gagne. C'est un réglage
+d'infrastructure lié au relais réellement installé : si la base pouvait le
+surcharger, un administrateur fausserait depuis l'interface l'adresse inscrite
+au journal d'audit, exactement le défaut que le §9.16 a corrigé. L'onglet dit
+laquelle des deux sources est en vigueur.
+
+**Le mode de déploiement se lit dans `VOXECHO_DEPLOY_MODE`** (`cloud` par
+défaut, `onprem`). Une section on-prem masquée en cloud est remplacée par une
+ligne qui dit qui rend le service — jamais par un vide, qui se lirait comme une
+panne.
+
+**L'horloge se lit dans un instantané, non dans le socket de chrony.** La
+proposition initiale — monter `/run/chrony/chronyd.sock` et parler le protocole
+depuis Node — est **irréalisable** : ce socket est un socket *datagramme* unix,
+et `node:dgram` n'ouvre que `udp4` et `udp6`. L'api lit donc un **fichier
+d'instantané** (`CHRONY_ETAT_FICHIER`), et ignore qui l'écrit : un conteneur
+d'appoint en `network_mode: host` sur l'instance d'évaluation, une tâche
+planifiée de l'hôte ailleurs. Le découplage est le point : le produit n'a pas à
+savoir comment l'exploitant atteint son démon de temps.
+
+Un instantané absent ou périmé donne l'état **`indisponible`**, qui n'est pas
+`non synchronisé` : le premier dit qu'on n'a pas su lire l'horloge, le second
+qu'on l'a lue et qu'elle dérive. Seul le second lève le bandeau rouge de toute
+la console ; `indisponible` s'affiche en orange sur l'écran d'état. Un bandeau
+qui crierait à l'horodatage non fiable parce qu'un fichier manque userait
+l'avertissement jusqu'à ce que plus personne ne le lise.
+
+**Les sources de capture se dérivent de ce qui a été ingéré**, sans table
+nouvelle : les valeurs distinctes de `Recording.source` et la date du dernier
+dépôt de chacune. Le lot 08 remplacera cette dérivation par des sources
+déclarées. C'est ce qui rend le critère de bout en bout du 05-4 jouable sans
+préempter ce lot-là.
+
+**Réserve** — `Recording.source` est une énumération de trois valeurs
+(`cucm-bib`, `siprec`, `simulator`) : elle nomme une *espèce* de source, pas un
+instrument. Deux CUCM alimentant la même instance n'y font qu'une ligne, et
+l'écran d'état ne saura pas dire lequel des deux s'est tu. C'est acceptable tant
+qu'un client n'a qu'une chaîne de capture, et c'est précisément ce que le lot 08
+corrigera. Par ailleurs, un réglage que l'environnement surcharge — le cas de
+`TRUSTED_PROXIES` — crée une classe de champs modifiables sans effet : l'onglet
+doit le dire à chaque fois, faute de quoi un administrateur croira avoir réglé
+ce qu'il n'a pas réglé.
