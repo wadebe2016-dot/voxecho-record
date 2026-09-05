@@ -5,6 +5,11 @@ import type {
   ExportIntegrite,
   InstanceInfoResponse,
   InstanceSettingsResponse,
+  EtatHorloge,
+  MajReglagesReseauRequest,
+  ReglagesReseauResponse,
+  ResultatTestDns,
+  ResultatTestNtp,
   LegalHoldResponse,
   PurgeReportDetail,
   PurgeReportSummary,
@@ -166,6 +171,24 @@ export const api = {
 
   /** Réglages de l'instance, en lecture seule (§9.22). */
   reglagesInstance: (): Promise<InstanceSettingsResponse> => appeler('/administration/reglages'),
+
+  /** Onglet Réseau — CLAUDE.md §9.36. */
+  reglagesReseau: (): Promise<ReglagesReseauResponse> => appeler('/administration/reseau'),
+
+  definirReglagesReseau: (demande: MajReglagesReseauRequest): Promise<ReglagesReseauResponse> =>
+    appeler('/administration/reseau', { method: 'PUT', body: demande }),
+
+  testerNtp: (): Promise<ResultatTestNtp[]> =>
+    appeler('/administration/reseau/test/ntp', { method: 'POST' }),
+
+  testerDns: (): Promise<ResultatTestDns[]> =>
+    appeler('/administration/reseau/test/dns', { method: 'POST' }),
+
+  /**
+   * État de l'horloge, ouvert aux trois rôles : le bandeau qui prévient d'un
+   * horodatage non fiable s'affiche en tête de toute la console (§9.36).
+   */
+  horloge: (): Promise<EtatHorloge> => appeler('/administration/reseau/horloge'),
 
   /** Politiques d'enregistrement — CLAUDE.md §9.23. */
   politiques: (): Promise<PolicyVersionSummary[]> => appeler('/policies'),

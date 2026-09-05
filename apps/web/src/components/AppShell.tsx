@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { useAuth } from '../auth/auth-context';
 import { libelleRole } from '../lib/format';
+import { BandeauHorloge } from './BandeauHorloge';
 import { NavigationPrincipale } from './NavigationPrincipale';
 
 /** Bandeau locataire + navigation filtrée par rôle (masquage d'affichage). */
@@ -9,6 +10,9 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-full flex-col">
+      {/* En tête de tout : une heure douteuse met en cause chaque horodatage
+          affiché en dessous, quel que soit l'écran (§9.36). */}
+      <BandeauHorloge />
       <header className="border-b border-ardoise-200 bg-ardoise-900 text-white">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-2.5">
           <span className="text-sm font-semibold tracking-tight">VoxEcho Record</span>

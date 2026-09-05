@@ -1,11 +1,19 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { ProfileResponse } from '@voxecho/shared';
 import { ApiError, api, jetons } from '../api/client';
+import { configurerFuseau } from '../lib/format';
 import { AuthContext, type EtatAuth } from './auth-context';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [profil, setProfil] = useState<ProfileResponse | null>(null);
   const [chargement, setChargement] = useState(true);
+
+  // Le fuseau d'affichage est un réglage d'instance (§9.36) : il arrive avec le
+  // profil, et toutes les dates du portail s'y conforment ensuite. Déclaré ici
+  // plutôt qu'à chaque appel de `api.profil()`, dont il y a quatre.
+  useEffect(() => {
+    if (profil?.fuseau) configurerFuseau(profil.fuseau);
+  }, [profil?.fuseau]);
 
   /** Restaure la session au chargement : jeton d'accès, sinon rafraîchissement. */
   useEffect(() => {

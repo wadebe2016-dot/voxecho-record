@@ -88,6 +88,9 @@ export async function resetTestData(prisma: PrismaClient): Promise<void> {
   await prisma.retentionPolicy.deleteMany();
   await prisma.refreshToken.deleteMany();
   await prisma.recording.deleteMany();
+  // Avant les comptes : `instance_settings.updated_by` est en `Restrict`, comme
+  // le journal — celui qui a changé un réglage ne disparaît pas (§9.36).
+  await prisma.instanceSetting.deleteMany();
   await prisma.user.deleteMany();
   await prisma.tenant.deleteMany();
 }

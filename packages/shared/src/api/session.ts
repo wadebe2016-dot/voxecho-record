@@ -26,4 +26,10 @@ export interface ProfileResponse {
   instanceAdmin: boolean;
   /** Mot de passe provisoire à renouveler avant tout autre usage (§9.26). */
   mustChangePassword: boolean;
+  /**
+   * Fuseau d'affichage de l'instance (§9.36). Le portail formate toutes ses
+   * dates avec — l'heure d'un appel est une donnée probante, et il ne saurait
+   * pas seul dans quel fuseau la présenter.
+   */
+  fuseau: string;
 }

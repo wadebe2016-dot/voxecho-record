@@ -16,6 +16,7 @@ import { PurgeModule } from './purge/purge.module';
 import { RecordingsModule } from './recordings/recordings.module';
 import { RetentionModule } from './retention/retention.module';
 import { AdministrationModule } from './administration/administration.module';
+import { SettingsModule } from './settings/settings.module';
 import { PolicyModule } from './policy/policy.module';
 import { MotDePasseGuard } from './common/guards/mot-de-passe.guard';
 import { UsersModule } from './users/users.module';
@@ -26,6 +27,7 @@ import { UsersModule } from './users/users.module';
     PrismaModule,
     StorageModule,
     AdministrationModule,
+    SettingsModule,
     AuditModule,
     AuthModule,
     IngestionModule,

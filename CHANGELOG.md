@@ -625,3 +625,26 @@ capture réelle du S5.
   compte comme détruit, une pièce non traitée non.
 - Mention du certificat à zéro pièce reformulée — « Leurs empreintes… » ne
   renvoyait à rien. Décisions et réserves en §9.34. 467 tests api (+7).
+
+#### Lot 05-1 — Réglages Réseau
+
+- Table `instance_settings` : une ligne par **section**, JSON versionné, au
+  niveau instance. Défaut dans le code — une table vide est une instance qui
+  fonctionne. L'écriture porte la version lue et se refuse si elle a bougé.
+- Secrets chiffrés sous une clé **dérivée** en HKDF de la clé maître, sous le
+  contexte `voxecho-record:reglages:v1` ; jamais rendus par l'api.
+- `SETTINGS_SET` et `SETTINGS_TEST` au §5, écrits par le chemin unique du
+  §9.34. Avant/après au journal, secrets masqués des deux côtés avec un
+  indicateur `secretRemplace`. Les tests s'inscrivent en échec comme en succès.
+- Clé `reseau` — défauts : `fuseau: Africa/Douala`, `ntp: {serveurs: [],
+  applique: false}`, `dns: {primaire: null, secondaire: null,
+  domaineRecherche: null, applique: false}`, `proxys: {cidr: []}`.
+- Le fuseau d'affichage était une constante du portail ; il devient un réglage
+  d'instance, porté par le profil. Le fuseau de la base ne bouge pas (§9.27).
+- État de l'horloge lu dans un **instantané** (`CHRONY_ETAT_FICHIER`) écrit par
+  un conteneur `horloge` en réseau de l'hôte. « Indisponible » n'est pas « non
+  synchronisé », et seul le second lève le bandeau rouge de toute la console.
+- `VOXECHO_DEPLOY_MODE` (défaut `cloud`) masque les sections d'un boîtier et
+  dit qui rend le service à la place. `TRUSTED_PROXIES` devient modifiable,
+  mais l'environnement l'emporte et l'écran le dit.
+- 491 tests api (+24), 152 portail (+14). Décisions en §9.36.

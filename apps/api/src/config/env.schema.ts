@@ -97,6 +97,19 @@ export const envSchema = z.object({
   // défaut — un chiffrement à clé connue de tous ne chiffre rien.
   STORAGE_ENCRYPTION_ENABLED: booleen.default('false'),
   STORAGE_MASTER_KEY: z.string().default(''),
+
+  /**
+   * Mode de déploiement — CLAUDE.md §9.36. Commande les sections de réglages
+   * qui n'ont de sens que sur un boîtier installé chez le client.
+   */
+  VOXECHO_DEPLOY_MODE: z.enum(['cloud', 'onprem']).default('cloud'),
+
+  /**
+   * Instantané de l'état de l'horloge, écrit hors du produit (§9.36). L'api le
+   * lit et ignore qui l'écrit ; son absence donne « indisponible », jamais
+   * « non synchronisé ».
+   */
+  CHRONY_ETAT_FICHIER: z.string().default('/var/lib/voxecho/horloge.csv'),
   /** Référence de la clé en service, inscrite sur chaque pièce scellée. */
   STORAGE_KEY_REF: z
     .string()

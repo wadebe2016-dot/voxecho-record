@@ -15,6 +15,7 @@ export * from './api/pagination.js';
 export * from './api/playback.js';
 export * from './api/policy.js';
 export * from './api/purge.js';
+export * from './api/reglages.js';
 export * from './api/recordings.js';
 export * from './api/retention.js';
 export * from './api/session.js';

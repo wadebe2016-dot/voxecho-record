@@ -3,6 +3,7 @@ import type { InstanceSettingsResponse } from '@voxecho/shared';
 import { ApiError, api } from '../api/client';
 import { useAuth } from '../auth/auth-context';
 import { Aide } from '../components/Aide';
+import { OngletReseau } from '../components/OngletReseau';
 
 /**
  * Console d'administration, écran des réglages — CLAUDE.md §9.22.
@@ -11,8 +12,21 @@ import { Aide } from '../components/Aide';
  * certains ne se modifient pas ici, se lisent au survol de l'icône d'aide
  * plutôt qu'en paragraphes : le détail complet est au manuel (§9.24).
  */
+/**
+ * Onglets des réglages d'instance — CLAUDE.md §9.36. Ils se rempliront lot par
+ * lot ; celui qui n'existe pas encore n'est pas affiché en grisé, il n'est pas
+ * affiché du tout.
+ */
+const ONGLETS = [
+  { cle: 'general', libelle: 'Général' },
+  { cle: 'reseau', libelle: 'Réseau' },
+] as const;
+
+type CleOnglet = (typeof ONGLETS)[number]['cle'];
+
 export function AdministrationPage() {
   const { profil } = useAuth();
+  const [onglet, setOnglet] = useState<CleOnglet>('general');
   const [reglages, setReglages] = useState<InstanceSettingsResponse | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   const [chargement, setChargement] = useState(true);
@@ -50,7 +64,9 @@ export function AdministrationPage() {
     );
   }
 
-  if (chargement) return <p className="text-sm text-ardoise-600">Chargement des réglages…</p>;
+  if (chargement && onglet === 'general') {
+    return <p className="text-sm text-ardoise-600">Chargement des réglages…</p>;
+  }
   if (erreur !== null) {
     return (
       <p role="alert" className="rounded border border-red-200 bg-red-50 p-4 text-sm text-red-800">
@@ -70,6 +86,29 @@ export function AdministrationPage() {
           <Aide texte="Ces réglages valent pour tous les locataires servis par cette instance." />
         </p>
       </header>
+
+      <div className="flex gap-1 border-b border-ardoise-200" role="tablist">
+        {ONGLETS.map((entree) => (
+          <button
+            key={entree.cle}
+            type="button"
+            role="tab"
+            aria-selected={onglet === entree.cle}
+            onClick={() => setOnglet(entree.cle)}
+            className={`-mb-px border-b-2 px-3 py-1.5 text-sm ${
+              onglet === entree.cle
+                ? 'border-ardoise-800 font-medium text-ardoise-900'
+                : 'border-transparent text-ardoise-600 hover:text-ardoise-900'
+            }`}
+          >
+            {entree.libelle}
+          </button>
+        ))}
+      </div>
+
+      {onglet === 'reseau' && <OngletReseau />}
+      {onglet === 'general' && (
+        <>
 
       <section aria-labelledby="locataires">
         <h2 id="locataires" className="mb-2 text-sm font-semibold">
@@ -134,6 +173,8 @@ export function AdministrationPage() {
           </dl>
         </section>
       ))}
+        </>
+      )}
     </div>
   );
 }

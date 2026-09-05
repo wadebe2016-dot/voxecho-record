@@ -1,24 +1,53 @@
 /**
- * Mises en forme du portail. Fuseau Africa/Douala : un contrôleur lit des
- * heures locales, pas de l'UTC.
+ * Mises en forme du portail.
+ *
+ * Le fuseau d'affichage est un réglage d'instance (§9.36) : un contrôleur lit
+ * des heures locales, pas de l'UTC, et l'instance seule sait lesquelles. Il
+ * était figé ici en `Africa/Douala` ; il vient maintenant du profil, et cette
+ * valeur ne sert plus que le temps d'ouvrir la session.
  */
-const FUSEAU = 'Africa/Douala';
+const FUSEAU_PAR_DEFAUT = 'Africa/Douala';
 
-const HORODATAGE = new Intl.DateTimeFormat('fr-FR', {
-  timeZone: FUSEAU,
-  day: '2-digit',
-  month: '2-digit',
-  year: 'numeric',
-  hour: '2-digit',
-  minute: '2-digit',
-  second: '2-digit',
-});
+let fuseau = FUSEAU_PAR_DEFAUT;
+let horodatage = formateur(fuseau);
+
+function formateur(zone: string): Intl.DateTimeFormat {
+  return new Intl.DateTimeFormat('fr-FR', {
+    timeZone: zone,
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+}
+
+/**
+ * Fixe le fuseau d'affichage, à l'ouverture de la session. Un fuseau que le
+ * navigateur ne connaît pas est ignoré : mieux vaut afficher l'heure de Douala
+ * que de ne plus afficher aucune date.
+ */
+export function configurerFuseau(zone: string): void {
+  try {
+    horodatage = formateur(zone);
+    fuseau = zone;
+  } catch {
+    horodatage = formateur(FUSEAU_PAR_DEFAUT);
+    fuseau = FUSEAU_PAR_DEFAUT;
+  }
+}
+
+/** Le fuseau en vigueur, pour les écrans qui doivent le nommer. */
+export function fuseauCourant(): string {
+  return fuseau;
+}
 
 /** `01/09/2026 14:30:12` */
 export function formatHorodatage(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return '—';
-  return HORODATAGE.format(date).replace(', ', ' ');
+  return horodatage.format(date).replace(', ', ' ');
 }
 
 /** Durée compacte et alignable : `3:03`, `1:02:45`. */
@@ -101,6 +130,8 @@ const ACTIONS: Record<string, string> = {
   RETENTION_SET: 'Rétention modifiée',
   POLICY_SET: 'Politique d’enregistrement publiée',
   USER_SET: 'Compte modifié',
+  SETTINGS_SET: 'Réglage modifié',
+  SETTINGS_TEST: 'Réglage testé',
 };
 
 export function libelleAction(action: string): string {
