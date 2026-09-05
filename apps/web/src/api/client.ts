@@ -258,7 +258,10 @@ export const api = {
       nomFichier:
         nomDeFichier(reponse.headers.get('Content-Disposition')) ??
         `certificat-destruction-${id}.${format}`,
-      integrite: 'concordante',
+      // L'empreinte qui fait foi est celle scellée à la destruction ; le
+      // serveur dit si sa reconstruction la reproduit encore (§9.31).
+      integrite:
+        reponse.headers.get('X-Certificat-Reproduit') === 'non' ? 'divergente' : 'concordante',
       empreinte: reponse.headers.get('X-Certificat-Sha256'),
     };
   },

@@ -585,3 +585,18 @@ contrôle.
   conservation forcée, rapports de purge et certificat).
 - 136 tests côté portail (+26), 454 côté api (+1). Décisions et réserves en
   §9.32.
+- **Correctif bloquant** — un rapport de purge établi puis exécuté dans la
+  foulée était refusé : les durées figées sont relues d'une colonne `jsonb`,
+  que PostgreSQL réordonne par longueur de clé, et la comparaison portait sur
+  `JSON.stringify`. Elle porte désormais sur le contenu. Le message de refus
+  sortait vide, faute d'écart à décrire — c'est ce qui a désigné la cause.
+- Le motif de destruction est retenu sur le rapport (`executionReason`) et non
+  plus relu au journal : une purge sans candidat n'écrit aucun `PURGE`, et le
+  certificat annonçait « motif non consigné ».
+- La réponse d'exécution rendait `certificateSha256: null` alors que le
+  certificat venait d'être scellé : elle était bâtie sur la ligne lue avant.
+- Le téléchargement sert l'empreinte **scellée à la destruction** et annonce si
+  sa reconstruction ne la reproduit plus — en-tête, écran et journal (§9.8).
+- Une purge à zéro candidat produit un certificat qui le dit ; le CSV porte
+  désormais la mention, qu'il omettait.
+- Décisions et réserves en §9.33. 460 tests api (+6), 138 portail (+2).

@@ -403,8 +403,71 @@ describe('purge', () => {
         .send({ reason: MOTIF_PURGE })
         .expect(409);
       expect(JSON.stringify(refus.body)).toMatch(
-        /conservation est passée à générale 30 jours → 1095 jours/,
+        /conservation a changé depuis ce rapport \(générale 30 jours → 1095 jours\)/,
       );
+    });
+
+    it('s’exécute dans la foulée du rapport, plusieurs durées de catégorie posées', async () => {
+      // Le défaut trouvé sur l'instance d'évaluation : `policyDocument` est une
+      // colonne `jsonb`, et PostgreSQL y range les clés par longueur puis par
+      // octet. Comparer deux `JSON.stringify` refusait donc tout rapport
+      // portant deux durées de catégorie ou plus, sans qu'aucune n'ait bougé.
+      const admin = await jeton('admin@a.cm');
+      for (const [appliesTo, days] of [
+        ['confirmation_cheque', 45],
+        ['operation_change', 60],
+      ] as const) {
+        await avec(admin)
+          .put('/api/retention')
+          .send({ days, appliesTo, belowFloorReason: MOTIF_DEROGATION })
+          .expect(200);
+      }
+
+      const rapport = await avec(admin).post('/api/purge/reports').expect(201);
+      // Trois périmètres figés, dont deux que le `jsonb` réordonne.
+      expect(Object.keys(rapport.body.policyByScope as object)).toHaveLength(3);
+
+      await avec(admin)
+        .post(`/api/purge/reports/${rapport.body.id}/execute`)
+        .send({ reason: MOTIF_PURGE })
+        .expect(200);
+    });
+
+    it('s’exécute sur un rapport sans candidat, et le dit', async () => {
+      // Rien n'était échu : ce n'est pas un échec, c'est une purge qui n'a
+      // rien trouvé à détruire. Elle reste un acte, daté et attribué.
+      const admin = await jeton('admin@a.cm');
+      const rapport = await avec(admin).post('/api/purge/reports').expect(201);
+      expect(rapport.body.candidateCount).toBe(0);
+
+      const execute = await avec(admin)
+        .post(`/api/purge/reports/${rapport.body.id}/execute`)
+        .send({ reason: MOTIF_PURGE })
+        .expect(200);
+      expect(execute.body.purgedCount).toBe(0);
+      expect(execute.body.certificateSha256).toHaveLength(64);
+    });
+
+    it('refuse une durée de catégorie modifiée, en la nommant', async () => {
+      const admin = await jeton('admin@a.cm');
+      await avec(admin)
+        .put('/api/retention')
+        .send({ days: 45, appliesTo: 'operation_change', belowFloorReason: MOTIF_DEROGATION })
+        .expect(200);
+      const rapport = await avec(admin).post('/api/purge/reports').expect(201);
+
+      await avec(admin)
+        .put('/api/retention')
+        .send({ days: 90, appliesTo: 'operation_change', belowFloorReason: MOTIF_DEROGATION })
+        .expect(200);
+
+      const refus = await avec(admin)
+        .post(`/api/purge/reports/${rapport.body.id}/execute`)
+        .send({ reason: MOTIF_PURGE })
+        .expect(409);
+      // Un message dont l'interpolation manque ne dit rien à l'exploitant.
+      expect(JSON.stringify(refus.body)).toMatch(/catégorie operation_change 45 jours → 90 jours/);
+      expect(JSON.stringify(refus.body)).not.toMatch(/\(\)/);
     });
 
     it('ne s’exécute pas deux fois', async () => {

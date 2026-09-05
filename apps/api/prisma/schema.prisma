@@ -305,6 +305,14 @@ model PurgeRun {
   /// bien celui qui a été délivré.
   certificateSha256 String? @map("certificate_sha256")
 
+  /// Motif de la destruction, tel qu'il a été saisi à l'exécution. Il était
+  /// jusqu'ici relu depuis le premier `PURGE` du journal — ce qui ne rendait
+  /// rien quand la purge n'avait détruit aucune pièce, et faisait dire au
+  /// certificat « motif non consigné » alors qu'un motif avait été donné.
+  /// Nul sur les rapports exécutés avant cette colonne : le motif se relit
+  /// alors au journal, comme auparavant.
+  executionReason String? @map("execution_reason")
+
   /// Empreinte de l'ensemble énuméré (identifiants triés, état de hold
   /// compris). Si le monde a changé entre la lecture et l'exécution, elle ne
   /// concorde plus et l'exécution est refusée : ce qui a été autorisé n'est

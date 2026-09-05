@@ -39,6 +39,10 @@ export function construireCertificatCsv(
     `# Détruits;${certificat.totaux.detruits}`,
     `# Épargnés par conservation forcée;${certificat.totaux.epargnes}`,
     `# Empreinte du certificat;${empreinte}`,
+    // La mention dit ce que le certificat atteste — notamment qu'une purge
+    // n'a rien détruit, le cas où un tableau de zéro ligne se lirait autrement
+    // comme un fichier tronqué.
+    `# ${certificat.mention}`,
   ];
 
   const lignes = certificat.detruits.map((ligne) =>
