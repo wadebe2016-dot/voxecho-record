@@ -174,6 +174,8 @@ export class PurgeService {
         sizeBytes: Number(item.sizeBytes),
         sha256: item.recording.sha256,
         outcome: item.outcome,
+        operationCategory: item.operationCategory,
+        policyDays: item.policyDays,
         blocked: item.blocked,
         blockingReason: item.blockingReason,
       })),
@@ -492,6 +494,9 @@ function versResume(run: RunAvecComptes): PurgeReportSummary {
     status: run.status,
     policyDays: run.policyDays,
     cutoff: run.cutoff.toISOString(),
+    policyByScope: (run.policyDocument as Record<string, number> | null) ?? {
+      all: run.policyDays,
+    },
     candidateCount: run.candidateCount,
     candidateBytes: Number(run.candidateBytes),
     blockedCount: run.blockedCount,
@@ -504,5 +509,6 @@ function versResume(run: RunAvecComptes): PurgeReportSummary {
     purgedBytes: run.purgedBytes === null ? null : Number(run.purgedBytes),
     cancelledByEmail: run.cancelledByUser?.email ?? null,
     cancelledAt: run.cancelledAt?.toISOString() ?? null,
+    certificateSha256: run.certificateSha256,
   };
 }

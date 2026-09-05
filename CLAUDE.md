@@ -1671,3 +1671,68 @@ la même réserve que celle du §9.8 sur l'archive d'export. Par ailleurs, le mo
 de destruction est relu depuis le premier `PURGE` du rapport : si le journal
 était un jour purgé de ses plus vieilles entrées — ce qu'aucune route ne permet
 aujourd'hui — le certificat perdrait cette mention.
+
+### 9.32 Les écrans de conformité, et ce qu'ils refusent de laisser deviner (S6)
+
+Dernier sous-lot du lot 03. Les trois mécanismes du S4 — conservation, hold,
+purge — n'existaient qu'en api et en ligne de commande ; ils ont désormais leurs
+écrans. Une décision les gouverne tous : **un écran de conformité ne doit jamais
+en dire moins que ce que le produit sait.**
+
+**Une durée dit d'où elle vient.** Chaque périmètre porte « décidée le … » ou
+« héritée » — de la générale pour une catégorie, du défaut produit pour la
+générale. Sans cette mention, 730 jours à l'écran ne permettent pas de
+distinguer un choix d'un défaut, et un contrôleur qui demande « qui a décidé
+cela ? » n'obtient rien.
+
+**Les deux planchers ne se présentent pas de la même façon**, parce qu'ils ne
+s'opposent pas de la même façon (§9.6, §9.30). Le plancher d'instance et le
+minimum réglementaire s'affichent ensemble, en lecture seule, avec la mention
+« fixé par Atlastech » : ce sont des garanties posées au déploiement, pas des
+réglages client. Le champ de motif de dérogation n'apparaît **que** sous le
+plancher d'instance — le faire apparaître au-dessus transformerait la prudence
+en corvée, et un motif accroché à une politique qui ne déroge à rien ferait
+croire à une dérogation qu'il n'y a pas.
+
+**Un rapport de purge annonce toutes ses durées, pas la générale seule.**
+`PurgeReportSummary` gagne `policyByScope` et `PurgeReportItem` gagne la
+catégorie et la durée qui l'a jugé. Sans cela, un rapport où les ordres de
+change relèvent de dix ans et le reste de deux s'affichait comme un rapport à
+deux ans : l'écran aurait présenté une purge autrement qu'elle n'a eu lieu. Ces
+deux champs d'item sont **nullables** — un rapport établi avant le §9.31 ne les
+porte pas, et on ne lui invente pas une catégorie.
+
+**La fiche d'appel annonce la mesure même quand son détail échoue.** Le portail
+sait par la liste qu'un appel est sous conservation forcée ; il charge ensuite
+l'historique pour en dire le motif, le dossier, l'auteur et la date. Si ce
+second appel échoue, le bandeau reste et dit que le détail n'a pas pu être
+chargé — plutôt que de disparaître et de faire lire un appel ordinaire là où une
+mesure court. Un historique manquant n'est pas un historique vide.
+
+**La levée en deux temps est portée par l'écran, pas seulement par l'api.** Le
+refus « aucun autre administrateur actif » n'est pas un échec : c'est une
+demande d'assumer. L'écran transforme donc ce refus en un second bouton,
+« Lever sans contre-validation », et annonce la mention qui sera consignée. Le
+laisser sous forme de message d'erreur aurait obligé l'exploitant à deviner
+qu'il fallait recommencer autrement.
+
+**Le certificat n'apparaît que sur un rapport exécuté** (§9.31), et son
+empreinte s'affiche à côté des deux boutons : c'est la valeur qu'on recopie pour
+vérifier la pièce plus tard.
+
+**L'onglet Administration s'ouvre désormais à l'auditeur**, sur la seule section
+« Conformité ». C'est une conséquence assumée de §9.28 et §9.7 : lire les durées
+de conservation et les rapports de purge fait partie de son métier. Les comptes
+et les réglages d'instance lui restent fermés, et deux tests qui affirmaient
+« aucun onglet d'administration pour un auditeur » disent maintenant ce qui
+compte vraiment — quelles entrées il n'y trouve pas.
+
+**Réserve** — les lignes d'un rapport sont paginées par l'api mais l'écran n'en
+affiche que la première page : au-delà de vingt-cinq appels, il faut télécharger
+le certificat pour tout lire. C'est acceptable tant que la purge reste un acte
+rare sur des volumes modestes ; le jour où un rapport comptera des milliers de
+lignes, il faudra une pagination à l'écran — et probablement un filtre par
+catégorie, puisque c'est elle qui décide de l'échéance. Par ailleurs l'écran
+recharge l'historique des conservations à chaque ouverture de fiche : une requête
+de plus par consultation, sans conséquence ici, à revoir si la fiche devait
+s'ouvrir en liste.

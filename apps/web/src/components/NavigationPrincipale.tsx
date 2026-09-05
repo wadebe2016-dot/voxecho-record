@@ -46,6 +46,13 @@ const NAVIGATION: Entree[] = [
         liens: [{ chemin: '/comptes', libelle: 'Comptes', capacite: 'gererComptes' }],
       },
       {
+        titre: 'Conformité',
+        liens: [
+          { chemin: '/conservation', libelle: 'Conservation', capacite: 'consulterConservation' },
+          { chemin: '/purge', libelle: 'Purge', capacite: 'consulterPurge' },
+        ],
+      },
+      {
         titre: 'Instance',
         liens: [
           {

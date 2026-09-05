@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { RecordingListItem } from '@voxecho/shared';
 import { ApiError, api, telecharger, urlAudio } from '../api/client';
 import { Aide } from './Aide';
+import { ConservationForcee } from './ConservationForcee';
 import { useAuth } from '../auth/auth-context';
 import { peut } from '../lib/permissions';
 import {
@@ -16,6 +17,8 @@ import {
 interface Props {
   appel: RecordingListItem;
   onFermer: () => void;
+  /** Rejoue la recherche : poser ou lever une conservation change la liste. */
+  onChangement?: () => void;
 }
 
 /**
@@ -26,7 +29,7 @@ interface Props {
  * prétendre le contraire. L'écoute commence quand on la demande, et c'est ce
  * geste-là qui s'inscrit au journal.
  */
-export function RecordingDetail({ appel, onFermer }: Props) {
+export function RecordingDetail({ appel, onFermer, onChangement }: Props) {
   const { profil } = useAuth();
   /**
    * L'écoute et l'export partagent la même habilitation (§9.9) : une archive
@@ -99,19 +102,6 @@ export function RecordingDetail({ appel, onFermer }: Props) {
         </button>
       </header>
 
-      {appel.underHold && (
-        /* Une conservation forcée change ce que devient l'appel : elle le
-           soustrait à la rétention jusqu'à sa levée. Un auditeur qui consulte
-           la fiche doit le voir sans avoir à le deviner. */
-        <p
-          className="mb-3 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900"
-          role="status"
-        >
-          <span className="font-medium">Sous conservation forcée.</span> Cet appel est soustrait à
-          la purge automatique jusqu’à la levée de la mesure.
-        </p>
-      )}
-
       <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:grid-cols-4">
         <Champ intitule="Sens" valeur={libelleDirection(appel.direction)} />
         <Champ intitule="Poste enregistré" valeur={appel.near} />
@@ -135,6 +125,12 @@ export function RecordingDetail({ appel, onFermer }: Props) {
             recopie pour la confronter à la sienne. */}
         <dd className="mt-1 font-mono text-xs break-all">{appel.sha256}</dd>
       </div>
+
+      <ConservationForcee
+        recordingId={appel.id}
+        sousConservation={appel.underHold}
+        onChangement={onChangement}
+      />
 
       <div className="mt-4">
         {!peutEcouter ? (

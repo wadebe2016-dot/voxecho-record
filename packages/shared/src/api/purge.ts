@@ -19,9 +19,17 @@ export interface PurgeReportSummary {
   id: string;
   status: PurgeRunStatus;
 
-  /** Politique appliquée, et date d'échéance qui en découle. Toutes deux figées. */
+  /** Politique générale appliquée, et date d'échéance qui en découle. Toutes deux figées. */
   policyDays: number;
   cutoff: string;
+
+  /**
+   * Toutes les durées figées, par périmètre — CLAUDE.md §9.28. `policyDays`
+   * seul ne dirait que la générale : un rapport où les ordres de change
+   * relèvent de dix ans et le reste de deux se lirait comme un rapport à deux
+   * ans. C'est ce document que l'exécution rejoue.
+   */
+  policyByScope: Record<string, number>;
 
   /** Ce qui serait détruit. */
   candidateCount: number;
@@ -41,6 +49,13 @@ export interface PurgeReportSummary {
 
   cancelledByEmail: string | null;
   cancelledAt: string | null;
+
+  /**
+   * Empreinte du certificat de destruction, figée à l'instant de la
+   * destruction (§9.31). Nulle tant que le rapport n'a rien détruit : il
+   * n'existe pas de certificat pour une destruction qui n'a pas eu lieu.
+   */
+  certificateSha256: string | null;
 }
 
 /** Une ligne du rapport, telle qu'elle était au moment de la décision. */
@@ -54,6 +69,14 @@ export interface PurgeReportItem {
   sizeBytes: number;
   sha256: string;
   outcome: PurgeItemOutcome;
+  /**
+   * Catégorie d'opération, figée : elle décide de la durée applicable (§9.28).
+   * Nulle sur un rapport établi avant que le rapport ne la retienne — on ne
+   * lui en invente pas une.
+   */
+  operationCategory: string | null;
+  /** Durée de conservation qui a jugé cette pièce, en jours. Nulle de même. */
+  policyDays: number | null;
   /** Une conservation forcée épargnait-elle cet appel ? */
   blocked: boolean;
   /** Motif du hold qui bloque, pour que le rapport se lise sans autre source. */

@@ -67,7 +67,14 @@ export function RecordingsPage() {
 
       <RecordingsSearch valeur={filtres} onRechercher={rechercher} desactive={chargement} />
 
-      {consulte !== null && <RecordingDetail appel={consulte} onFermer={() => setConsulte(null)} />}
+      {consulte !== null && (
+        <RecordingDetail
+          appel={consulte}
+          onFermer={() => setConsulte(null)}
+          // Poser ou lever une conservation change le marqueur de la liste.
+          onChangement={() => void charger(page, filtres)}
+        />
+      )}
 
       {erreur !== null && (
         <p

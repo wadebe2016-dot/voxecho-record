@@ -564,3 +564,24 @@ contrôle.
   liste écrite à la main, qui s'était cassée dès le lot suivant. Dix tables
   peuplées automatiquement, et la réserve du §9.30 est levée.
 - Décisions et réserves en §9.31.
+- **Écrans de conformité** : durées de conservation (générale et par catégorie,
+  avec la provenance **décidée / héritée**), conservation forcée depuis la fiche
+  d'appel, et rapports de purge avec téléchargement du certificat.
+- Les deux minimums s'affichent ensemble et **en lecture seule**, avec la
+  mention « fixé par Atlastech » : ce sont des garanties posées au déploiement.
+  Le motif de dérogation n'apparaît que sous le plancher d'instance.
+- La pose d'une conservation exige motif et référence de dossier ; le refus de
+  levée faute d'un second administrateur devient un second bouton, « Lever sans
+  contre-validation », qui annonce la mention consignée au journal.
+- Le bandeau de conservation forcée subsiste même si son détail ne se charge
+  pas : un historique manquant n'est pas un historique vide.
+- `PurgeReportSummary` porte désormais toutes les durées figées et l'empreinte
+  du certificat ; chaque ligne porte sa catégorie et la durée qui l'a jugée.
+  Afficher la seule durée générale aurait présenté une purge autrement qu'elle
+  n'a eu lieu.
+- L'onglet Administration s'ouvre à l'auditeur, sur la seule section
+  « Conformité » — conséquence assumée des §9.28 et §9.7.
+- `docs/manuel-utilisateur.md` : trois sections nouvelles (conservation,
+  conservation forcée, rapports de purge et certificat).
+- 136 tests côté portail (+26), 454 côté api (+1). Décisions et réserves en
+  §9.32.

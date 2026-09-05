@@ -23,7 +23,23 @@ export const CAPACITES = {
   consulterPolitiques: ['ADMIN', 'SUPERVISOR', 'AUDITOR'],
   gererPolitiques: ['ADMIN'],
   gererComptes: ['ADMIN'],
+  /**
+   * « Combien de temps gardez-vous les appels ? » est une question qu'un
+   * auditeur doit pouvoir instruire sans passer par l'exploitant (§9.28).
+   * Seul l'ADMIN décide de la durée.
+   */
+  consulterConservation: ['ADMIN', 'SUPERVISOR', 'AUDITOR'],
   gererRetention: ['ADMIN'],
+  /**
+   * Conservation forcée — CLAUDE.md §9.29. L'AUDITOR consulte l'historique
+   * sans y toucher : il constate, il n'ordonne pas.
+   */
+  gererConservationForcee: ['ADMIN', 'SUPERVISOR'],
+  /** Le rapport de purge est la pièce qu'un auditeur vient vérifier (§9.7). */
+  consulterPurge: ['ADMIN', 'SUPERVISOR', 'AUDITOR'],
+  /** Établir un rapport ne détruit rien ; l'exécuter est réservé à l'ADMIN. */
+  simulerPurge: ['ADMIN', 'SUPERVISOR'],
+  executerPurge: ['ADMIN'],
   /**
    * Console d'administration. Le rôle ne suffit pas : l'entrée est en outre
    * réservée à qui administre l'instance (§9.22), ce que le profil dit et que
