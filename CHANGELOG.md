@@ -534,3 +534,18 @@ contrôle.
   l'exécution rejoue ce document. Un rapport devient inexécutable dès qu'une
   durée a bougé, et le refus le dit en français plutôt qu'en JSON.
 - Décisions et réserves en §9.28.
+- Conservation forcée : référence de dossier exigée à la pose, et **levée à
+  quatre yeux** — celui qui a posé ne lève pas. Faute d'un second
+  administrateur actif, la levée reste possible mais doit être assumée
+  explicitement et porte « levée sans contre-validation » au journal (§9.29).
+- Un appel sous conservation forcée n'est jamais candidat à la purge ni détruit,
+  quelle que soit son ancienneté — deux tests le vérifient. La section
+  « épargnés » du rapport demeure : un auditeur veut voir ce qui a échappé.
+- Plancher réglementaire par catégorie (`RETENTION_REGULATORY_FLOORS`), **non
+  dérogeable** et à zéro par défaut : tant que la cote de texte n'est pas
+  établie, le produit ne fait pas semblant de connaître une durée légale. À
+  distinguer du plancher d'instance, qui se déroge par écrit (§9.30).
+- `scripts/migrate-check.sh` éprouve les migrations sur une base **peuplée**,
+  et tourne en CI. La règle vient d'un défaut réel : une colonne `NOT NULL`
+  sans défaut passait sur une base vide et aurait empêché l'api de démarrer
+  chez un client ayant déjà des conservations.

@@ -43,6 +43,13 @@ export interface RetentionPolicyEntry {
   updatedAt: string;
   /** Faux quand aucune politique n'est enregistrée : c'est le défaut produit. */
   enregistree: boolean;
+  /**
+   * Minimum réglementaire de ce périmètre, en jours — CLAUDE.md §9.30. Zéro
+   * tant qu'aucun texte n'est déclaré : le produit ne fait pas semblant de
+   * connaître une durée légale. Non dérogeable, à la différence du plancher
+   * d'instance.
+   */
+  plancherReglementaire: number;
 }
 
 /**
