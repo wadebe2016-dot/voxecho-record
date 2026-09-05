@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { Injectable, NotFoundException } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import {
   CERTIFICAT_SCHEMA,
   type CertificatDestruction,
@@ -36,8 +37,18 @@ export class CertificatService {
     return createHash('sha256').update(canonique(certificat)).digest('hex');
   }
 
-  async construire(tenantId: string, rapportId: string): Promise<CertificatDestruction> {
-    const run = await this.prisma.purgeRun.findFirst({
+  /**
+   * Construit le certificat. `client` permet de le bâtir **dans** la
+   * transaction qui scelle l'exécution : l'empreinte, le passage du rapport à
+   * « exécuté » et l'événement au journal tiennent alors ou tombent ensemble
+   * (§9.34).
+   */
+  async construire(
+    tenantId: string,
+    rapportId: string,
+    client?: Prisma.TransactionClient,
+  ): Promise<CertificatDestruction> {
+    const run = await (client ?? this.prisma).purgeRun.findFirst({
       where: { id: rapportId, tenantId },
       include: {
         tenant: { select: { name: true } },
@@ -58,7 +69,7 @@ export class CertificatService {
       );
     }
 
-    const motifs = run.executionReason ?? (await this.motifsDePurge(tenantId, run.id));
+    const motifs = run.executionReason ?? (await this.motifsDePurge(tenantId, run.id, client));
 
     const detruits: CertificatLigne[] = run.items
       .filter((item) => item.outcome === 'purged' || item.outcome === 'missing')
@@ -104,13 +115,17 @@ export class CertificatService {
       // attester, pas un incident. La mention le dit plutôt que d'affirmer
       // que « les enregistrements ci-dessus ont été détruits » au-dessus
       // d'une liste vide.
+      // Deux mentions plutôt qu'un tronc commun : « leurs empreintes
+      // subsistent » ne renvoie à rien quand rien n'a été détruit.
       mention:
-        (detruits.length === 0
+        detruits.length === 0
           ? 'Aucun enregistrement n’était échu au regard des durées de conservation figées ' +
-            'par ce rapport : la purge a été exécutée et n’a détruit aucune pièce. '
-          : 'Les enregistrements audio listés ci-dessus ont été détruits. ') +
-        'Leurs empreintes, tailles et dates subsistent dans le journal d’audit, qui est ' +
-        'append-only. Ce certificat se vérifie par son empreinte, inscrite au journal.',
+            'par ce rapport : la purge a été exécutée et n’a détruit aucune pièce. ' +
+            'L’exécution est inscrite au journal d’audit, qui est append-only. Ce ' +
+            'certificat se vérifie par son empreinte, inscrite au journal.'
+          : 'Les enregistrements audio listés ci-dessus ont été détruits. Leurs empreintes, ' +
+            'tailles et dates subsistent dans le journal d’audit, qui est append-only. Ce ' +
+            'certificat se vérifie par son empreinte, inscrite au journal.',
     };
   }
 
@@ -135,8 +150,12 @@ export class CertificatService {
    * ne rend rien quand la purge n'a détruit aucune pièce, faute d'un `PURGE`
    * à lire.
    */
-  private async motifsDePurge(tenantId: string, rapportId: string): Promise<string> {
-    const trace = await this.prisma.auditEvent.findFirst({
+  private async motifsDePurge(
+    tenantId: string,
+    rapportId: string,
+    client?: Prisma.TransactionClient,
+  ): Promise<string> {
+    const trace = await (client ?? this.prisma).auditEvent.findFirst({
       where: { tenantId, action: 'PURGE', detail: { path: ['rapportId'], equals: rapportId } },
       orderBy: { at: 'asc' },
     });

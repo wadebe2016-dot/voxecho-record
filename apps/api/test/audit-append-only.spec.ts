@@ -1,3 +1,5 @@
+import { readdir, readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import type { PrismaClient } from '@prisma/client';
 import { createTestPrisma, resetTestData, testSchema } from './helpers/database';
 
@@ -76,5 +78,36 @@ describe('journal d’audit append-only', () => {
       .catch(() => undefined);
     const event = await prisma.auditEvent.findUniqueOrThrow({ where: { id: eventId } });
     expect(event.ip).toBe('10.0.0.1');
+  });
+
+  /**
+   * Un seul mécanisme d'écriture — CLAUDE.md §9.34.
+   *
+   * Le journal ne vaut que si tout y entre par la même porte. Une seconde
+   * porte, ouverte pour un cas particulier, échapperait aux garanties de la
+   * première — et personne ne s'en apercevrait avant un contrôle.
+   */
+  it('n’écrit au journal que par AuditService', async () => {
+    const racine = join(__dirname, '..', 'src');
+    const fichiers: string[] = [];
+    const parcourir = async (dossier: string): Promise<void> => {
+      for (const entree of await readdir(dossier, { withFileTypes: true })) {
+        const chemin = join(dossier, entree.name);
+        if (entree.isDirectory()) await parcourir(chemin);
+        else if (entree.name.endsWith('.ts')) fichiers.push(chemin);
+      }
+    };
+    await parcourir(racine);
+
+    const fautifs: string[] = [];
+    for (const fichier of fichiers) {
+      const contenu = await readFile(fichier, 'utf8');
+      // `auditEvent.create` ailleurs que dans le service, c'est une seconde
+      // porte. La lecture (`findMany`, `count`) reste libre.
+      if (/auditEvent\.(create|createMany|update|delete)/.test(contenu)) {
+        if (!fichier.endsWith(join('audit', 'audit.service.ts'))) fautifs.push(fichier);
+      }
+    }
+    expect(fautifs).toEqual([]);
   });
 });

@@ -27,18 +27,25 @@ export class AuditService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async record(entry: AuditEntry): Promise<void> {
+  /**
+   * Inscrit un événement.
+   *
+   * Sans `tx`, l'écriture est au mieux : l'acte de l'utilisateur a déjà eu
+   * lieu, et une trace perdue se remonte bruyamment plutôt que de le faire
+   * échouer après coup.
+   *
+   * Avec `tx`, l'écriture appartient à la transaction de l'appelant et son
+   * échec la fait échouer. C'est ce qu'exige un acte dont la trace ne doit pas
+   * pouvoir manquer : une purge exécutée sans son événement au journal serait
+   * une destruction dont il ne resterait rien de lisible (§9.34).
+   */
+  async record(entry: AuditEntry, tx?: Prisma.TransactionClient): Promise<void> {
+    if (tx) {
+      await this.ecrire(tx, entry);
+      return;
+    }
     try {
-      await this.prisma.auditEvent.create({
-        data: {
-          tenantId: entry.tenantId ?? null,
-          userId: entry.userId ?? null,
-          action: entry.action,
-          recordingId: entry.recordingId ?? null,
-          detail: entry.detail ?? undefined,
-          ip: entry.ip ?? null,
-        },
-      });
+      await this.ecrire(this.prisma, entry);
     } catch (error) {
       // Une trace perdue est un incident : on la remonte bruyamment, sans
       // faire échouer l'action de l'utilisateur déjà réalisée.
@@ -47,5 +54,22 @@ export class AuditService {
         error instanceof Error ? error.stack : String(error),
       );
     }
+  }
+
+  /** Le seul endroit du produit où une ligne de journal s'écrit. */
+  private async ecrire(
+    client: Prisma.TransactionClient | PrismaService,
+    entry: AuditEntry,
+  ): Promise<void> {
+    await client.auditEvent.create({
+      data: {
+        tenantId: entry.tenantId ?? null,
+        userId: entry.userId ?? null,
+        action: entry.action,
+        recordingId: entry.recordingId ?? null,
+        detail: entry.detail ?? undefined,
+        ip: entry.ip ?? null,
+      },
+    });
   }
 }

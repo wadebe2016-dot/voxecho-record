@@ -50,7 +50,23 @@ enum AuditAction {
   EXPORT
   INGEST
   QUARANTINE
+  /// Destruction d'un enregistrement : un événement par pièce détruite,
+  /// portant son empreinte (CLAUDE.md §9.7).
   PURGE
+
+  /// Établissement d'un rapport de purge (CLAUDE.md §9.34). Le §9.7 s'en
+  /// remettait au `PurgeRun` lui-même ; un contrôleur qui lit le journal ne
+  /// voyait donc pas qu'une purge avait été préparée.
+  PURGE_SIMULATED
+
+  /// Exécution d'un rapport, au niveau du rapport : c'est cet événement qui
+  /// porte l'empreinte du certificat, et il existe même quand la purge n'a
+  /// rien trouvé à détruire (CLAUDE.md §9.34).
+  PURGE_EXECUTED
+
+  /// Abandon d'un rapport : il ne pourra plus être exécuté.
+  PURGE_CANCELLED
+
   HOLD_SET
   HOLD_RELEASE
   /// Changement de la durée de conservation d'un locataire (CLAUDE.md §9.6).

@@ -23,6 +23,12 @@ export const AUDIT_ACTIONS = [
   'INGEST',
   'QUARANTINE',
   'PURGE',
+  /** Rapport de purge établi (§9.34). */
+  'PURGE_SIMULATED',
+  /** Rapport de purge exécuté — porte l'empreinte du certificat (§9.34). */
+  'PURGE_EXECUTED',
+  /** Rapport de purge abandonné (§9.34). */
+  'PURGE_CANCELLED',
   'HOLD_SET',
   'HOLD_RELEASE',
   'RETENTION_SET',
