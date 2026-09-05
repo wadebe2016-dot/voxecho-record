@@ -60,19 +60,13 @@ export class ReseauController {
 
   @AdminInstance()
   @Post('test/ntp')
-  testerNtp(
-    @CurrentUser() user: AuthUser,
-    @Req() request: Request,
-  ): Promise<ResultatTestNtp[]> {
+  testerNtp(@CurrentUser() user: AuthUser, @Req() request: Request): Promise<ResultatTestNtp[]> {
     return this.reseau.testerNtp(user, request.ip ?? null);
   }
 
   @AdminInstance()
   @Post('test/dns')
-  testerDns(
-    @CurrentUser() user: AuthUser,
-    @Req() request: Request,
-  ): Promise<ResultatTestDns[]> {
+  testerDns(@CurrentUser() user: AuthUser, @Req() request: Request): Promise<ResultatTestDns[]> {
     return this.reseau.testerDns(user, request.ip ?? null);
   }
 }

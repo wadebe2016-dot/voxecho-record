@@ -64,9 +64,8 @@ describe('réglages d’instance : réseau', () => {
     await resetTestData(prisma);
     await prisma.instanceSetting.deleteMany();
     app.get(InstanceSettingsService).oublier();
-    banque = (
-      await prisma.tenant.create({ data: { name: 'Banque Méridienne', slug: 'banque-a' } })
-    ).id;
+    banque = (await prisma.tenant.create({ data: { name: 'Banque Méridienne', slug: 'banque-a' } }))
+      .id;
     for (const [email, role, instanceAdmin] of [
       ['instance@a.cm', 'ADMIN', true],
       ['admin@a.cm', 'ADMIN', false],
@@ -221,15 +220,21 @@ describe('réglages d’instance : réseau', () => {
 
       // Un test qui ne laisserait trace qu'en réussissant ne servirait qu'à se
       // rassurer (§9.36).
-      const trace = await prisma.auditEvent.findFirstOrThrow({ where: { action: 'SETTINGS_TEST' } });
+      const trace = await prisma.auditEvent.findFirstOrThrow({
+        where: { action: 'SETTINGS_TEST' },
+      });
       expect(trace.detail).toMatchObject({ reglage: 'reseau.ntp', reussi: false });
     });
   });
 
   describe('l’habilitation', () => {
     it('refuse l’onglet à un ADMIN qui n’administre pas l’instance', async () => {
-      await avec(await jeton('admin@a.cm')).get('/api/administration/reseau').expect(403);
-      await avec(await jeton('auditeur@a.cm')).get('/api/administration/reseau').expect(403);
+      await avec(await jeton('admin@a.cm'))
+        .get('/api/administration/reseau')
+        .expect(403);
+      await avec(await jeton('auditeur@a.cm'))
+        .get('/api/administration/reseau')
+        .expect(403);
     });
 
     it('ouvre l’état de l’horloge aux trois rôles', async () => {
@@ -248,7 +253,9 @@ describe('réglages d’instance : réseau', () => {
         .send({ version: 0, reglages: reseau({ fuseau: 'Europe/Paris' }) })
         .expect(200);
 
-      const profil = await avec(await jeton('auditeur@a.cm')).get('/api/auth/me').expect(200);
+      const profil = await avec(await jeton('auditeur@a.cm'))
+        .get('/api/auth/me')
+        .expect(200);
       expect(profil.body.fuseau).toBe('Europe/Paris');
     });
   });
@@ -262,10 +269,31 @@ describe('état de l’horloge', () => {
   let dossier: string;
   const chemin = () => join(dossier, 'horloge.csv');
 
-  /** Un relevé au format `chronyc -c tracking`. */
+  /**
+   * Un relevé au format `chronyc -c tracking`, quatorze champs.
+   *
+   * Les colonnes par défaut décrivent une horloge saine, synchronisée à
+   * l'instant du relevé : chaque cas ne remplace donc que ce qu'il éprouve.
+   */
   async function releve(champs: Partial<Record<number, string>>, ageMs = 0): Promise<void> {
-    const colonnes = ['C0FFEE01', '196.1.2.3', '2', '12.5', '0.000123'];
-    for (const [index, valeur] of Object.entries(champs)) colonnes[Number(index)] = valeur as string;
+    const colonnes = [
+      'C0FFEE01',
+      '196.1.2.3',
+      '2',
+      String(Date.now() / 1000),
+      '0.000123',
+      '-0.000001',
+      '0.000004',
+      '-6.360',
+      '-0.000',
+      '0.262',
+      '0.000250',
+      '0.000321',
+      '32.2',
+      'Normal',
+    ];
+    for (const [index, valeur] of Object.entries(champs))
+      colonnes[Number(index)] = valeur as string;
     await writeFile(chemin(), `${colonnes.join(',')}\n`);
     if (ageMs > 0) {
       const quand = new Date(Date.now() - ageMs);
@@ -332,10 +360,70 @@ describe('état de l’horloge', () => {
   });
 
   it('déclare non synchronisée une horloge sans mise à jour depuis un jour', async () => {
-    await releve({ 3: String(30 * 3600) });
+    await releve({ 3: String(Date.now() / 1000 - 30 * 3600) });
     const etat = await lireHorloge(chemin());
     expect(etat.statut).toBe('non_synchronise');
     expect(etat.message).toMatch(/vingt-quatre heures/);
+  });
+
+  it('déclare non synchronisée une horloge que chrony dit telle', async () => {
+    // « Not synchronised » est ce que chrony affirme : cela l'emporte sur ce
+    // qu'on déduirait d'un stratum ou d'un identifiant de référence.
+    await releve({ 13: 'Not synchronised' });
+    const etat = await lireHorloge(chemin());
+    expect(etat.statut).toBe('non_synchronise');
+    expect(etat.source).toBeNull();
+  });
+
+  it('lit la ligne réelle de l’instance d’évaluation', async () => {
+    // Relevé pris sur voxecho-demo. Le quatrième champ est une **date** en
+    // secondes epoch, non un âge : le lire comme un âge donnait une dernière
+    // synchronisation en 1970 et un faux « aucune synchronisation depuis plus
+    // de vingt-quatre heures » sur une horloge parfaitement à l'heure.
+    const ligne =
+      'A9FEA97B,169.254.169.123,4,1788638747.313777128,0.000001173,-0.000001217,' +
+      '0.000004896,-6.360,-0.000,0.262,0.000250475,0.000321630,32.2,Normal';
+    await writeFile(chemin(), `${ligne}\n`);
+
+    // La date de référence est celle du relevé ; on se place le même jour, sans
+    // quoi l'horloge serait à bon droit déclarée hors délai.
+    const etat = await lireHorloge(chemin(), new Date('2026-09-05T20:10:00Z'));
+
+    expect(etat.statut).toBe('synchronise');
+    expect(etat.derniereSynchro).toBe('2026-09-05T20:05:47.313Z');
+    expect(etat.source).toBe('169.254.169.123');
+    expect(etat.stratum).toBe(4);
+    // Le décalage vient de l'écart système — cinquième champ, 1,173 µs — et
+    // non d'un défaut : il s'affiche « 0 ms » parce qu'il vaut réellement zéro
+    // à la milliseconde près.
+    expect(etat.decalageMs).toBe(0);
+    expect(etat.message).toMatch(/Synchronisée sur 169\.254\.169\.123/);
+  });
+
+  it('tire le décalage de l’écart système, et non d’un autre champ', async () => {
+    // Le dernier écart et l'écart quadratique moyen sont volontairement
+    // grossiers : seul le cinquième champ doit compter.
+    await releve({ 4: '0.0032', 5: '-9.999', 6: '7.777' });
+    const etat = await lireHorloge(chemin());
+    expect(etat.statut).toBe('synchronise');
+    expect(etat.decalageMs).toBe(3);
+  });
+
+  it('déclare non synchronisée une horloge qui n’a jamais eu de référence', async () => {
+    // chrony écrit une date à l'epoch tant qu'il n'a rien à quoi se référer.
+    await releve({ 0: '00000000', 2: '0', 3: '0', 13: 'Not synchronised' });
+    const etat = await lireHorloge(chemin());
+    expect(etat.statut).toBe('non_synchronise');
+    expect(etat.derniereSynchro).toBeNull();
+  });
+
+  it('dit « indisponible » sur un relevé tronqué', async () => {
+    // Une ligne trop courte n'est pas un relevé : elle donnerait des champs
+    // pris les uns pour les autres, donc un état inventé.
+    await writeFile(chemin(), 'C0FFEE01,196.1.2.3,2\n');
+    const etat = await lireHorloge(chemin());
+    expect(etat.statut).toBe('indisponible');
+    expect(etat.message).toMatch(/illisible/);
   });
 
   it('dit « indisponible » sur un relevé qui n’a pas la forme attendue', async () => {

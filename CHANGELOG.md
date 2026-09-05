@@ -648,3 +648,20 @@ capture réelle du S5.
   dit qui rend le service à la place. `TRUSTED_PROXIES` devient modifiable,
   mais l'environnement l'emporte et l'écran le dit.
 - 491 tests api (+24), 152 portail (+14). Décisions en §9.36.
+
+#### Lot 05-1b — Relevé d'horloge
+
+- **Correctif bloquant** — le quatrième champ de `chronyc -c tracking` est une
+  date de référence en secondes epoch, non un âge : lu comme un âge, il donnait
+  une dernière synchronisation en 1970 et un faux « aucune synchronisation
+  depuis plus de vingt-quatre heures », bandeau rouge compris, sur une horloge
+  parfaitement à l'heure.
+- L'état de saut (quatorzième champ) fait désormais foi : `Not synchronised`
+  l'emporte sur ce qu'un stratum ou un identifiant de référence laisseraient
+  deviner.
+- Une ligne de moins de quatorze champs est refusée entière : des colonnes
+  prises les unes pour les autres fabriqueraient un état.
+- Le décalage vient bien de l'écart système (cinquième champ) — vérifié par un
+  test où les écarts voisins sont volontairement grossiers.
+- Le relevé réel de l'instance d'évaluation est une donnée de test, à la
+  lettre. 496 tests api (+5).

@@ -24,13 +24,32 @@ import {
 const AGE_MAX_INSTANTANE_MS = 5 * 60 * 1000;
 
 /**
- * Champs de `chronyc -c tracking`, dans l'ordre où chrony les écrit.
+ * Champs de `chronyc -c tracking`, dans l'ordre où chrony les écrit :
+ *
+ *   0 identifiant de référence   1 adresse de la source   2 stratum
+ *   3 **date de référence, en secondes epoch**            4 écart système
+ *   5 dernier écart   6 écart quadratique moyen   7 fréquence   8 résiduelle
+ *   9 dispersion   10 délai racine   11 dispersion racine   12 intervalle
+ *   13 état de saut
+ *
  * On ne lit que ceux qui servent ; leur position est le contrat.
  */
 const CHAMP_SOURCE = 1;
 const CHAMP_STRATUM = 2;
-const CHAMP_DERNIERE_MAJ = 3;
+/**
+ * Date **absolue** de la dernière référence, en secondes epoch — et non un âge
+ * en secondes, ce qu'un premier jet avait supposé. L'erreur donnait une
+ * dernière synchronisation en 1970 et un « aucune synchronisation depuis plus
+ * de vingt-quatre heures » sur une horloge parfaitement à l'heure.
+ */
+const CHAMP_DATE_REFERENCE = 3;
 const CHAMP_ECART_SYSTEME = 4;
+/**
+ * État de saut : `Normal`, `Insert second`, `Delete second`, `Not
+ * synchronised`. C'est ce que chrony **affirme**, là où le stratum et
+ * l'identifiant de référence ne font que le laisser deviner.
+ */
+const CHAMP_ETAT_SAUT = 13;
 
 export function horlogeIndisponible(message: string): EtatHorloge {
   return {
@@ -79,9 +98,10 @@ export async function lireHorloge(chemin: string, maintenant = new Date()): Prom
   const source = champs[CHAMP_SOURCE]?.trim() ?? '';
   const ecart = Number(champs[CHAMP_ECART_SYSTEME]);
   const stratum = Number(champs[CHAMP_STRATUM]);
-  const depuis = Number(champs[CHAMP_DERNIERE_MAJ]);
+  const dateReference = Number(champs[CHAMP_DATE_REFERENCE]);
+  const etatSaut = champs[CHAMP_ETAT_SAUT]?.trim() ?? '';
 
-  if (source === '' || !Number.isFinite(ecart)) {
+  if (champs.length < CHAMP_ETAT_SAUT + 1 || !Number.isFinite(ecart)) {
     return {
       ...horlogeIndisponible('Le relevé d’horloge est illisible : il n’a pas la forme attendue.'),
       releveLe: releve.toISOString(),
@@ -89,15 +109,20 @@ export async function lireHorloge(chemin: string, maintenant = new Date()): Prom
   }
 
   const decalageMs = Math.abs(ecart) * 1000;
-  const depuisMs = Number.isFinite(depuis) ? depuis * 1000 : null;
-  const derniereSynchro =
-    depuisMs === null ? null : new Date(releve.getTime() - depuisMs).toISOString();
+  // Le champ porte une date, pas une durée : elle se lit telle quelle. Une
+  // date à l'epoch signifie que chrony n'a jamais eu de référence.
+  const synchroniseeLe =
+    Number.isFinite(dateReference) && dateReference > 0 ? new Date(dateReference * 1000) : null;
+  const derniereSynchro = synchroniseeLe?.toISOString() ?? null;
 
-  // Une source qui vaut « 7F7F0101 » est l'adresse dont chrony se sert quand il
-  // n'est synchronisé sur rien : la dire telle quelle laisserait croire à une
-  // référence de temps.
-  const orpheline = source === '7F7F0101' || stratum === 0;
-  const tropVieux = depuisMs !== null && depuisMs > HORLOGE_AGE_CRITIQUE_MS;
+  // Ce que chrony affirme l'emporte sur ce qu'on déduirait : « Not
+  // synchronised » est sans appel. L'identifiant `7F7F0101` et un stratum nul
+  // restent des indices utiles quand l'état de saut manque.
+  const orpheline =
+    etatSaut === 'Not synchronised' || source === '7F7F0101' || stratum === 0 || source === '';
+  const tropVieux =
+    synchroniseeLe !== null &&
+    maintenant.getTime() - synchroniseeLe.getTime() > HORLOGE_AGE_CRITIQUE_MS;
 
   if (orpheline || tropVieux || decalageMs > HORLOGE_SEUIL_CRITIQUE_MS) {
     return {
