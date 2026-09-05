@@ -128,6 +128,7 @@ describe('modèle de données', () => {
         recordingId: recording.id,
         setBy: user.id,
         reason: 'Contrôle COBAC 2026',
+        caseReference: 'DOSSIER-TEST',
       },
     });
     expect(hold.releasedAt).toBeNull();

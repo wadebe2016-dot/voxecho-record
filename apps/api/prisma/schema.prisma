@@ -383,6 +383,13 @@ model LegalHold {
   recordingId String    @map("recording_id") @db.Uuid
   setBy       String    @map("set_by") @db.Uuid
   reason      String
+
+  /// Référence du dossier qui justifie la conservation — réquisition,
+  /// contentieux, enquête interne (CLAUDE.md §9.29). Libre, parce que chaque
+  /// banque numérote ses dossiers à sa façon ; exigée, parce qu'un motif sans
+  /// référence oblige à retrouver qui l'a posé pour savoir de quoi il parle.
+  caseReference String @map("case_reference")
+
   at          DateTime  @default(now())
   releasedAt  DateTime? @map("released_at")
 
@@ -390,6 +397,12 @@ model LegalHold {
   /// pose, et se trace comme elle.
   releasedBy    String? @map("released_by") @db.Uuid
   releaseReason String? @map("release_reason")
+
+  /// Vrai quand la levée n'a pas pu être contre-validée faute d'un second
+  /// administrateur actif (§9.29). Le fait est consigné plutôt qu'empêché :
+  /// une instance à un seul administrateur ne doit pas se retrouver dans
+  /// l'impossibilité de lever une conservation devenue sans objet.
+  releasedWithoutSecondApproval Boolean @default(false) @map("released_without_second_approval")
 
   recording      Recording @relation(fields: [recordingId], references: [id], onDelete: Cascade)
   setByUser      User      @relation("LegalHoldSetBy", fields: [setBy], references: [id])

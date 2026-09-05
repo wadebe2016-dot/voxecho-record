@@ -91,21 +91,32 @@ export interface LegalHoldResponse {
   id: string;
   recordingId: string;
   reason: string;
+  /**
+   * Référence du dossier qui justifie la conservation (§9.29). Vide pour les
+   * conservations antérieures à cette exigence : le portail affiche alors
+   * « non renseignée » plutôt que d'inventer un dossier.
+   */
+  caseReference: string;
   setByEmail: string;
   at: string;
   releasedAt: string | null;
   releasedByEmail: string | null;
   releaseReason: string | null;
+  /** Levée faute d'un second administrateur actif (§9.29). */
+  releasedWithoutSecondApproval: boolean;
 }
 
 export interface SetLegalHoldRequest {
   reason: string;
+  caseReference: string;
 }
 
 /**
  * Lever un hold rend l'appel purgeable de nouveau : l'acte se motive comme la
- * pose, et se trace comme elle.
+ * pose, et se trace comme elle — et se fait à quatre yeux (§9.29).
  */
 export interface ReleaseLegalHoldRequest {
   reason: string;
+  /** Assume une levée sans contre-validation, faute d'un second administrateur. */
+  acceptSansContreValidation?: boolean;
 }

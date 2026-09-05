@@ -241,7 +241,7 @@ describe('rétention et conservation forcée', () => {
     it('se pose avec son motif, et s’inscrit au journal', async () => {
       const reponse = await avec(await jeton('superviseur@a.cm'))
         .post(`/api/recordings/${appelId}/holds`)
-        .send({ reason: MOTIF })
+        .send({ reason: MOTIF, caseReference: 'REQ-2026-118' })
         .expect(201);
 
       expect(reponse.body).toMatchObject({
@@ -263,7 +263,7 @@ describe('rétention et conservation forcée', () => {
 
       await avec(await jeton('admin@a.cm'))
         .post(`/api/recordings/${appelId}/holds`)
-        .send({ reason: MOTIF })
+        .send({ reason: MOTIF, caseReference: 'REQ-2026-118' })
         .expect(201);
 
       const apres = await avec(auditeur).get('/api/recordings').expect(200);
@@ -279,11 +279,11 @@ describe('rétention et conservation forcée', () => {
       const admin = await jeton('admin@a.cm');
       await avec(admin)
         .post(`/api/recordings/${appelId}/holds`)
-        .send({ reason: MOTIF })
+        .send({ reason: MOTIF, caseReference: 'REQ-2026-118' })
         .expect(201);
       await avec(admin)
         .post(`/api/recordings/${appelId}/holds`)
-        .send({ reason: MOTIF })
+        .send({ reason: MOTIF, caseReference: 'REQ-2026-118' })
         .expect(409);
       expect(await traces('HOLD_SET')).toHaveLength(1);
     });
@@ -292,13 +292,15 @@ describe('rétention et conservation forcée', () => {
       const admin = await jeton('admin@a.cm');
       await avec(admin)
         .post(`/api/recordings/${appelId}/holds`)
-        .send({ reason: MOTIF })
+        .send({ reason: MOTIF, caseReference: 'REQ-2026-118' })
         .expect(201);
 
       const leve = 'Contentieux clos : jugement rendu le 30/08/2026.';
+      // Ce locataire n'a qu'un administrateur : la levée par celui qui a posé
+      // reste possible, mais doit être assumée et sera consignée (§9.29).
       const reponse = await avec(admin)
         .post(`/api/recordings/${appelId}/holds/release`)
-        .send({ reason: leve })
+        .send({ reason: leve, acceptSansContreValidation: true })
         .expect(201);
 
       expect(reponse.body).toMatchObject({
@@ -335,11 +337,11 @@ describe('rétention et conservation forcée', () => {
       const auditeur = await jeton('auditeur@a.cm');
       await avec(auditeur)
         .post(`/api/recordings/${appelId}/holds`)
-        .send({ reason: MOTIF })
+        .send({ reason: MOTIF, caseReference: 'REQ-2026-118' })
         .expect(403);
       await avec(auditeur)
         .post(`/api/recordings/${appelId}/holds/release`)
-        .send({ reason: MOTIF })
+        .send({ reason: MOTIF, acceptSansContreValidation: true })
         .expect(403);
       expect(await traces('HOLD_SET')).toHaveLength(0);
     });
@@ -348,15 +350,15 @@ describe('rétention et conservation forcée', () => {
       const admin = await jeton('admin@a.cm');
       await avec(admin)
         .post(`/api/recordings/${appelId}/holds`)
-        .send({ reason: MOTIF })
+        .send({ reason: MOTIF, caseReference: 'REQ-2026-118' })
         .expect(201);
       await avec(admin)
         .post(`/api/recordings/${appelId}/holds/release`)
-        .send({ reason: 'Contentieux clos, pièce libérée.' })
+        .send({ reason: 'Contentieux clos, pièce libérée.', acceptSansContreValidation: true })
         .expect(201);
       await avec(admin)
         .post(`/api/recordings/${appelId}/holds`)
-        .send({ reason: MOTIF })
+        .send({ reason: MOTIF, caseReference: 'REQ-2026-118' })
         .expect(201);
 
       const reponse = await avec(await jeton('auditeur@a.cm'))
@@ -373,7 +375,7 @@ describe('rétention et conservation forcée', () => {
     it('ne pose rien sur l’appel d’un autre locataire, et ne dit pas qu’il existe', async () => {
       await avec(await jeton('admin@b.cm'))
         .post(`/api/recordings/${appelId}/holds`)
-        .send({ reason: MOTIF })
+        .send({ reason: MOTIF, caseReference: 'REQ-2026-118' })
         .expect(404);
       expect(await traces('HOLD_SET')).toHaveLength(0);
     });
@@ -382,7 +384,7 @@ describe('rétention et conservation forcée', () => {
       const chezVoisin = (await creerEnregistrement(microfinance)).id;
       await avec(await jeton('admin@b.cm'))
         .post(`/api/recordings/${chezVoisin}/holds`)
-        .send({ reason: MOTIF })
+        .send({ reason: MOTIF, caseReference: 'REQ-2026-118' })
         .expect(201);
 
       const liste = await avec(await jeton('auditeur@a.cm'))

@@ -246,7 +246,10 @@ describe('export d’un enregistrement', () => {
     await request(app.getHttpServer())
       .post(`/api/recordings/${appelId}/holds`)
       .set('Authorization', `Bearer ${await jeton('admin@a.cm')}`)
-      .send({ reason: 'Contentieux 2026-114 : pièce réclamée par le contrôle.' })
+      .send({
+        reason: 'Contentieux 2026-114 : pièce réclamée par le contrôle.',
+        caseReference: 'REQ-2026-118',
+      })
       .expect(201);
 
     const reponse = await exporter(await jeton('auditeur@a.cm')).expect(200);
