@@ -1983,6 +1983,25 @@ dépôt de chacune. Le lot 08 remplacera cette dérivation par des sources
 déclarées. C'est ce qui rend le critère de bout en bout du 05-4 jouable sans
 préempter ce lot-là.
 
+**Correction du relevé, après recette (05-1b).** Le quatrième champ de
+`chronyc -c tracking` est une **date** de référence en secondes epoch, non un
+âge en secondes ; le lire comme un âge donnait une dernière synchronisation en
+1970 et un « aucune synchronisation depuis plus de vingt-quatre heures » sur une
+horloge parfaitement à l'heure — bandeau rouge compris, sur toute la console.
+
+Deux leçons y sont inscrites. D'abord, **ce que chrony affirme l'emporte sur ce
+qu'on déduirait** : le quatorzième champ dit `Not synchronised` quand il l'est,
+et cela vaut mieux qu'un stratum nul ou un identifiant de référence
+particulier, qui ne sont que des indices. Ensuite, **une ligne trop courte n'est
+pas un relevé** : elle est refusée entière plutôt que lue champ à champ, faute
+de quoi des colonnes prises les unes pour les autres fabriqueraient un état.
+
+Le défaut était de la famille exacte que le §9.36 prétend éviter : un
+avertissement qui crie sans raison. Un bandeau faux use l'avertissement aussi
+sûrement qu'un bandeau absent, et plus vite — parce qu'on apprend à le
+regarder sans le lire. Le relevé réel de l'instance d'évaluation est désormais
+une donnée de test, à la lettre.
+
 **Réserve** — `Recording.source` est une énumération de trois valeurs
 (`cucm-bib`, `siprec`, `simulator`) : elle nomme une *espèce* de source, pas un
 instrument. Deux CUCM alimentant la même instance n'y font qu'une ligne, et
