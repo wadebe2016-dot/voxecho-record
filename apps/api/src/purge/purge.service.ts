@@ -216,9 +216,9 @@ export class PurgeService {
     const figees = (run.policyDocument as Record<string, number> | null) ?? {
       all: run.policyDays,
     };
-    if (JSON.stringify(durees) !== JSON.stringify(figees)) {
+    if (!memesDurees(figees, durees)) {
       throw new ConflictException(
-        `La conservation est passée à ${decrireEcart(figees, durees)} depuis ce rapport : il faut en établir un nouveau.`,
+        `La conservation a changé depuis ce rapport (${decrireEcart(figees, durees)}) : il faut en établir un nouveau.`,
       );
     }
 
@@ -249,7 +249,7 @@ export class PurgeService {
       }
     }
 
-    const acheve = await this.prisma.purgeRun.update({
+    await this.prisma.purgeRun.update({
       where: { id: run.id },
       data: {
         status: 'executed',
@@ -257,8 +257,12 @@ export class PurgeService {
         executedAt: new Date(),
         purgedCount: detruits,
         purgedBytes: octets,
+        // Le motif est retenu sur le rapport, et non seulement au journal :
+        // une purge qui n'a rien trouvé à détruire n'écrit aucun `PURGE`, et
+        // le certificat annonçait alors « motif non consigné » alors qu'un
+        // motif avait bien été donné.
+        executionReason: dto.reason.trim(),
       },
-      include: this.comptes,
     });
 
     // L'empreinte du certificat est figée ici, à l'instant de la destruction —
@@ -266,16 +270,20 @@ export class PurgeService {
     // plus tard doit porter la valeur de ce jour-là.
     const certificat = await this.certificats.construire(user.tenantId, run.id);
     const empreinteCertificat = this.certificats.empreinte(certificat);
-    await this.prisma.purgeRun.update({
+    // Le résumé rendu est celui d'après cette écriture : construit sur `acheve`,
+    // il annonçait `certificateSha256: null` alors que le certificat venait
+    // d'être scellé, et l'appelant croyait n'en avoir aucun.
+    const scelle = await this.prisma.purgeRun.update({
       where: { id: run.id },
       data: { certificateSha256: empreinteCertificat },
+      include: this.comptes,
     });
 
     this.logger.log(
       `Purge ${run.id} exécutée : ${detruits} pièce(s), certificat ${empreinteCertificat.slice(0, 16)}…`,
     );
 
-    return versResume(acheve);
+    return versResume(scelle);
   }
 
   /** Abandonne un rapport : il ne pourra plus être exécuté. */
@@ -436,6 +444,25 @@ function dureesParPerimetre(politiques: RetentionPolicySetResponse): Record<stri
     if (entree.enregistree) durees[entree.appliesTo] = entree.days;
   }
   return durees;
+}
+
+/**
+ * Deux jeux de durées disent-ils la même chose ?
+ *
+ * La comparaison porte sur le **contenu**, jamais sur la sérialisation.
+ * `policyDocument` est une colonne `jsonb`, et PostgreSQL y range les clés par
+ * longueur puis par octet : ce qui est écrit `all, confirmation_cheque,
+ * operation_change` revient `all, operation_change, confirmation_cheque`.
+ * Confronter deux `JSON.stringify` refusait donc l'exécution de tout rapport
+ * portant deux durées de catégorie ou plus, sans qu'aucune n'ait bougé — et le
+ * message de refus sortait vide, puisqu'il n'y avait rien à décrire.
+ */
+function memesDurees(a: Record<string, number>, b: Record<string, number>): boolean {
+  const perimetres = new Set([...Object.keys(a), ...Object.keys(b)]);
+  for (const perimetre of perimetres) {
+    if (a[perimetre] !== b[perimetre]) return false;
+  }
+  return true;
 }
 
 /**

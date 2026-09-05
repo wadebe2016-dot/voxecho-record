@@ -242,4 +242,71 @@ describe('certificat de destruction', () => {
       .responseType('blob')
       .expect(200);
   });
+
+  it('atteste une purge qui n’a rien trouvé à détruire, sans faire dire à la mention le contraire', async () => {
+    // Rien n'était échu. C'est un fait à attester — un exploitant a ordonné une
+    // purge, elle n'a détruit aucune pièce — et non un incident qui priverait
+    // l'acte de sa trace.
+    // Les appels échus du jeu commun sont retirés : le rapport sort vide.
+    await prisma.recording.deleteMany({ where: { tenantId: banque } });
+    const { rapport, admin } = await purger();
+    expect(rapport.candidateCount).toBe(0);
+
+    const csv = await request(app.getHttpServer())
+      .get(`/api/purge/reports/${rapport.id}/certificat?format=csv`)
+      .set('Authorization', `Bearer ${admin}`)
+      .expect(200);
+    expect(csv.headers['x-certificat-sha256']).toHaveLength(64);
+    expect(csv.text).toMatch(/n’a détruit aucune pièce/);
+    expect(csv.text).not.toMatch(/listés ci-dessus ont été détruits/);
+  });
+
+  it('sert l’empreinte scellée à la destruction, et dit si elle ne se reproduit plus', async () => {
+    // L'empreinte qui fait foi est celle du jour de la destruction. Si une
+    // évolution du produit change ce que le certificat énonce, la
+    // reconstruction ne la retrouve plus : on sert la pièce, on garde la
+    // valeur scellée, et on annonce la divergence (§9.8).
+    const { rapport, admin } = await purger();
+
+    const conforme = await request(app.getHttpServer())
+      .get(`/api/purge/reports/${rapport.id}/certificat?format=csv`)
+      .set('Authorization', `Bearer ${admin}`)
+      .expect(200);
+    expect(conforme.headers['x-certificat-reproduit']).toBe('oui');
+    const scellee = conforme.headers['x-certificat-sha256'] as string;
+
+    await prisma.purgeRun.update({
+      where: { id: rapport.id },
+      data: { certificateSha256: 'f'.repeat(64) },
+    });
+
+    const divergent = await request(app.getHttpServer())
+      .get(`/api/purge/reports/${rapport.id}/certificat?format=csv`)
+      .set('Authorization', `Bearer ${admin}`)
+      .expect(200);
+    expect(divergent.headers['x-certificat-reproduit']).toBe('non');
+    // La valeur scellée l'emporte : c'est elle qu'un contrôleur compare.
+    expect(divergent.headers['x-certificat-sha256']).toBe('f'.repeat(64));
+    expect(divergent.headers['x-certificat-sha256']).not.toBe(scellee);
+
+    const trace = await prisma.auditEvent.findFirst({
+      where: { action: 'EXPORT', detail: { path: ['reproduction'], equals: 'divergente' } },
+      orderBy: { at: 'desc' },
+    });
+    expect((trace?.detail as { sha256Recalcule?: string } | null)?.sha256Recalcule).toBe(scellee);
+  });
+
+  it('porte au certificat le motif saisi, sans le relire au journal', async () => {
+    const { rapport, admin } = await purger();
+
+    const enBase = await prisma.purgeRun.findUniqueOrThrow({ where: { id: rapport.id } });
+    expect(enBase.executionReason).toBe(MOTIF);
+
+    const csv = await request(app.getHttpServer())
+      .get(`/api/purge/reports/${rapport.id}/certificat?format=csv`)
+      .set('Authorization', `Bearer ${admin}`)
+      .expect(200);
+    expect(csv.text).toContain(`# Motif;${MOTIF}`);
+    expect(csv.text).not.toMatch(/motif non consigné/);
+  });
 });

@@ -192,6 +192,42 @@ describe('écran des rapports de purge', () => {
     expect(screen.getByText(new RegExp(EXECUTE.certificateSha256 ?? ''))).toBeInTheDocument();
   });
 
+  const certificatServi = (reproduit: 'oui' | 'non') =>
+    ({
+      ok: true,
+      status: 200,
+      headers: new Headers({
+        'Content-Disposition': 'attachment; filename="certificat-destruction-p-1.csv"',
+        'X-Certificat-Sha256': EXECUTE.certificateSha256 ?? '',
+        'X-Certificat-Reproduit': reproduit,
+      }),
+      blob: () => Promise.resolve(new Blob(['csv'], { type: 'text/csv' })),
+      json: () => Promise.resolve(null),
+    }) as unknown as Response;
+
+  it('ne présente pas comme reproductible un certificat dont l’empreinte ne se retrouve plus', async () => {
+    await ouvrirLeRapport('ADMIN', {
+      '/api/purge/reports/p-1': () => reponse(200, EXECUTE),
+      '/api/purge/reports/p-1/certificat': () => certificatServi('non'),
+    });
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Télécharger en CSV' }));
+
+    const alerte = await screen.findByRole('alert');
+    expect(alerte).toHaveTextContent(/Reconstruction divergente/);
+    expect(alerte).toHaveTextContent(/empreinte scellée au moment de la destruction/);
+  });
+
+  it('ne signale rien quand la reconstruction concorde', async () => {
+    await ouvrirLeRapport('ADMIN', {
+      '/api/purge/reports/p-1': () => reponse(200, EXECUTE),
+      '/api/purge/reports/p-1/certificat': () => certificatServi('oui'),
+    });
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Télécharger en CSV' }));
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
   it('demande le certificat au format choisi', async () => {
     const certificat = {
       ok: true,

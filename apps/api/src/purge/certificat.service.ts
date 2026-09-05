@@ -58,7 +58,7 @@ export class CertificatService {
       );
     }
 
-    const motifs = await this.motifsDePurge(tenantId, run.id);
+    const motifs = run.executionReason ?? (await this.motifsDePurge(tenantId, run.id));
 
     const detruits: CertificatLigne[] = run.items
       .filter((item) => item.outcome === 'purged' || item.outcome === 'missing')
@@ -100,14 +100,41 @@ export class CertificatService {
         octets: detruits.reduce((total, ligne) => total + ligne.octets, 0),
         epargnes: run.items.filter((item) => item.blocked).length,
       },
+      // Une purge peut n'avoir rien trouvé à détruire : c'est un fait à
+      // attester, pas un incident. La mention le dit plutôt que d'affirmer
+      // que « les enregistrements ci-dessus ont été détruits » au-dessus
+      // d'une liste vide.
       mention:
-        'Les enregistrements audio listés ci-dessus ont été détruits. Leurs empreintes, ' +
-        'tailles et dates subsistent dans le journal d’audit, qui est append-only. ' +
-        'Ce certificat se vérifie par son empreinte, inscrite au journal.',
+        (detruits.length === 0
+          ? 'Aucun enregistrement n’était échu au regard des durées de conservation figées ' +
+            'par ce rapport : la purge a été exécutée et n’a détruit aucune pièce. '
+          : 'Les enregistrements audio listés ci-dessus ont été détruits. ') +
+        'Leurs empreintes, tailles et dates subsistent dans le journal d’audit, qui est ' +
+        'append-only. Ce certificat se vérifie par son empreinte, inscrite au journal.',
     };
   }
 
-  /** Le motif de destruction, tel qu'il a été consigné à l'exécution. */
+  /**
+   * L'empreinte figée à l'instant de la destruction — CLAUDE.md §9.31.
+   *
+   * C'est elle qui fait foi, et non celle qu'on recalcule au téléchargement :
+   * un certificat délivré des mois plus tard doit porter la valeur de ce
+   * jour-là. Nulle sur un rapport exécuté avant que cette colonne n'existe.
+   */
+  async empreinteFigee(tenantId: string, rapportId: string): Promise<string | null> {
+    const run = await this.prisma.purgeRun.findFirst({
+      where: { id: rapportId, tenantId },
+      select: { certificateSha256: true },
+    });
+    return run?.certificateSha256 ?? null;
+  }
+
+  /**
+   * Le motif de destruction, relu au journal. Ce chemin ne sert plus que pour
+   * les rapports exécutés avant que `PurgeRun.executionReason` n'existe : il
+   * ne rend rien quand la purge n'a détruit aucune pièce, faute d'un `PURGE`
+   * à lire.
+   */
   private async motifsDePurge(tenantId: string, rapportId: string): Promise<string> {
     const trace = await this.prisma.auditEvent.findFirst({
       where: { tenantId, action: 'PURGE', detail: { path: ['rapportId'], equals: rapportId } },

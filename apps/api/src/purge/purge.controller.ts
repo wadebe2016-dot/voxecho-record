@@ -56,7 +56,17 @@ export class PurgeController {
     @Res({ passthrough: true }) reponse: Response,
   ): Promise<StreamableFile> {
     const certificat = await this.certificats.construire(user.tenantId, id);
-    const empreinte = this.certificats.empreinte(certificat);
+    const recalculee = this.certificats.empreinte(certificat);
+    const figee = await this.certificats.empreinteFigee(user.tenantId, id);
+
+    // L'empreinte qui fait foi est celle scellée à la destruction. Si la
+    // reconstruction ne la reproduit plus — une évolution du produit a changé
+    // ce que le certificat énonce — on ne substitue pas l'une à l'autre en
+    // silence : on sert la pièce et on dit que sa reconstruction a divergé.
+    // C'est le principe du §9.8 : le produit ne refuse pas de livrer, il
+    // refuse de mentir.
+    const empreinte = figee ?? recalculee;
+    const reproduit = figee === null || figee === recalculee;
     const csv = format === 'csv';
 
     const contenu = csv
@@ -76,6 +86,7 @@ export class PurgeController {
         format: csv ? 'csv' : 'pdf',
         sha256Certificat: empreinte,
         detruits: certificat.totaux.detruits,
+        ...(reproduit ? {} : { reproduction: 'divergente', sha256Recalcule: recalculee }),
       },
     });
 
@@ -84,6 +95,7 @@ export class PurgeController {
       'Content-Disposition': `attachment; filename="certificat-destruction-${id}.${csv ? 'csv' : 'pdf'}"`,
       'Cache-Control': 'private, no-store',
       'X-Certificat-Sha256': empreinte,
+      'X-Certificat-Reproduit': reproduit ? 'oui' : 'non',
     });
     return new StreamableFile(contenu);
   }

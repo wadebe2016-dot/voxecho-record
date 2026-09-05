@@ -218,13 +218,16 @@ function Rapport({
   onErreur,
 }: RapportProps) {
   const [format, setFormat] = useState<'pdf' | 'csv' | null>(null);
+  const [reproduction, setReproduction] = useState<'concordante' | 'divergente' | null>(null);
   const candidats = rapport.items.filter((item) => !item.blocked);
   const epargnes = rapport.items.filter((item) => item.blocked);
 
   async function telechargerCertificat(choix: 'pdf' | 'csv'): Promise<void> {
     setFormat(choix);
     try {
-      telecharger(await api.certificatPurge(rapport.id, choix));
+      const archive = await api.certificatPurge(rapport.id, choix);
+      telecharger(archive);
+      setReproduction(archive.integrite);
     } catch (e) {
       onErreur(e instanceof ApiError ? e.message : 'Le certificat n’a pas pu être produit.');
     } finally {
@@ -321,6 +324,16 @@ function Rapport({
           {rapport.certificateSha256 !== null && (
             <p className="mt-2 break-all font-mono text-xs text-ardoise-600">
               empreinte {rapport.certificateSha256}
+            </p>
+          )}
+          {reproduction === 'divergente' && (
+            <p
+              role="alert"
+              className="mt-2 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900"
+            >
+              <span className="font-medium">Reconstruction divergente.</span> Le certificat porte
+              l’empreinte scellée au moment de la destruction, mais sa reconstruction ne la
+              reproduit plus. L’écart est consigné au journal d’audit.
             </p>
           )}
         </div>

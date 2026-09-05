@@ -1736,3 +1736,69 @@ catégorie, puisque c'est elle qui décide de l'échéance. Par ailleurs l'écra
 recharge l'historique des conservations à chaque ouverture de fiche : une requête
 de plus par consultation, sans conséquence ici, à revoir si la fiche devait
 s'ouvrir en liste.
+
+### 9.33 Une comparaison de preuves ne passe pas par une sérialisation (S6)
+
+Défaut trouvé à la recette du lot 03 sur l'instance d'évaluation : sur un
+rapport de purge établi et exécuté dans la foulée, sans qu'aucune durée n'ait
+bougé, l'exécution était refusée — « La conservation est passée à ␣ depuis ce
+rapport ». Le garde-fou du §9.7, celui qui protège l'autorisation, se
+déclenchait à faux et rendait la purge inexécutable.
+
+**La cause est une comparaison de chaînes là où il fallait comparer des
+valeurs.** `PurgeRun.policyDocument` est une colonne `jsonb`, et PostgreSQL y
+range les clés par longueur puis par octet : ce qui est écrit `all,
+confirmation_cheque, operation_change` revient `all, operation_change,
+confirmation_cheque`. Confronter deux `JSON.stringify` refusait donc tout
+rapport portant deux durées de catégorie ou plus. La comparaison porte
+désormais sur le contenu — ensemble des périmètres, valeur de chacun.
+
+**Le message vide était le symptôme, pas un second défaut.** L'interpolation
+manquait parce que la fonction qui décrit l'écart ne trouvait, à juste titre,
+aucun écart à décrire. Un refus dont la raison sort vide est le signe qu'il
+n'aurait pas dû être prononcé ; c'est ce qui a désigné la cause.
+
+**Trois défauts voisins ont été trouvés en réparant celui-là**, tous de la même
+famille — le produit en disait moins que ce qu'il savait.
+
+`PurgeRun.executionReason` — le certificat relisait le motif de destruction
+depuis le premier `PURGE` du journal. Une purge qui ne détruit rien n'écrit
+aucun `PURGE` : le certificat annonçait « motif non consigné » alors qu'un
+motif avait bien été saisi. Le motif est désormais retenu sur le rapport, et le
+journal n'est plus qu'un recours pour les rapports antérieurs. La réserve du
+§9.31 sur ce point tombe.
+
+La réponse de l'exécution annonçait `certificateSha256: null` : elle était
+construite sur la ligne lue **avant** que l'empreinte du certificat n'y soit
+écrite. L'appelant croyait n'avoir aucun certificat au moment même où il venait
+d'être scellé.
+
+**L'empreinte servie au téléchargement est celle scellée à la destruction**, et
+non celle qu'on recalcule. Elles doivent coïncider ; si une évolution du
+produit change ce que le certificat énonce, elles cessent de coïncider, et le
+produit le dit — en-tête `X-Certificat-Reproduit`, avertissement à l'écran,
+écart consigné au journal avec les deux valeurs. C'est le principe du §9.8
+appliqué au certificat : on ne substitue pas une valeur à l'autre en silence.
+L'avertissement ne peut pas figurer *dans* la pièce, contrairement au §9.8 :
+l'y écrire changerait le contenu, donc l'empreinte, et la vérification
+tournerait en rond.
+
+**Une purge qui ne trouve rien à détruire reste un acte, et se certifie.** Un
+exploitant a ordonné une destruction sur un rapport qui n'énumérait rien : le
+certificat l'atteste, daté, attribué, motivé, et sa mention dit « n'a détruit
+aucune pièce » plutôt que d'affirmer que « les enregistrements ci-dessus ont
+été détruits » au-dessus d'une liste vide. Refuser le certificat aurait fait
+dépendre son existence du *résultat* plutôt que de l'*acte*, et laissé sans
+réponse écrite la question « qu'a détruit la purge du 5 septembre ? ».
+
+**Réserve** — la même fragilité dort ailleurs : `PolicyService` calcule
+l'empreinte d'une politique par `JSON.stringify` d'un document relu en `jsonb`.
+Elle est aujourd'hui cohérente, les deux côtés de la comparaison passant par la
+base ; elle ne le resterait pas si un connecteur recalculait l'empreinte depuis
+le json qu'il reçoit, ce que le §9.23 prévoit. Ce sera à traiter au lot de
+publication aux connecteurs, par une sérialisation canonique comme celle du
+certificat — et non par une retouche discrète, puisqu'elle changerait les
+empreintes déjà publiées. Par ailleurs, l'écran de conservation vide le champ
+de motif après enregistrement d'une dérogation alors que la durée reste sous le
+plancher : le refus de l'api protège, mais l'écran invite à un second envoi
+incomplet. À corriger au prochain passage sur cet écran.
