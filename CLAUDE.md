@@ -1801,4 +1801,67 @@ certificat — et non par une retouche discrète, puisqu'elle changerait les
 empreintes déjà publiées. Par ailleurs, l'écran de conservation vide le champ
 de motif après enregistrement d'une dérogation alors que la durée reste sous le
 plancher : le refus de l'api protège, mais l'écran invite à un second envoi
-incomplet. À corriger au prochain passage sur cet écran.
+incomplet. À corriger au prochain passage sur cet écran. Enfin, la mention du
+certificat à zéro pièce enchaînait sur « Leurs empreintes, tailles et dates
+subsistent… », dont le « leurs » ne renvoyait à rien : les deux cas ont
+désormais leur mention entière plutôt qu'un tronc commun — corrigé au §9.34.
+
+### 9.34 Ce qui n'est pas au journal n'a pas eu lieu (S6)
+
+Second défaut bloquant de la recette du lot 03. Un rapport de purge établi puis
+exécuté ne laissait **aucun** événement au journal d'audit — ni à
+l'établissement, ni à l'exécution, ni à l'annulation. Seuls les téléchargements
+de certificat apparaissaient.
+
+**Une partie était une décision, l'autre un trou.** Le §9.7 avait tranché que
+la simulation ne s'inscrit pas — « le `PurgeRun` est lui-même la trace », et un
+`PURGE_SIMULATED` « aurait dédoublé cette trace sans rien apprendre à
+personne ». L'exécution, elle, était censée s'inscrire : un `PURGE` **par
+enregistrement détruit**. Une purge qui ne détruit rien n'en écrivait donc
+aucun, et l'empreinte du certificat — que le §9.31 fait pourtant naître à
+l'instant de la destruction — n'existait alors nulle part hors de la colonne
+qui la porte.
+
+**Le §9.7 est amendé.** L'argument de 2026 supposait qu'un lecteur du journal
+irait consulter les rapports ; la recette a montré l'inverse. Un contrôleur lit
+le journal, et c'est là qu'il pose sa question : « qu'avez-vous détruit, quand,
+sur l'ordre de qui ? ». Un `PurgeRun` en base n'est pas une réponse s'il faut
+d'abord savoir qu'il existe. Trois actions s'ajoutent au §5 —
+`PURGE_SIMULATED`, `PURGE_EXECUTED`, `PURGE_CANCELLED` — après
+`RETENTION_SET` (§9.6), `POLICY_SET` (§9.23) et `USER_SET` (§9.26), et pour la
+même raison : ce qui engage la banque se lit au journal.
+
+Le `PURGE` par enregistrement demeure : il porte l'empreinte de chaque pièce
+détruite, ce qu'un événement de rapport ne saurait dire ligne à ligne. Les deux
+ne font pas double emploi — l'un dit l'acte, l'autre dit les pièces.
+
+**L'exécution et sa trace tiennent ou tombent ensemble.** Le passage du rapport
+à « exécuté », le sceau de l'empreinte du certificat et l'inscription au
+journal sont dans une même transaction. Une purge exécutée dont le journal ne
+porterait rien serait une destruction sans trace lisible ; un rapport « exécuté »
+sans empreinte scellée serait un certificat qu'on ne peut plus vérifier. C'est
+testé en faisant échouer l'écriture au journal : le rapport reste « simulé ».
+
+**`AuditService` gagne un mode transactionnel plutôt qu'un second chemin.**
+L'écriture sans transaction reste au mieux — l'acte de l'utilisateur a déjà eu
+lieu, et une trace perdue se remonte bruyamment plutôt que de le faire échouer
+après coup. Avec une transaction, l'échec la fait échouer. Deux régimes, une
+seule porte : `auditEvent.create` hors d'`AuditService` est désormais interdit
+par un test qui relit les sources. La question posée à la recette — « un seul
+mécanisme, pas deux » — se vérifie donc au lieu de se promettre.
+
+**La destruction consigne deux incidents distincts**, qu'un premier jet
+confondait : un fichier déjà absent du coffre compte comme détruit
+(`fichiersDejaAbsents`, §9.7), tandis qu'une pièce qu'on n'a pas pu traiter du
+tout — ligne disparue, chemin hors du coffre — ne compte pas (`nonTraites`).
+Les additionner aurait fait dire au journal qu'on avait détruit ce qu'on
+n'avait pas touché.
+
+**Réserve** — les `PURGE` par enregistrement restent écrits hors transaction,
+pendant la boucle de destruction : un arrêt brutal en cours de purge laisserait
+des fichiers détruits, leurs `PURGE` inscrits, et le rapport encore « simulé ».
+Le journal dirait alors la vérité et le rapport non — c'est le bon sens de
+l'écart, mais il demandera une reprise : rejouer un tel rapport doit constater
+ce qui a déjà disparu plutôt que de s'en étonner. Englober la boucle dans la
+transaction n'est pas la réponse — on n'ouvre pas une transaction de base le
+temps d'effacer des fichiers.

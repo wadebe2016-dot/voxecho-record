@@ -600,3 +600,19 @@ contrôle.
 - Une purge à zéro candidat produit un certificat qui le dit ; le CSV porte
   désormais la mention, qu'il omettait.
 - Décisions et réserves en §9.33. 460 tests api (+6), 138 portail (+2).
+- **Correctif bloquant** — une purge ne laissait rien au journal d'audit. Trois
+  actions s'ajoutent au §5 : `PURGE_SIMULATED` (rapport établi : candidats,
+  épargnés, durées figées, auteur), `PURGE_EXECUTED` (motif, détruits,
+  épargnés, **empreinte du certificat**, fichiers déjà absents) et
+  `PURGE_CANCELLED`. Le §9.7, qui s'en remettait au `PurgeRun`, est amendé.
+- Le `PURGE` par enregistrement demeure : l'un dit l'acte, l'autre les pièces.
+- Exécution, sceau de l'empreinte et inscription au journal sont dans une même
+  transaction — éprouvé en faisant échouer l'écriture : le rapport reste
+  « simulé », sans certificat.
+- `AuditService` gagne un mode transactionnel plutôt qu'un second chemin
+  d'écriture, et un test relit les sources pour interdire tout
+  `auditEvent.create` ailleurs : un seul mécanisme, vérifié et non promis.
+- Deux incidents distincts au lieu d'un compte fautif : un fichier déjà absent
+  compte comme détruit, une pièce non traitée non.
+- Mention du certificat à zéro pièce reformulée — « Leurs empreintes… » ne
+  renvoyait à rien. Décisions et réserves en §9.34. 467 tests api (+7).

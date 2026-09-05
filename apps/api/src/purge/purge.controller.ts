@@ -103,8 +103,8 @@ export class PurgeController {
   /** Établir un rapport ne détruit rien : ADMIN et SUPERVISOR peuvent le demander. */
   @Roles('ADMIN', 'SUPERVISOR')
   @Post()
-  simuler(@CurrentUser() user: AuthUser): Promise<PurgeReportSummary> {
-    return this.purge.simuler(user);
+  simuler(@CurrentUser() user: AuthUser, @Req() request: Request): Promise<PurgeReportSummary> {
+    return this.purge.simuler(user, request.ip ?? null);
   }
 
   /** Lecture ouverte à l'AUDITOR : c'est la pièce qu'il vient vérifier. */
@@ -143,7 +143,11 @@ export class PurgeController {
   @Roles('ADMIN', 'SUPERVISOR')
   @Post(':id/cancel')
   @HttpCode(HttpStatus.OK)
-  annuler(@Param('id') id: string, @CurrentUser() user: AuthUser): Promise<PurgeReportSummary> {
-    return this.purge.annuler(user, id);
+  annuler(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthUser,
+    @Req() request: Request,
+  ): Promise<PurgeReportSummary> {
+    return this.purge.annuler(user, id, request.ip ?? null);
   }
 }

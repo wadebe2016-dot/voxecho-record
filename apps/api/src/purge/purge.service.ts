@@ -64,7 +64,7 @@ export class PurgeService {
    * qu'une conservation forcée épargne — un rapport qui ne montrerait que ce
    * qu'on détruit laisserait croire qu'il n'y avait rien à épargner.
    */
-  async simuler(user: AuthUser): Promise<PurgeReportSummary> {
+  async simuler(user: AuthUser, ip: string | null = null): Promise<PurgeReportSummary> {
     const politiques = await this.retention.lireEnsemble(user.tenantId);
     const durees = dureesParPerimetre(politiques);
     const cutoff = echeance(politiques.generale.days);
@@ -104,8 +104,25 @@ export class PurgeService {
       include: this.comptes,
     });
 
-    // Le rapport est lui-même la trace : daté, attribué, immuable et
-    // consultable. Le journal d'audit, lui, ne reçoit que ce qui détruit.
+    // Le §9.7 s'en remettait au `PurgeRun` seul, jugeant qu'un `PURGE_SIMULATED`
+    // dédoublerait la trace. La recette a montré le contraire : un contrôleur
+    // lit le journal, et n'y voyait pas qu'une purge avait été préparée (§9.34).
+    await this.audit.record({
+      tenantId: user.tenantId,
+      userId: user.userId,
+      action: 'PURGE_SIMULATED',
+      ip,
+      detail: {
+        rapportId: run.id,
+        candidats: aDetruire.length,
+        candidatsOctets: Number(somme(aDetruire)),
+        epargnes: epargnes.length,
+        epargnesOctets: Number(somme(epargnes)),
+        dureesFigees: durees,
+        echeance: cutoff.toISOString(),
+      },
+    });
+
     this.logger.log(
       `Rapport de purge ${run.id} : ${aDetruire.length} candidat(s), ${epargnes.length} épargné(s) par une conservation forcée`,
     );
@@ -234,9 +251,15 @@ export class PurgeService {
     const aDetruire = actuels.filter((c) => !c.blocked);
     let detruits = 0;
     let octets = 0n;
+    /** Pièces dont le fichier manquait déjà au coffre : incident, pas échec (§9.7). */
+    let dejaAbsents = 0;
+    /** Pièces qu'on n'a pas pu traiter du tout : ligne disparue, chemin refusé. */
+    let nonTraites = 0;
 
     for (const candidat of aDetruire) {
       const resultat = await this.detruire(user, candidat.recording.id, run, dto.reason, ip);
+      if (resultat === null) nonTraites += 1;
+      if (resultat === 'missing') dejaAbsents += 1;
       if (resultat !== null) {
         detruits += 1;
         octets += candidat.recording.sizeBytes;
@@ -249,34 +272,66 @@ export class PurgeService {
       }
     }
 
-    await this.prisma.purgeRun.update({
-      where: { id: run.id },
-      data: {
-        status: 'executed',
-        executedBy: user.userId,
-        executedAt: new Date(),
-        purgedCount: detruits,
-        purgedBytes: octets,
-        // Le motif est retenu sur le rapport, et non seulement au journal :
-        // une purge qui n'a rien trouvé à détruire n'écrit aucun `PURGE`, et
-        // le certificat annonçait alors « motif non consigné » alors qu'un
-        // motif avait bien été donné.
-        executionReason: dto.reason.trim(),
-      },
-    });
+    // Le passage à « exécuté », le sceau du certificat et la trace au journal
+    // tiennent ou tombent ensemble : une purge exécutée dont le journal ne
+    // porterait rien serait une destruction dont il ne resterait aucune trace
+    // lisible, et l'empreinte du certificat n'existerait nulle part (§9.34).
+    const { scelle, empreinteCertificat } = await this.prisma.$transaction(async (tx) => {
+      await tx.purgeRun.update({
+        where: { id: run.id },
+        data: {
+          status: 'executed',
+          executedBy: user.userId,
+          executedAt: new Date(),
+          purgedCount: detruits,
+          purgedBytes: octets,
+          // Le motif est retenu sur le rapport, et non seulement au journal :
+          // une purge qui n'a rien trouvé à détruire n'écrit aucun `PURGE`, et
+          // le certificat annonçait alors « motif non consigné » alors qu'un
+          // motif avait bien été donné.
+          executionReason: dto.reason.trim(),
+        },
+      });
 
-    // L'empreinte du certificat est figée ici, à l'instant de la destruction —
-    // pas au premier téléchargement (§9.31). Un certificat délivré des mois
-    // plus tard doit porter la valeur de ce jour-là.
-    const certificat = await this.certificats.construire(user.tenantId, run.id);
-    const empreinteCertificat = this.certificats.empreinte(certificat);
-    // Le résumé rendu est celui d'après cette écriture : construit sur `acheve`,
-    // il annonçait `certificateSha256: null` alors que le certificat venait
-    // d'être scellé, et l'appelant croyait n'en avoir aucun.
-    const scelle = await this.prisma.purgeRun.update({
-      where: { id: run.id },
-      data: { certificateSha256: empreinteCertificat },
-      include: this.comptes,
+      // L'empreinte est figée ici, à l'instant de la destruction — pas au
+      // premier téléchargement (§9.31).
+      const certificat = await this.certificats.construire(user.tenantId, run.id, tx);
+      const empreinte = this.certificats.empreinte(certificat);
+
+      // Le résumé rendu est celui d'après cette écriture : bâti sur la ligne
+      // lue avant, il annonçait `certificateSha256: null` alors que le
+      // certificat venait d'être scellé.
+      const acheve = await tx.purgeRun.update({
+        where: { id: run.id },
+        data: { certificateSha256: empreinte },
+        include: this.comptes,
+      });
+
+      await this.audit.record(
+        {
+          tenantId: user.tenantId,
+          userId: user.userId,
+          action: 'PURGE_EXECUTED',
+          ip,
+          detail: {
+            rapportId: run.id,
+            motif: dto.reason.trim(),
+            detruits,
+            detruitsOctets: Number(octets),
+            epargnes: actuels.filter((c) => c.blocked).length,
+            dureesFigees: figees,
+            echeance: run.cutoff.toISOString(),
+            sha256Certificat: empreinte,
+            // Un fichier déjà absent du coffre est un incident d'intégrité, pas
+            // un échec (§9.7) : il se consigne, il n'interrompt rien.
+            fichiersDejaAbsents: dejaAbsents,
+            ...(nonTraites > 0 ? { nonTraites } : {}),
+          },
+        },
+        tx,
+      );
+
+      return { scelle: acheve, empreinteCertificat: empreinte };
     });
 
     this.logger.log(
@@ -287,7 +342,7 @@ export class PurgeService {
   }
 
   /** Abandonne un rapport : il ne pourra plus être exécuté. */
-  async annuler(user: AuthUser, id: string): Promise<PurgeReportSummary> {
+  async annuler(user: AuthUser, id: string, ip: string | null = null): Promise<PurgeReportSummary> {
     const run = await this.exigerRapport(user.tenantId, id);
     if (run.status !== 'simulated') {
       throw new ConflictException('Seul un rapport encore simulé peut être annulé.');
@@ -297,6 +352,17 @@ export class PurgeService {
       data: { status: 'cancelled', cancelledBy: user.userId, cancelledAt: new Date() },
       include: this.comptes,
     });
+
+    // Abandonner un rapport, c'est renoncer à une purge autorisée : le journal
+    // doit pouvoir dire pourquoi elle n'a pas eu lieu.
+    await this.audit.record({
+      tenantId: user.tenantId,
+      userId: user.userId,
+      action: 'PURGE_CANCELLED',
+      ip,
+      detail: { rapportId: run.id, candidats: run.candidateCount },
+    });
+
     return versResume(annule);
   }
 

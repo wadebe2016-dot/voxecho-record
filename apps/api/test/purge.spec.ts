@@ -5,6 +5,8 @@ import type { INestApplication } from '@nestjs/common';
 import type { PrismaClient } from '@prisma/client';
 import request from 'supertest';
 import { buildWavPcm, INGEST_SAMPLE_RATE } from '@voxecho/shared';
+import { AuditService } from '../src/audit/audit.service';
+import { PurgeService } from '../src/purge/purge.service';
 import { hashPassword } from '../src/auth/password';
 import { createTestApp } from './helpers/app';
 import { createTestPrisma, resetTestData } from './helpers/database';
@@ -564,6 +566,158 @@ describe('purge', () => {
       expect(liste.body.items[0].status).toBe('purged');
 
       await avec(admin).post(`/api/recordings/${appels[0]!.id}/listen`).expect(410);
+    });
+  });
+
+  /**
+   * Le journal des rapports — CLAUDE.md §9.34.
+   *
+   * Le §9.7 s'en remettait au `PurgeRun` lui-même. Un contrôleur lit le
+   * journal : il n'y voyait ni qu'une purge avait été préparée, ni — quand
+   * elle ne détruisait rien — qu'elle avait été exécutée, et l'empreinte du
+   * certificat n'existait alors nulle part.
+   */
+  describe('le journal des rapports', () => {
+    const evenements = async (action: string) =>
+      prisma.auditEvent.findMany({ where: { action: action as never }, orderBy: { at: 'asc' } });
+
+    async function rapportPret() {
+      const appels = [await creerAppel(banque, 90), await creerAppel(banque, 60)];
+      const rapport = await avec(await jeton('admin@a.cm'))
+        .post('/api/purge/reports')
+        .expect(201);
+      return { appels, id: rapport.body.id as string };
+    }
+
+    it('inscrit l’établissement d’un rapport, avec ses comptes et ses durées figées', async () => {
+      const admin = await jeton('admin@a.cm');
+      await avec(admin)
+        .put('/api/retention')
+        .send({ days: 45, appliesTo: 'operation_change', belowFloorReason: MOTIF_DEROGATION })
+        .expect(200);
+      const garde = await creerAppel(banque, 90);
+      await creerAppel(banque, 90);
+      await avec(admin)
+        .post(`/api/recordings/${garde.id}/holds`)
+        .send({ reason: MOTIF_HOLD, caseReference: 'REQ-2026-118' })
+        .expect(201);
+
+      const rapport = await avec(admin).post('/api/purge/reports').expect(201);
+
+      const [trace] = await evenements('PURGE_SIMULATED');
+      expect(trace?.tenantId).toBe(banque);
+      expect(trace?.userId).not.toBeNull();
+      expect(trace?.detail).toMatchObject({
+        rapportId: rapport.body.id,
+        candidats: 1,
+        epargnes: 1,
+        dureesFigees: { all: 30, operation_change: 45 },
+      });
+      expect((trace?.detail as { candidatsOctets: number }).candidatsOctets).toBe(audio.byteLength);
+    });
+
+    it('inscrit l’exécution, avec le motif, les comptes et l’empreinte du certificat', async () => {
+      const { id } = await rapportPret();
+      const admin = await jeton('admin@a.cm');
+      const execute = await avec(admin)
+        .post(`/api/purge/reports/${id}/execute`)
+        .send({ reason: MOTIF_PURGE })
+        .expect(200);
+
+      const [trace] = await evenements('PURGE_EXECUTED');
+      expect(trace?.tenantId).toBe(banque);
+      expect(trace?.detail).toMatchObject({
+        rapportId: id,
+        motif: MOTIF_PURGE,
+        detruits: 2,
+        epargnes: 0,
+        // C'est cet événement qui porte l'empreinte : un certificat dont seul
+        // le téléchargement laisserait trace ne prouverait rien si personne ne
+        // le télécharge (§9.31).
+        sha256Certificat: execute.body.certificateSha256,
+      });
+    });
+
+    it('inscrit l’exécution même quand la purge n’a rien trouvé à détruire', async () => {
+      const admin = await jeton('admin@a.cm');
+      const rapport = await avec(admin).post('/api/purge/reports').expect(201);
+      expect(rapport.body.candidateCount).toBe(0);
+
+      await avec(admin)
+        .post(`/api/purge/reports/${rapport.body.id}/execute`)
+        .send({ reason: MOTIF_PURGE })
+        .expect(200);
+
+      // Aucun `PURGE` — il n'y avait rien à détruire — mais l'acte, lui, a eu lieu.
+      expect(await evenements('PURGE')).toHaveLength(0);
+      const [trace] = await evenements('PURGE_EXECUTED');
+      expect(trace?.detail).toMatchObject({ rapportId: rapport.body.id, detruits: 0 });
+      expect((trace?.detail as { sha256Certificat: string }).sha256Certificat).toHaveLength(64);
+    });
+
+    it('consigne les fichiers déjà absents du coffre', async () => {
+      const { appels, id } = await rapportPret();
+      await rm(appels[0]!.chemin);
+
+      await avec(await jeton('admin@a.cm'))
+        .post(`/api/purge/reports/${id}/execute`)
+        .send({ reason: MOTIF_PURGE })
+        .expect(200);
+
+      const [trace] = await evenements('PURGE_EXECUTED');
+      // La pièce manquante compte quand même comme détruite : c'est un
+      // incident d'intégrité qui se consigne, pas un échec qui arrête (§9.7).
+      expect(trace?.detail).toMatchObject({ fichiersDejaAbsents: 1, detruits: 2 });
+    });
+
+    it('inscrit l’abandon d’un rapport', async () => {
+      const { id } = await rapportPret();
+      await avec(await jeton('admin@a.cm'))
+        .post(`/api/purge/reports/${id}/cancel`)
+        .expect(200);
+
+      const [trace] = await evenements('PURGE_CANCELLED');
+      expect(trace?.detail).toMatchObject({ rapportId: id, candidats: 2 });
+    });
+
+    it('ne laisse pas exécuter sans inscrire : les deux tiennent ou tombent ensemble', async () => {
+      // Le déclencheur `audit_events_append_only` ne refuse que les mises à
+      // jour ; pour éprouver la transaction, on fait échouer l'insertion
+      // elle-même — une action hors de l'énumération.
+      const { id } = await rapportPret();
+      const service = app.get(PurgeService);
+      const original = AuditService.prototype.record;
+      const espion = jest
+        .spyOn(AuditService.prototype, 'record')
+        .mockImplementation(async function (this: AuditService, entree, tx) {
+          if (entree.action === 'PURGE_EXECUTED') throw new Error('journal indisponible');
+          return original.call(this, entree, tx);
+        });
+
+      const admin = await prisma.user.findFirstOrThrow({ where: { email: 'admin@a.cm' } });
+      await expect(
+        service.executer(
+          {
+            userId: admin.id,
+            tenantId: banque,
+            email: admin.email,
+            role: 'ADMIN',
+            instanceAdmin: false,
+            mustChangePassword: false,
+          },
+          id,
+          { reason: MOTIF_PURGE },
+          null,
+        ),
+      ).rejects.toThrow(/journal indisponible/);
+      espion.mockRestore();
+
+      // Le rapport n'a pas basculé : on ne peut pas avoir la destruction
+      // consignée d'un côté et le rapport « exécuté » de l'autre.
+      const run = await prisma.purgeRun.findUniqueOrThrow({ where: { id } });
+      expect(run.status).toBe('simulated');
+      expect(run.certificateSha256).toBeNull();
+      expect(await evenements('PURGE_EXECUTED')).toHaveLength(0);
     });
   });
 });
