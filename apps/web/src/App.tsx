@@ -10,6 +10,8 @@ import { AdministrationPage } from './pages/AdministrationPage';
 import { ComptesPage } from './pages/ComptesPage';
 import { MotDePassePage } from './pages/MotDePassePage';
 import { PolitiquesPage } from './pages/PolitiquesPage';
+import { ConservationPage } from './pages/ConservationPage';
+import { PurgePage } from './pages/PurgePage';
 
 export function App() {
   return (
@@ -50,6 +52,8 @@ function Portail() {
         <Route path="/journal" element={<JournalPage />} />
         <Route path="/politiques" element={<PolitiquesPage />} />
         <Route path="/comptes" element={<ComptesPage />} />
+        <Route path="/conservation" element={<ConservationPage />} />
+        <Route path="/purge" element={<PurgePage />} />
         <Route path="/administration" element={<AdministrationPage />} />
         <Route path="*" element={<Navigate to="/enregistrements" replace />} />
       </Routes>

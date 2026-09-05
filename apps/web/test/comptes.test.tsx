@@ -121,11 +121,14 @@ describe('gestion des comptes', () => {
     expect(screen.getByRole('link', { name: 'Comptes' })).toBeInTheDocument();
   });
 
-  it('ne l’ouvre pas à un auditeur', () => {
+  it('ne l’ouvre pas à un auditeur', async () => {
     simulerApi({});
     afficher(<AppShell>contenu</AppShell>, PROFIL_AUDITEUR);
 
-    expect(screen.queryByRole('button', { name: /Administration/ })).toBeNull();
+    // L'onglet existe pour lui — il y lit la conservation et les rapports de
+    // purge (§9.28, §9.7) — mais la gestion des comptes n'y figure pas.
+    await userEvent.click(screen.getByRole('button', { name: /Administration/ }));
+    expect(screen.queryByRole('link', { name: 'Comptes' })).toBeNull();
   });
 });
 

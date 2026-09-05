@@ -5,6 +5,12 @@ import type {
   ExportIntegrite,
   InstanceInfoResponse,
   InstanceSettingsResponse,
+  LegalHoldResponse,
+  PurgeReportDetail,
+  PurgeReportSummary,
+  ReleaseLegalHoldRequest,
+  RetentionPolicySetResponse,
+  SetRetentionRequest,
   PolicyVersionDetail,
   PolicyVersionSummary,
   RecordingPolicy,
@@ -190,6 +196,73 @@ export const api = {
   publierPolitique: (note: string): Promise<PolicyVersionDetail> =>
     appeler('/policies/brouillon/publier', { method: 'POST', body: { note } }),
 
+  /** Conservation : la politique générale et celles par catégorie (§9.28). */
+  conservation: (): Promise<RetentionPolicySetResponse> => appeler('/retention/ensemble'),
+
+  definirConservation: (demande: SetRetentionRequest): Promise<unknown> =>
+    appeler('/retention', { method: 'PUT', body: demande }),
+
+  /** Conservations forcées d'un appel, la plus récente en tête (§9.29). */
+  conservationsForcees: (id: string): Promise<LegalHoldResponse[]> =>
+    appeler(`/recordings/${id}/holds`),
+
+  poserConservationForcee: (
+    id: string,
+    reason: string,
+    caseReference: string,
+  ): Promise<LegalHoldResponse> =>
+    appeler(`/recordings/${id}/holds`, { method: 'POST', body: { reason, caseReference } }),
+
+  leverConservationForcee: (
+    id: string,
+    demande: ReleaseLegalHoldRequest,
+  ): Promise<LegalHoldResponse> =>
+    appeler(`/recordings/${id}/holds/release`, { method: 'POST', body: demande }),
+
+  /** Rapports de purge — CLAUDE.md §9.7. */
+  rapportsPurge: (page = 1): Promise<Page<PurgeReportSummary>> =>
+    appeler('/purge/reports', { query: { page } }),
+
+  rapportPurge: (id: string, page = 1, blocked?: boolean): Promise<PurgeReportDetail> =>
+    appeler(`/purge/reports/${id}`, {
+      query: { page, blocked: blocked === undefined ? undefined : String(blocked) },
+    }),
+
+  simulerPurge: (): Promise<PurgeReportSummary> => appeler('/purge/reports', { method: 'POST' }),
+
+  executerPurge: (id: string, reason: string): Promise<PurgeReportSummary> =>
+    appeler(`/purge/reports/${id}/execute`, { method: 'POST', body: { reason } }),
+
+  annulerPurge: (id: string): Promise<PurgeReportSummary> =>
+    appeler(`/purge/reports/${id}/cancel`, { method: 'POST' }),
+
+  /**
+   * Certificat de destruction (§9.31). Comme l'export d'archive, il est
+   * réclamé par le portail avec son jeton en en-tête : rien ne passe par
+   * l'url. L'empreinte voyage dans `X-Certificat-Sha256`, pour que l'écran
+   * puisse la montrer sans rouvrir le fichier.
+   */
+  certificatPurge: async (id: string, format: 'pdf' | 'csv'): Promise<ArchiveExportee> => {
+    const url = new URL(`${BASE}/api/purge/reports/${id}/certificat`, window.location.origin);
+    url.searchParams.set('format', format);
+    const acces = jetons.acces();
+    const reponse = await fetch(url.toString(), {
+      headers: acces ? { Authorization: `Bearer ${acces}` } : {},
+    });
+    if (!reponse.ok) {
+      const charge: unknown = await reponse.json().catch(() => null);
+      throw new ApiError(reponse.status, messageDErreur(charge, reponse.status));
+    }
+    return {
+      contenu: await reponse.blob(),
+      nomFichier:
+        nomDeFichier(reponse.headers.get('Content-Disposition')) ??
+        `certificat-destruction-${id}.${format}`,
+      integrite: 'concordante',
+      empreinte: reponse.headers.get('X-Certificat-Sha256'),
+    };
+  },
+
   enregistrements: (query: RecordingListQuery): Promise<Page<RecordingListItem>> =>
     appeler('/recordings', { query: query as Record<string, string | number | undefined> }),
 
@@ -263,6 +336,8 @@ export interface ArchiveExportee {
   contenu: Blob;
   nomFichier: string;
   integrite: ExportIntegrite;
+  /** Empreinte de la pièce, quand le serveur l'annonce (certificat §9.31). */
+  empreinte?: string | null;
 }
 
 /** Nom proposé par le serveur dans `Content-Disposition`. */

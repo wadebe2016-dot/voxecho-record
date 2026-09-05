@@ -24,15 +24,21 @@ export function reponse(status: number, corps: unknown): Response {
   } as Response;
 }
 
-/** Remplace `fetch` par une table chemin → réponse. */
-export function simulerApi(routes: Record<string, () => Response>): ReturnType<typeof vi.fn> {
-  const faux = vi.fn((entree: string | URL) => {
+/**
+ * Remplace `fetch` par une table chemin → réponse. Le gestionnaire reçoit la
+ * requête : une même route sert souvent en lecture et en écriture — poser une
+ * conservation et lire son historique partagent leur chemin.
+ */
+export function simulerApi(
+  routes: Record<string, (init?: RequestInit) => Response>,
+): ReturnType<typeof vi.fn> {
+  const faux = vi.fn((entree: string | URL, init?: RequestInit) => {
     const chemin = new URL(String(entree), 'http://localhost').pathname;
     const gestionnaire = routes[chemin];
     if (!gestionnaire) {
       return Promise.resolve(reponse(404, { message: `route non simulée : ${chemin}` }));
     }
-    return Promise.resolve(gestionnaire());
+    return Promise.resolve(gestionnaire(init));
   });
   vi.stubGlobal('fetch', faux);
   return faux;

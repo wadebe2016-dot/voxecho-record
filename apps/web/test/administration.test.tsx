@@ -64,12 +64,16 @@ describe('console d’administration', () => {
     expect(screen.queryByRole('link', { name: 'Réglages' })).toBeNull();
   });
 
-  it('ne montre aucun onglet d’administration à un auditeur', () => {
+  it('n’ouvre pas les réglages d’instance à un auditeur', async () => {
     simulerApi({});
     afficher(<AppShell>contenu</AppShell>, PROFIL_AUDITEUR);
 
-    // Sans entrée accessible, l'onglet disparaît plutôt que de s'ouvrir sur rien.
-    expect(screen.queryByRole('button', { name: /Administration/ })).toBeNull();
+    // L'onglet s'ouvre sur ce qui lui revient — la conservation, les rapports
+    // de purge — et sur rien d'autre : administrer un locataire et administrer
+    // l'instance sont deux habilitations distinctes (§9.22).
+    await userEvent.click(screen.getByRole('button', { name: /Administration/ }));
+    expect(screen.getByRole('link', { name: 'Conservation' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Réglages' })).toBeNull();
   });
 
   it('affiche les réglages, et réserve l’explication à l’aide contextuelle', async () => {

@@ -168,6 +168,113 @@ purgé garde sa fiche et ne pèse plus rien, il est compté à part.
 Les jours sans appel sont dessinés à zéro plutôt qu'omis — un graphe qui saute
 les journées vides dessine une activité continue là où le service a chômé.
 
+## Conservation
+
+*Administration › Conformité › Conservation.* Lisible par les trois rôles, seul
+l'administrateur du locataire la modifie.
+
+Deux niveaux : une **durée générale**, et une durée par **catégorie
+d'opération**. La plus précise l'emporte — conserver dix ans les ordres de
+change et deux ans le reste suppose de pouvoir faire les deux (§9.28).
+
+Chaque ligne dit d'où vient la durée qui s'applique :
+
+- **décidée** — une politique a été enregistrée pour ce périmètre, avec sa date ;
+- **héritée** — aucune politique propre : la catégorie suit la durée générale,
+  et la générale suit le défaut du produit (730 jours).
+
+Sans cette distinction, on ne saurait pas si 730 jours résultent d'un choix ou
+d'un défaut.
+
+### Les deux minimums
+
+Ils ne disent pas la même chose, et ne se franchissent pas de la même façon.
+Tous deux sont **fixés par Atlastech au déploiement** et s'affichent en lecture
+seule : ce sont des garanties posées à l'installation, pas des réglages client.
+
+- **Plancher de l'instance** (`RETENTION_MIN_DAYS`) — descendre en dessous reste
+  possible, mais exige un **motif écrit** d'au moins dix caractères. Le motif
+  est conservé sur la politique, affiché à côté d'elle, et inscrit au journal :
+  un contrôleur voit du premier coup d'œil qu'il lit une politique dérogatoire,
+  et le journal lui dit qui a dérogé (§9.6).
+- **Minimum réglementaire** (`RETENTION_REGULATORY_FLOORS`, par catégorie) — il
+  **ne se déroge pas**. Une durée inférieure est refusée, motif ou non. Il vaut
+  zéro tant qu'aucun texte n'est déclaré : le produit ne fait pas semblant de
+  connaître une durée légale (§9.30).
+
+Le motif de dérogation n'est demandé que sous le plancher de l'instance, et
+refusé au-dessus : un motif accroché à une politique qui ne déroge à rien ferait
+croire à une dérogation qu'il n'y a pas.
+
+## Conservation forcée
+
+*Depuis la fiche d'un appel.* Une conservation forcée soustrait l'appel à la
+purge, quelle que soit son ancienneté, jusqu'à sa levée. Elle est ouverte à
+l'administrateur et au superviseur ; l'auditeur consulte l'historique sans y
+toucher — il constate, il n'ordonne pas.
+
+**La pose** demande un motif et une **référence de dossier**. « Réquisition
+judiciaire » dit ce qu'on fait ; « n° 2026-118 du parquet de Douala » dit de quoi
+on parle, et c'est cette seconde information qu'un contrôleur demandera. La
+forme est libre — chaque banque numérote ses dossiers à sa façon (§9.29).
+
+**La levée demande un second administrateur.** Celui qui a posé ne peut pas
+lever : défaire seul ce qu'on a seul décidé rendrait la conservation aussi
+solide que la volonté d'une personne. Un administrateur désactivé ne compte pas
+comme second.
+
+L'exception est assumée, en deux temps. Une instance qui n'a qu'un
+administrateur actif ne peut pas se retrouver dans l'impossibilité de lever une
+conservation devenue sans objet : la levée est d'abord **refusée**, avec un
+message qui explique la situation, puis l'écran propose de l'assumer
+explicitement. Le journal porte alors « levée sans contre-validation », et la
+mention reste sur la ligne.
+
+La fiche affiche la mesure en cours avec son motif, son dossier, son auteur et
+sa date. Les conservations levées restent consultables sous la mesure en cours.
+
+## Rapports de purge
+
+*Administration › Conformité › Purge.* Lisibles par les trois rôles — c'est la
+pièce qu'un auditeur vient vérifier.
+
+**Aucune purge ne se déclenche seule** (§9.7). Le produit énumère, un
+responsable conformité valide, un administrateur exécute. La contrepartie est
+assumée : sans intervention humaine, rien n'est jamais purgé et le stockage
+croît. On préfère un disque plein à une preuve détruite par inadvertance.
+
+1. **Établir un rapport** (administrateur ou superviseur) fige la politique en
+   vigueur, l'échéance qui en découle, la liste des appels échus, ce qu'ils
+   pèsent, et ceux qu'une conservation forcée épargne — avec le motif du hold,
+   pour que le rapport se lise sans autre source.
+2. **Lire le rapport.** Les durées figées s'affichent toutes, périmètre par
+   périmètre : un rapport où les ordres de change relèvent de dix ans et le
+   reste de deux se lirait autrement comme un rapport à deux ans. Chaque ligne
+   porte la durée qui l'a jugée.
+3. **Exécuter** (administrateur seulement), avec un motif d'au moins dix
+   caractères. Le rapport est **rejoué** tel qu'il a été écrit — jamais
+   recalculé à la date du jour. Si la réalité ne lui correspond plus (une
+   conservation posée depuis, un appel qui a franchi l'échéance, une durée
+   modifiée), l'exécution est refusée et il faut établir un nouveau rapport.
+
+Un appel purgé garde sa fiche, son empreinte, sa taille et sa durée : il
+continue de sortir dans les recherches, et l'écoute rend un refus explicite
+plutôt qu'un « introuvable ».
+
+### Certificat de destruction
+
+Un rapport **exécuté** ouvre un certificat, en PDF et en CSV. C'est la pièce que
+la banque range dans son dossier de conformité : ce qui a été détruit, quand, au
+nom de quelle durée, et sur l'ordre de qui (§9.31).
+
+Le PDF se range et se présente ; le CSV se recoupe avec un inventaire. Les deux
+portent la **même empreinte**, car elle est calculée sur le contenu et non sur
+le fichier — et elle est figée à l'instant de la destruction, non au premier
+téléchargement. Chaque téléchargement s'inscrit au journal comme un export.
+
+Un rapport encore simulé n'ouvre aucun certificat : en délivrer un pour une
+destruction qui n'a pas eu lieu serait un faux.
+
 ## Comptes
 
 Réservés à l'administrateur du locataire. Un compte **ne se supprime pas, il se

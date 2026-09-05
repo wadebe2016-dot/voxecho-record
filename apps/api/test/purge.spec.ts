@@ -12,6 +12,7 @@ import { createTestPrisma, resetTestData } from './helpers/database';
 const MOT_DE_PASSE = 'Demo!2026';
 const MOTIF_PURGE = 'Purge trimestrielle, rapport validé par la conformité.';
 const MOTIF_HOLD = 'Contentieux 2026-114 : pièce réclamée par le contrôle.';
+const MOTIF_DEROGATION = 'Décision du comité de conformité du 12 août 2026.';
 
 /**
  * Purge — CLAUDE.md §5 et §9.7.
@@ -71,7 +72,7 @@ describe('purge', () => {
   let compteur = 0;
 
   /** Un appel rangé, fichier compris : la purge doit vraiment détruire. */
-  async function creerAppel(tenantId: string, ilYaJours: number) {
+  async function creerAppel(tenantId: string, ilYaJours: number, operationCategory = 'autre') {
     compteur += 1;
     const startedAt = new Date();
     startedAt.setUTCDate(startedAt.getUTCDate() - ilYaJours);
@@ -94,6 +95,7 @@ describe('purge', () => {
         sha256: createHash('sha256').update(audio).digest('hex'),
         sizeBytes: BigInt(audio.byteLength),
         source: 'simulator',
+        operationCategory,
       },
     });
     return { ...recording, chemin };
@@ -112,6 +114,8 @@ describe('purge', () => {
       request(app.getHttpServer()).get(url).set('Authorization', `Bearer ${token}`),
     post: (url: string) =>
       request(app.getHttpServer()).post(url).set('Authorization', `Bearer ${token}`),
+    put: (url: string) =>
+      request(app.getHttpServer()).put(url).set('Authorization', `Bearer ${token}`),
   });
 
   const existe = async (chemin: string): Promise<boolean> =>
@@ -200,6 +204,28 @@ describe('purge', () => {
         outcome: 'candidate',
         blocked: false,
       });
+    });
+
+    it('fige toutes les durées, et dit celle qui a jugé chaque ligne', async () => {
+      // `policyDays` seul ne dit que la générale : un rapport où les ordres de
+      // change relèvent de dix ans et le reste de deux se lirait comme un
+      // rapport à deux ans (§9.28).
+      const admin = await jeton('admin@a.cm');
+      await avec(admin)
+        .put('/api/retention')
+        .send({ days: 30, appliesTo: 'operation_change', belowFloorReason: MOTIF_DEROGATION })
+        .expect(200);
+      const change = await creerAppel(banque, 60, 'operation_change');
+
+      const rapport = await avec(admin).post('/api/purge/reports').expect(201);
+      expect(rapport.body.policyByScope).toMatchObject({ operation_change: 30 });
+      expect(rapport.body.certificateSha256).toBeNull();
+
+      const detail = await avec(admin).get(`/api/purge/reports/${rapport.body.id}`).expect(200);
+      const ligne = (detail.body.items as { recordingId: string }[]).find(
+        (item) => item.recordingId === change.id,
+      );
+      expect(ligne).toMatchObject({ operationCategory: 'operation_change', policyDays: 30 });
     });
 
     it('sépare les deux questions : ce qu’on détruit, ce qu’on épargne', async () => {
