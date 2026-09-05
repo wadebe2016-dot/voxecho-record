@@ -15,6 +15,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import type { AuthUser } from '../auth/auth.types';
 import { CreateUserDto } from './dto/create-user.dto';
+import { RattacherDto } from './dto/rattacher.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UsersService } from './users.service';
 
@@ -64,4 +65,26 @@ export class UsersController {
   ): Promise<TemporaryPasswordResponse> {
     return this.users.reinitialiser(user, id, request.ip ?? null);
   }
+
+  /**
+   * Rattache un compte local à l'annuaire — CLAUDE.md §9.37. C'est le seul
+   * chemin par lequel un compte change d'autorité, et il retire son mot de
+   * passe local à son titulaire.
+   */
+  @Post(':id/rattacher-annuaire')
+  @HttpCode(HttpStatus.OK)
+  rattacher(
+    @Param('id') id: string,
+    @Body() dto: RattacherDto,
+    @CurrentUser() user: AuthUser,
+    @Req() request: Request,
+  ): Promise<UserSummary> {
+    return this.users.rattacherALAnnuaire(
+      user,
+      id,
+      request.ip ?? null,
+      dto.acceptSansContreValidation === true,
+    );
+  }
 }
+

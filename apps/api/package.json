@@ -36,6 +36,7 @@
     "class-validator": "^0.14.1",
     "helmet": "^8.0.0",
     "jszip": "^3.10.1",
+    "ldapts": "^9.0.0",
     "pdfkit": "^0.20.2",
     "prisma": "^6.2.1",
     "reflect-metadata": "^0.2.2",

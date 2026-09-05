@@ -306,9 +306,11 @@ describe('gestion des comptes', () => {
       });
       const premier = await prisma.user.findFirstOrThrow({ where: { email: 'admin@a.cm' } });
 
+      // Il ne restera qu'un administrateur **local** : depuis le §9.37,
+      // l'opération se refuse d'abord et se confirme ensuite.
       await avec(await jeton('admin2@a.cm'))
         .patch(`/users/${premier.id}`)
-        .send({ active: false })
+        .send({ active: false, acceptSansContreValidation: true })
         .expect(200);
     });
   });

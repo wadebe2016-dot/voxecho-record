@@ -47,6 +47,36 @@ export function ComptesPage() {
     void charger();
   }, [charger]);
 
+  /**
+   * Rattachement à l'annuaire — CLAUDE.md §9.37.
+   *
+   * En deux temps quand l'opération ne laisserait qu'un administrateur local :
+   * l'api refuse d'abord, l'écran propose d'assumer, et le fait est consigné.
+   * C'est le schéma de la levée d'une conservation forcée (§9.29).
+   */
+  async function rattacher(id: string, email: string): Promise<void> {
+    try {
+      setEnvoi(true);
+      setErreurs([]);
+      await api.rattacherALAnnuaire(id);
+      await charger();
+    } catch (e) {
+      const message = e instanceof ApiError ? e.message : 'Rattachement impossible.';
+      if (
+        message.includes('un seul administrateur local') &&
+        window.confirm(
+          `${message}\n\nRattacher tout de même ${email} ? Le fait sera consigné au journal.`,
+        )
+      ) {
+        await agir(() => api.rattacherALAnnuaire(id, true));
+        return;
+      }
+      setErreurs([message]);
+    } finally {
+      setEnvoi(false);
+    }
+  }
+
   async function agir(action: () => Promise<unknown>): Promise<void> {
     setEnvoi(true);
     setErreurs([]);
@@ -165,6 +195,7 @@ export function ComptesPage() {
           <tr>
             <th className="px-3 py-2 font-medium">Adresse</th>
             <th className="px-3 py-2 font-medium">Rôle</th>
+            <th className="px-3 py-2 font-medium">Autorité</th>
             <th className="px-3 py-2 font-medium">État</th>
             <th className="px-3 py-2 font-medium">Dernière connexion</th>
             <th className="px-3 py-2 font-medium">Actions</th>
@@ -204,6 +235,15 @@ export function ComptesPage() {
                   </select>
                 </td>
                 <td className="px-3 py-2">
+                  {compte.source === 'ad' ? (
+                    <span title="Compte géré par l’annuaire : rôle et activité en viennent.">
+                      annuaire
+                    </span>
+                  ) : (
+                    'local'
+                  )}
+                </td>
+                <td className="px-3 py-2">
                   {compte.active ? 'actif' : <span className="text-amber-700">désactivé</span>}
                   {compte.mustChangePassword && (
                     <span className="ml-2 text-xs text-ardoise-500">mot de passe à renouveler</span>
@@ -227,14 +267,28 @@ export function ComptesPage() {
                     >
                       {compte.active ? 'Désactiver' : 'Réactiver'}
                     </button>
-                    <button
-                      type="button"
-                      disabled={envoi}
-                      className="text-ardoise-700 underline disabled:no-underline disabled:opacity-40"
-                      onClick={() => void agir(() => api.reinitialiserCompte(compte.id))}
-                    >
-                      Réinitialiser
-                    </button>
+                    {/* Un compte d'annuaire n'a pas de mot de passe local :
+                        il n'y a rien à réinitialiser. */}
+                    {compte.source === 'local' && (
+                      <button
+                        type="button"
+                        disabled={envoi}
+                        className="text-ardoise-700 underline disabled:no-underline disabled:opacity-40"
+                        onClick={() => void agir(() => api.reinitialiserCompte(compte.id))}
+                      >
+                        Réinitialiser
+                      </button>
+                    )}
+                    {compte.source === 'local' && (
+                      <button
+                        type="button"
+                        disabled={envoi || soiMeme}
+                        className="text-ardoise-700 underline disabled:no-underline disabled:opacity-40"
+                        onClick={() => void rattacher(compte.id, compte.email)}
+                      >
+                        Rattacher à l’annuaire
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>

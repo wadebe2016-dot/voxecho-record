@@ -3,6 +3,7 @@ import type { InstanceSettingsResponse } from '@voxecho/shared';
 import { ApiError, api } from '../api/client';
 import { useAuth } from '../auth/auth-context';
 import { Aide } from '../components/Aide';
+import { OngletAnnuaire } from '../components/OngletAnnuaire';
 import { OngletReseau } from '../components/OngletReseau';
 
 /**
@@ -20,6 +21,7 @@ import { OngletReseau } from '../components/OngletReseau';
 const ONGLETS = [
   { cle: 'general', libelle: 'Général' },
   { cle: 'reseau', libelle: 'Réseau' },
+  { cle: 'annuaire', libelle: 'Annuaire' },
 ] as const;
 
 type CleOnglet = (typeof ONGLETS)[number]['cle'];
@@ -107,6 +109,7 @@ export function AdministrationPage() {
       </div>
 
       {onglet === 'reseau' && <OngletReseau />}
+      {onglet === 'annuaire' && <OngletAnnuaire />}
       {onglet === 'general' && (
         <>
 

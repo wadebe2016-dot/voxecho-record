@@ -3,6 +3,7 @@ import {
   ForbiddenException,
   Injectable,
   Logger,
+  ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
 import type { User } from '@prisma/client';
@@ -10,6 +11,7 @@ import { AuditService } from '../audit/audit.service';
 import { AppConfig } from '../config/config.module';
 import { PrismaService } from '../prisma/prisma.service';
 import type { AuthUser, TokenPair } from './auth.types';
+import { AnnuaireService } from '../settings/annuaire.service';
 import { ReseauService } from '../settings/reseau.service';
 import { LimitationConnexion } from './limitation-connexion.service';
 import { hashPassword, verifyPassword } from './password';
@@ -33,11 +35,27 @@ export class AuthService {
     private readonly config: AppConfig,
     private readonly limitation: LimitationConnexion,
     private readonly reseau: ReseauService,
+    private readonly annuaire: AnnuaireService,
   ) {}
 
+  /**
+   * Connexion hybride — CLAUDE.md §9.37.
+   *
+   * L'écran de connexion reste unique. L'annuaire est tenté d'abord quand il
+   * est actif ; le repli local ne vaut que pour les comptes `source=local`.
+   * Un compte d'annuaire n'a pas de mot de passe local : il ne peut donc pas
+   * entrer par la porte locale, même si l'annuaire est éteint.
+   */
   async login(email: string, password: string, ip: string | null): Promise<TokenPair> {
     const normalise = email.trim().toLowerCase();
+
     const user = await this.prisma.user.findUnique({ where: { email: normalise } });
+    // Une porte locale existe-t-elle pour cette adresse ? C'est ce qui décide
+    // si un refus de l'annuaire est définitif ou s'il laisse essayer l'autre.
+    const porteLocale = user !== null && user.source === 'local' && user.passwordHash !== null;
+
+    const parAnnuaire = await this.tenterAnnuaire(normalise, password, ip, porteLocale);
+    if (parAnnuaire !== null) return parAnnuaire;
 
     if (!user) {
       await verifyPassword(await LEURRE, password);
@@ -61,6 +79,23 @@ export class AuthService {
       this.limitation.signalerEchec(ip);
       throw new ForbiddenException(
         'Compte temporairement verrouillé après plusieurs échecs de connexion.',
+      );
+    }
+
+    if (user.passwordHash === null) {
+      // Compte d'annuaire : il n'a pas de mot de passe local, et lui en
+      // inventer un ouvrirait une porte que l'annuaire ne saurait pas fermer.
+      await verifyPassword(await LEURRE, password);
+      await this.audit.record({
+        tenantId: user.tenantId,
+        userId: user.id,
+        action: 'LOGIN',
+        ip,
+        detail: { resultat: 'annuaire_indisponible', email: normalise },
+      });
+      this.limitation.signalerEchec(ip);
+      throw new UnauthorizedException(
+        'Ce compte est géré par l’annuaire, momentanément injoignable. Réessayez plus tard.',
       );
     }
 
@@ -108,6 +143,86 @@ export class AuthService {
     });
 
     return paire;
+  }
+
+  /**
+   * Tente l'annuaire — CLAUDE.md §9.37.
+   *
+   * Rend `null` quand la porte locale doit se prononcer à sa place. Deux cas
+   * en dépendent, et ils décident du sort de l'instance le jour d'une panne :
+   *
+   * — **mot de passe refusé** : la même adresse peut exister des deux côtés
+   *   avec deux mots de passe différents. Ce n'est pas offrir deux chances à
+   *   la même porte, c'est en avoir deux, ce qu'un mode hybride suppose. La
+   *   limitation par adresse compte l'échec de toute façon (§9.16).
+   * — **annuaire injoignable** : un compte local doit continuer d'entrer,
+   *   sans quoi une panne de l'annuaire fermerait la console à tout le monde —
+   *   et l'invariant du dernier administrateur local ne servirait à rien.
+   *
+   * Les deux refus qui restent sont définitifs : aucun groupe mappé, et une
+   * adresse que possède déjà un compte local.
+   */
+  private async tenterAnnuaire(
+    email: string,
+    password: string,
+    ip: string | null,
+    porteLocale: boolean,
+  ): Promise<TokenPair | null> {
+    const login = email.includes('@') ? (email.split('@')[0] as string) : email;
+    const verdict = await this.annuaire.authentifier(login, password, ip);
+
+    switch (verdict.issue) {
+      case 'inactif':
+      case 'introuvable':
+        return null;
+
+      case 'identifiants':
+        if (porteLocale) return null;
+        this.limitation.signalerEchec(ip);
+        throw new UnauthorizedException('Identifiants invalides.');
+
+      case 'injoignable':
+        if (porteLocale) return null;
+        this.limitation.signalerEchec(ip);
+        throw new ServiceUnavailableException(
+          'Annuaire momentanément injoignable : les connexions par annuaire sont suspendues.',
+        );
+
+      case 'non_mappe':
+        this.limitation.signalerEchec(ip);
+        throw new ForbiddenException(
+          'Aucun groupe de cet annuaire ne donne accès à VoxEcho Record.',
+        );
+
+      case 'conflit_local':
+        this.limitation.signalerEchec(ip);
+        throw new ForbiddenException(
+          'Un compte local porte déjà cette adresse. Un administrateur doit le rattacher à l’annuaire avant que cette connexion soit possible.',
+        );
+
+      case 'admis': {
+        const identite = this.identite(verdict.compte);
+        const paire = await this.tokens.issue(identite);
+        await this.prisma.user.update({
+          where: { id: verdict.compte.id },
+          data: { lastLoginAt: new Date() },
+        });
+        await this.audit.record({
+          tenantId: verdict.compte.tenantId,
+          userId: verdict.compte.id,
+          action: 'LOGIN',
+          ip,
+          detail: {
+            resultat: 'succes',
+            email: verdict.compte.email,
+            role: verdict.compte.role,
+            source: 'annuaire',
+            ...(verdict.cree ? { compteCree: true } : {}),
+          },
+        });
+        return paire;
+      }
+    }
   }
 
   /** Rotation : l'ancien jeton est révoqué dès qu'un nouveau est émis. */
@@ -190,6 +305,11 @@ export class AuthService {
     });
     if (!compte || !compte.active) throw new UnauthorizedException('Session close.');
 
+    if (compte.passwordHash === null) {
+      throw new BadRequestException(
+        'Ce compte est géré par l’annuaire : son mot de passe se change dans l’annuaire.',
+      );
+    }
     if (!(await verifyPassword(compte.passwordHash, ancien))) {
       this.limitation.signalerEchec(ip);
       throw new UnauthorizedException('Mot de passe actuel incorrect.');
