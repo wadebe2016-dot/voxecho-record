@@ -63,10 +63,19 @@ serveur=$(node -e '
   process.stdout.write(u.toString());
 ' "$DATABASE_URL")
 
+# Deux formes de la même adresse : Prisma veut `schema`, libpq le refuse —
+# c'est la même leçon qu'au §9.19, où `options` cassait pg_dump.
 url_essai=$(node -e '
   const u = new URL(process.argv[1]);
   u.pathname = "/" + process.argv[2];
   u.search = "?schema=public";
+  process.stdout.write(u.toString());
+' "$DATABASE_URL" "$BASE_ESSAI")
+
+url_essai_libpq=$(node -e '
+  const u = new URL(process.argv[1]);
+  u.pathname = "/" + process.argv[2];
+  u.search = "";
   process.stdout.write(u.toString());
 ' "$DATABASE_URL" "$BASE_ESSAI")
 
@@ -87,8 +96,7 @@ if [ -n "$dump" ]; then
   [ -f "$dump" ] || { echo "$PROGRAMME : dump introuvable : $dump" >&2; exit 1; }
   echo "== Restauration de $dump"
   # `--no-owner` : le dump vient d'une machine dont les rôles ne sont pas ici.
-  pg_restore --dbname "$serveur" --no-owner --no-privileges --clean --if-exists \
-    --dbname "$url_essai" "$dump" >/dev/null
+  pg_restore --dbname "$url_essai_libpq" --no-owner --no-privileges "$dump" >/dev/null
 else
   echo "== Pas de dump : on fabrique une base peuplée"
   # Toutes les migrations sauf la dernière, pour peupler avant de l'appliquer.
@@ -113,7 +121,7 @@ else
 
   DATABASE_URL="$url_essai" ./node_modules/.bin/prisma migrate deploy >/dev/null
   echo "== Jeu de données représentatif"
-  DATABASE_URL="$url_essai" node ../../scripts/peupler-base-essai.mjs
+  DATABASE_URL="$url_essai_libpq" node ../../scripts/peupler-base-essai.mjs
   restaurer_migrations
   echo "== Migrations retenues : $(echo "$dernieres" | tr '\n' ' ')"
 fi

@@ -1626,3 +1626,48 @@ aujourd'hui ; une migration qui contraindrait une table oubliée du jeu passerai
 sans être éprouvée. Le mode `--dump`, lui, ne dépend d'aucune liste : c'est
 celui qu'il faut employer avant une mise en service, et il suppose un dump
 récent de l'instance visée.
+
+### 9.31 Le certificat de destruction, pièce qui survit à ce qu'elle décrit (S6)
+
+Le §9.7 avait posé ce qui reste d'un appel purgé : sa fiche, son empreinte, sa
+trace au journal. Le certificat rassemble ces restes en une pièce unique, que la
+banque range dans son dossier de conformité. Un contrôleur ne demandera pas
+« montrez-moi la base » : il demandera « qu'avez-vous détruit, quand, au nom de
+quoi, et sur l'ordre de qui ? ».
+
+**Il se construit depuis le rapport, jamais depuis les enregistrements.** Ceux
+qui ont été détruits n'ont plus de fichier, et leurs lignes pourraient un jour
+disparaître à leur tour. `PurgeRunItem` porte donc désormais la catégorie et la
+**durée appliquée** : le certificat doit pouvoir dire au nom de quelle
+conservation chaque pièce est tombée, et l'enregistrement n'a plus rien pour en
+témoigner.
+
+**Son empreinte porte sur le contenu, pas sur le fichier.** Le PDF et le CSV du
+même rapport rendent la même valeur, obtenue d'une sérialisation aux clés
+triées : deux constructions du même certificat doivent donner deux fois la même
+empreinte, sans quoi la vérification ne prouverait rien. Elle est **figée à
+l'instant de la destruction**, non au premier téléchargement — un certificat
+délivré des mois plus tard doit porter la valeur de ce jour-là.
+
+**Deux formats, deux usages.** Le PDF se range dans un dossier et se présente ;
+le CSV se recoupe avec un inventaire, dans la forme qu'attend un tableur
+français (§9.11). Chaque téléchargement s'inscrit au journal comme un `EXPORT`,
+avec le format et l'empreinte : un certificat qui sort du produit devient une
+pièce autonome qui circulera.
+
+**Il n'existe pas pour une destruction qui n'a pas eu lieu.** Un rapport encore
+simulé n'ouvre aucun certificat : en délivrer un serait un faux.
+
+**Il est ouvert aux trois rôles.** C'est une pièce de conformité et non un acte,
+elle ne contient aucun audio, et un auditeur doit pouvoir la produire sans
+passer par l'exploitant.
+
+**Réserve** — le certificat n'est pas signé. Son empreinte prouve qu'il n'a pas
+changé depuis sa délivrance **à qui peut la comparer au journal** ; elle ne
+prouve rien à un tiers qui recevrait le seul PDF. Une signature électronique le
+rendrait opposable hors du produit, et c'est ce qu'il faudra faire le jour où un
+certificat devra être remis à un tiers plutôt que présenté depuis le portail —
+la même réserve que celle du §9.8 sur l'archive d'export. Par ailleurs, le motif
+de destruction est relu depuis le premier `PURGE` du rapport : si le journal
+était un jour purgé de ses plus vieilles entrées — ce qu'aucune route ne permet
+aujourd'hui — le certificat perdrait cette mention.

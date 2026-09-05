@@ -8,9 +8,12 @@ import {
   Post,
   Query,
   Req,
+  Res,
+  StreamableFile,
 } from '@nestjs/common';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
 import type { Page, PurgeReportDetail, PurgeReportSummary } from '@voxecho/shared';
+import { AuditService } from '../audit/audit.service';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import type { AuthUser } from '../auth/auth.types';
@@ -18,6 +21,9 @@ import { ExecutePurgeDto } from './dto/execute-purge.dto';
 import { ListReportsDto } from './dto/list-reports.dto';
 import { ReadReportDto } from './dto/read-report.dto';
 import { PurgeService } from './purge.service';
+import { CertificatService } from './certificat.service';
+import { construireCertificatCsv } from './certificat-csv';
+import { construireCertificatPdf } from './certificat-pdf';
 
 /**
  * Purge — CLAUDE.md §5 et §9.7.
@@ -27,7 +33,60 @@ import { PurgeService } from './purge.service';
  */
 @Controller('purge/reports')
 export class PurgeController {
-  constructor(private readonly purge: PurgeService) {}
+  constructor(
+    private readonly purge: PurgeService,
+    private readonly certificats: CertificatService,
+    private readonly audit: AuditService,
+  ) {}
+
+  /**
+   * Certificat de destruction — CLAUDE.md §9.31.
+   *
+   * Ouvert aux trois rôles : c'est une pièce de conformité, et un auditeur
+   * doit pouvoir la produire sans demander à l'exploitant. Elle ne contient
+   * aucun audio — seulement ce qui reste de ce qui a été détruit.
+   */
+  @Roles('ADMIN', 'SUPERVISOR', 'AUDITOR')
+  @Get(':id/certificat')
+  async certificat(
+    @Param('id') id: string,
+    @Query('format') format: string | undefined,
+    @CurrentUser() user: AuthUser,
+    @Req() request: Request,
+    @Res({ passthrough: true }) reponse: Response,
+  ): Promise<StreamableFile> {
+    const certificat = await this.certificats.construire(user.tenantId, id);
+    const empreinte = this.certificats.empreinte(certificat);
+    const csv = format === 'csv';
+
+    const contenu = csv
+      ? Buffer.from(construireCertificatCsv(certificat, empreinte), 'utf8')
+      : await construireCertificatPdf(certificat, empreinte);
+
+    // Un certificat qui sort du produit devient une pièce autonome : il se
+    // trace, comme l'extrait du journal au §9.11.
+    await this.audit.record({
+      tenantId: user.tenantId,
+      userId: user.userId,
+      action: 'EXPORT',
+      ip: request.ip ?? null,
+      detail: {
+        objet: 'certificat-purge',
+        rapportId: id,
+        format: csv ? 'csv' : 'pdf',
+        sha256Certificat: empreinte,
+        detruits: certificat.totaux.detruits,
+      },
+    });
+
+    reponse.set({
+      'Content-Type': csv ? 'text/csv; charset=utf-8' : 'application/pdf',
+      'Content-Disposition': `attachment; filename="certificat-destruction-${id}.${csv ? 'csv' : 'pdf'}"`,
+      'Cache-Control': 'private, no-store',
+      'X-Certificat-Sha256': empreinte,
+    });
+    return new StreamableFile(contenu);
+  }
 
   /** Établir un rapport ne détruit rien : ADMIN et SUPERVISOR peuvent le demander. */
   @Roles('ADMIN', 'SUPERVISOR')
