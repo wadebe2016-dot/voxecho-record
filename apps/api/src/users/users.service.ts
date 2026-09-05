@@ -37,6 +37,7 @@ export class UsersService {
       role: compte.role,
       active: compte.active,
       instanceAdmin: compte.instanceAdmin,
+      source: compte.source,
       mustChangePassword: compte.mustChangePassword,
       lastLoginAt: compte.lastLoginAt?.toISOString() ?? null,
       lockedUntil: compte.lockedUntil?.toISOString() ?? null,
@@ -122,6 +123,13 @@ export class UsersService {
     if (compte.instanceAdmin && (perdSonRole || seraDesactive)) {
       await this.exigerUnAutreAdministrateurDInstance(compte.id);
     }
+    const sansContreValidation =
+      perdSonRole || seraDesactive
+        ? await this.exigerUnAutreAdministrateurLocal(
+            compte,
+            dto.acceptSansContreValidation === true,
+          )
+        : false;
 
     const modifie = await this.prisma.user.update({
       where: { id: compte.id },
@@ -144,6 +152,9 @@ export class UsersService {
         cible: compte.email,
         avant: { role: compte.role, active: compte.active },
         apres: { role: modifie.role, active: modifie.active },
+        // Ce qu'un contrôleur cherchera : l'opération a-t-elle laissé
+        // l'instance avec un seul administrateur local, et qui l'a assumé ?
+        ...(sansContreValidation ? { contreValidation: 'sans contre-validation' } : {}),
       },
     });
 
@@ -185,6 +196,111 @@ export class UsersService {
     });
 
     return { compte: this.versResume(modifie), motDePasseProvisoire: provisoire };
+  }
+
+  /**
+   * Rattache un compte local à l'annuaire — CLAUDE.md §9.37.
+   *
+   * C'est le seul chemin par lequel un compte change d'autorité. Il est
+   * explicite parce qu'il retire à son titulaire son mot de passe : la
+   * connexion ne passera plus que par l'annuaire, et un annuaire injoignable
+   * la fermera. On ne rattache donc jamais le dernier administrateur local.
+   */
+  async rattacherALAnnuaire(
+    user: AuthUser,
+    id: string,
+    ip: string | null,
+    accepteSansContreValidation: boolean,
+  ): Promise<UserSummary> {
+    const compte = await this.exigerCompte(user.tenantId, id);
+    if (compte.source === 'ad') {
+      throw new ConflictException('Ce compte est déjà géré par l’annuaire.');
+    }
+    if (compte.id === user.userId) {
+      throw new BadRequestException(
+        'Un administrateur ne rattache pas son propre compte : demandez-le à un autre administrateur.',
+      );
+    }
+    const sansContreValidation = await this.exigerUnAutreAdministrateurLocal(
+      compte,
+      accepteSansContreValidation,
+    );
+
+    const rattache = await this.prisma.user.update({
+      where: { id: compte.id },
+      data: {
+        source: 'ad',
+        // Le mot de passe local disparaît : le laisser en place ouvrirait une
+        // porte que l'annuaire ne fermerait pas en désactivant le compte.
+        passwordHash: null,
+        mustChangePassword: false,
+        failedLoginAttempts: 0,
+        lockedUntil: null,
+      },
+    });
+    await this.prisma.refreshToken.updateMany({
+      where: { userId: compte.id, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+
+    await this.audit.record({
+      tenantId: user.tenantId,
+      userId: user.userId,
+      action: 'USER_SET',
+      ip,
+      detail: {
+        acte: 'rattachement_annuaire',
+        cible: compte.email,
+        avant: { source: 'local' },
+        apres: { source: 'ad' },
+        ...(sansContreValidation ? { contreValidation: 'sans contre-validation' } : {}),
+      },
+    });
+
+    return this.versResume(rattache);
+  }
+
+  /**
+   * Il doit rester un administrateur **local** actif — CLAUDE.md §9.37.
+   *
+   * Sans lui, un annuaire injoignable fermerait la console à tout le monde, et
+   * il faudrait un accès au serveur pour la rouvrir. Le dernier ne se retire
+   * jamais ; l'avant-dernier suit le schéma en deux temps de la levée d'une
+   * conservation forcée (§9.29) — refus d'abord, passage ensuite si l'appelant
+   * l'assume, et le fait est consigné.
+   *
+   * Rend `true` quand l'opération s'est faite sans contre-validation.
+   */
+  private async exigerUnAutreAdministrateurLocal(
+    compte: User,
+    accepte: boolean,
+  ): Promise<boolean> {
+    if (compte.role !== 'ADMIN' || compte.source !== 'local' || !compte.active) return false;
+
+    const autres = await this.prisma.user.count({
+      where: {
+        tenantId: compte.tenantId,
+        role: 'ADMIN',
+        source: 'local',
+        active: true,
+        id: { not: compte.id },
+      },
+    });
+
+    if (autres === 0) {
+      throw new BadRequestException(
+        'Dernier administrateur local actif : sans lui, un annuaire injoignable fermerait la console à tout le monde. Créez-en un autre d’abord.',
+      );
+    }
+    if (autres === 1) {
+      if (!accepte) {
+        throw new BadRequestException(
+          'Il ne restera qu’un seul administrateur local après cette opération. Confirmez explicitement : le fait sera consigné au journal.',
+        );
+      }
+      return true;
+    }
+    return false;
   }
 
   /**

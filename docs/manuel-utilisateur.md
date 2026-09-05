@@ -381,6 +381,62 @@ donc ce qui décide de l'adresse inscrite au journal d'audit (§9.16). La
 ne doit pas pouvoir fausser depuis l'interface l'adresse inscrite à son nom dans
 un journal que rien ne peut corriger. L'onglet dit laquelle des deux s'applique.
 
+### Onglet Annuaire
+
+*Administration › Instance › Réglages › Annuaire.* Réservé à l'administrateur
+de l'instance.
+
+**Connexion.** URL (`ldaps://dc01.banque.local:636`), StartTLS, validation du
+certificat avec import d'une autorité interne au format PEM, base DN, compte de
+liaison. Le mot de passe est chiffré au repos et **n'est jamais rendu par
+l'api** : il s'affiche `********`, et un bouton « Remplacer » sert à le changer.
+Le laisser tel quel conserve celui en place.
+
+Décocher « Valider le certificat » n'a de sens qu'en laboratoire : le produit
+accepterait alors n'importe quel serveur se présentant comme l'annuaire. L'écran
+l'avertit tant que la case est décochée.
+
+**Groupes et rôles.** Une règle par ligne : un groupe (DN complet), un rôle, un
+locataire. Un groupe qui doit ouvrir plusieurs locataires fait l'objet de
+plusieurs règles. Plusieurs groupes donnent le **rôle le plus élevé**. Un
+utilisateur qu'aucune règle ne vise ne peut pas se connecter, et le journal
+consigne les groupes qu'on lui a vus — de quoi écrire la règle qui manque.
+
+**Tester la connexion** se lie au compte de service, cherche un identifiant, et
+affiche ses attributs, ses groupes et le rôle qu'il obtiendrait. Le résultat
+s'inscrit au journal, en échec comme en succès.
+
+**Ce qui se passe à la connexion.** L'écran de connexion reste unique. Quand
+l'annuaire est actif, il est tenté d'abord ; les comptes locaux gardent leur
+porte. Au premier login réussi, le compte est créé avec `source=ad`, le rôle
+mappé, et **sans mot de passe local** — il est donc exclu de la politique de
+mot de passe et de l'écran de renouvellement.
+
+| Situation | Ce qui se passe |
+| --- | --- |
+| Groupes mappés | connexion, compte créé au premier login |
+| Aucun groupe mappé | refus, groupes vus consignés |
+| Adresse déjà utilisée par un compte local | refus, jusqu'à rattachement explicite |
+| Annuaire injoignable | comptes d'annuaire refusés ; **comptes locaux inchangés** |
+
+**Rattacher un compte local à l'annuaire** se fait depuis l'écran Comptes. Le
+compte bascule en `source=ad` et **perd son mot de passe local** : sa connexion
+ne passera plus que par l'annuaire. C'est pour cela qu'on ne rattache jamais le
+dernier administrateur local.
+
+**Il doit toujours rester un administrateur local actif.** Sans lui, une panne
+d'annuaire fermerait la console à tout le monde et il faudrait un accès au
+serveur pour la rouvrir. Le dernier ne se désactive pas, ne se rétrograde pas
+et ne se rattache pas ; l'avant-dernier demande une confirmation explicite, et
+le fait est consigné.
+
+**Synchronisation.** Toutes les six heures par défaut. Elle **ne crée aucun
+compte** — un compte naît d'une connexion — et désactive ceux qui ont quitté
+l'annuaire ou les groupes mappés. Un annuaire injoignable ne désactive personne.
+
+Pour éprouver l'onglet sans contrôleur de domaine, voir
+`scripts/lab-samba-ad.md`.
+
 ### Réglages en lecture seule
 
 Certains réglages s'affichent sans pouvoir être modifiés depuis la console :

@@ -1,5 +1,8 @@
 import { Module } from '@nestjs/common';
 import { AuditModule } from '../audit/audit.module';
+import { AnnuaireController } from './annuaire.controller';
+import { AnnuaireService } from './annuaire.service';
+import { AnnuaireSynchroService } from './annuaire-synchro.service';
 import { InstanceSettingsService } from './instance-settings.service';
 import { ReseauController } from './reseau.controller';
 import { ReseauService } from './reseau.service';
@@ -10,8 +13,8 @@ import { ReseauService } from './reseau.service';
  */
 @Module({
   imports: [AuditModule],
-  controllers: [ReseauController],
-  providers: [InstanceSettingsService, ReseauService],
-  exports: [InstanceSettingsService, ReseauService],
+  controllers: [ReseauController, AnnuaireController],
+  providers: [InstanceSettingsService, ReseauService, AnnuaireService, AnnuaireSynchroService],
+  exports: [InstanceSettingsService, ReseauService, AnnuaireService],
 })
 export class SettingsModule {}

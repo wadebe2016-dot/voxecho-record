@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { EtatHorloge, ReglagesReseauResponse } from '@voxecho/shared';
 import { AdministrationPage } from '../src/pages/AdministrationPage';
@@ -219,7 +219,7 @@ describe('habilitation des réglages d’instance', () => {
     expect(screen.queryByRole('tab', { name: 'Réseau' })).not.toBeInTheDocument();
   });
 
-  it('présente les deux onglets à l’administrateur d’instance', async () => {
+  it('présente les onglets à l’administrateur d’instance', async () => {
     simulerApi({
       '/api/administration/reglages': () => reponse(200, REGLAGES_GENERAUX),
       '/api/administration/reseau': () => reponse(200, RESEAU),
@@ -228,7 +228,6 @@ describe('habilitation des réglages d’instance', () => {
     afficher(<AdministrationPage />, ADMIN_INSTANCE);
 
     const onglets = await screen.findAllByRole('tab');
-    expect(onglets.map((o) => o.textContent)).toEqual(['Général', 'Réseau']);
-    expect(within(onglets[0] as HTMLElement).queryByText('Général')).toBeDefined();
+    expect(onglets.map((o) => o.textContent)).toEqual(['Général', 'Réseau', 'Annuaire']);
   });
 });

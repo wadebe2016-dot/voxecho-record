@@ -94,6 +94,17 @@ enum AuditAction {
   SETTINGS_TEST
 }
 
+/// D'où vient un compte — CLAUDE.md §9.37.
+///
+/// `local` : créé et gouverné par la console, avec un mot de passe.
+/// `ad` : provisionné depuis l'annuaire, sans mot de passe local, son rôle
+/// venant du mappage de groupes. Les deux ne se confondent jamais : un compte
+/// local que l'annuaire connaîtrait aussi n'est pas repris en silence.
+enum SourceCompte {
+  local
+  ad
+}
+
 /// Cycle de vie d'une version de politique d'enregistrement.
 enum PolicyStatus {
   /// En cours d'écriture. Modifiable, abandonnable, sans effet sur la capture.
@@ -158,12 +169,28 @@ model Tenant {
 }
 
 model User {
-  id           String   @id @default(uuid()) @db.Uuid
-  tenantId     String   @map("tenant_id") @db.Uuid
-  email        String   @unique
-  passwordHash String   @map("password_hash")
-  role         Role
-  active       Boolean  @default(true)
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  email    String @unique
+
+  /// Nul pour un compte d'annuaire : il n'a pas de mot de passe local, et lui
+  /// en donner un ouvrirait une seconde porte que l'annuaire ne fermerait pas
+  /// en désactivant le compte (§9.37).
+  passwordHash String? @map("password_hash")
+
+  /// Autorité qui gouverne ce compte (§9.37).
+  source SourceCompte @default(local)
+
+  /// Identifiant stable du compte dans l'annuaire — `objectGUID` pour Active
+  /// Directory. Il survit à un changement d'adresse ou de nom, que le seul
+  /// courriel ne suivrait pas.
+  externalId String? @unique @map("external_id")
+
+  /// Dernière fois que la synchronisation a vu ce compte dans l'annuaire.
+  directorySeenAt DateTime? @map("directory_seen_at")
+
+  role   Role
+  active Boolean @default(true)
 
   /// Administrateur de l'instance, et non d'un locataire — CLAUDE.md §9.22.
   /// Le §9.9 avait laissé la réserve : les trois rôles confondent

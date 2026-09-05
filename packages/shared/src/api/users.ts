@@ -1,3 +1,4 @@
+import type { SourceCompte } from './annuaire.js';
 import type { Role } from '../domain/enums.js';
 
 /**
@@ -15,6 +16,8 @@ export interface UserSummary {
   active: boolean;
   /** Administrateur de l'instance, et non du seul locataire (§9.22). */
   instanceAdmin: boolean;
+  /** Autorité qui gouverne ce compte — CLAUDE.md §9.37. */
+  source: SourceCompte;
   /** Mot de passe provisoire non encore renouvelé. */
   mustChangePassword: boolean;
   lastLoginAt: string | null;

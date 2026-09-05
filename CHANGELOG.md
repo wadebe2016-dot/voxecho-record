@@ -665,3 +665,29 @@ capture réelle du S5.
   test où les écarts voisins sont volontairement grossiers.
 - Le relevé réel de l'instance d'évaluation est une donnée de test, à la
   lettre. 496 tests api (+5).
+
+#### Lot 05-2 — Annuaire (Active Directory / LDAP)
+
+- Clé `annuaire` — défauts : `actif: false`, `startTls: false`,
+  `verifierCertificat: true`, `filtre: (&(objectClass=user)(sAMAccountName={login}))`,
+  attributs `sAMAccountName`/`mail`/`displayName`/`memberOf`, `regles: []`,
+  `synchro: {actif: true, intervalleHeures: 6}`. Mot de passe de liaison
+  chiffré sous la clé dérivée du §9.36, jamais rendu par l'api.
+- `User.source` (`local` | `ad`), `User.externalId`, `User.directorySeenAt` ;
+  `password_hash` devient nullable — un compte d'annuaire n'a pas de mot de
+  passe local.
+- Connexion hybride : annuaire d'abord, porte locale ensuite. Un annuaire
+  injoignable ou un mot de passe refusé laissent la main au chemin local quand
+  un compte local existe — sans quoi une panne d'annuaire fermerait la console
+  à tout le monde.
+- Provisionnement au premier login, rôle le plus élevé parmi les groupes
+  mappés, refus consigné avec les groupes vus, refus d'une adresse déjà locale
+  jusqu'à « Rattacher à l'annuaire ».
+- Invariant du dernier administrateur **local** : ni désactivation, ni
+  rétrogradation, ni rattachement ; l'avant-dernier en deux temps, consigné.
+- Synchronisation périodique qui désactive sans jamais créer, et ne désactive
+  personne quand l'annuaire est injoignable.
+- Filtre échappé (RFC 4515) et `{login}` exigé.
+- `deploy/lab/samba-ad.yml` et `scripts/lab-samba-ad.md` pour éprouver l'onglet
+  sans contrôleur de domaine.
+- 522 tests api (+26), 164 portail (+12). Décisions en §9.37.

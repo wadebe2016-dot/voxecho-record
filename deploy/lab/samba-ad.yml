@@ -1,0 +1,35 @@
+# Samba AD de laboratoire — CLAUDE.md §9.37.
+#
+# Monte un contrôleur de domaine `lab.voxecho.local` avec deux groupes et deux
+# utilisateurs, pour éprouver l'onglet Annuaire sans dépendre d'un AD réel.
+#
+#   docker compose -f deploy/lab/samba-ad.yml up -d
+#
+# Il n'a rien à faire sur une instance servie au public : c'est un jouet, avec
+# des mots de passe écrits en clair juste en dessous.
+services:
+  samba-ad:
+    image: instantlinux/samba-dc:latest
+    container_name: voxecho-lab-ad
+    hostname: dc01
+    # Un contrôleur de domaine règle des capacités noyau et écrit ses propres
+    # règles de pare-feu ; sans cela il ne démarre pas.
+    privileged: true
+    environment:
+      REALM: LAB.VOXECHO.LOCAL
+      DOMAIN: LABVOXECHO
+      DOMAIN_ACTION: provision
+      ADMIN_PASSWORD: Laboratoire-2026!
+      DNS_FORWARDER: 1.1.1.1
+    ports:
+      # LDAP en clair et LDAPS. Le produit se lie en LDAPS ; le clair sert à
+      # regarder ce qui s'y passe avec `ldapsearch` quand un test surprend.
+      - '3389:389'
+      - '3636:636'
+    volumes:
+      - lab-ad-data:/var/lib/samba
+      - lab-ad-etc:/etc/samba
+
+volumes:
+  lab-ad-data:
+  lab-ad-etc:

@@ -2011,3 +2011,79 @@ corrigera. Par ailleurs, un réglage que l'environnement surcharge — le cas de
 `TRUSTED_PROXIES` — crée une classe de champs modifiables sans effet : l'onglet
 doit le dire à chaque fois, faute de quoi un administrateur croira avoir réglé
 ce qu'il n'a pas réglé.
+
+### 9.37 L'annuaire décide qui entre ; le produit garde une porte à lui (S6)
+
+Deuxième sous-lot du lot 05. L'annuaire d'entreprise décide qui se connecte et
+avec quel rôle, donc **qui peut entendre des conversations de clients**. C'est,
+après la conservation, le réglage le plus lourd de la console.
+
+**Rien n'est créé sans correspondance écrite.** Un compte naît d'une connexion
+réussie et d'une règle qui vise l'un de ses groupes ; sans règle, la connexion
+est refusée et le journal consigne **les groupes vus** — sans eux, « aucun
+groupe mappé » n'aide pas l'administrateur à écrire la règle qui manque. Une
+règle porte un groupe, un rôle et **un seul locataire** : un compte
+n'appartient qu'à un locataire, et une liste dont seul le premier élément
+compterait serait un piège. Plusieurs groupes donnent le rôle le plus élevé.
+
+**Un compte local n'est jamais repris en silence.** Une adresse que possède
+déjà un compte `local` refuse la connexion par annuaire, avec un événement
+d'audit. Le rattachement est un acte d'administration explicite, parce qu'il
+**retire son mot de passe** à son titulaire : la porte locale se referme, et
+c'est irréversible sans une réinitialisation.
+
+**Il reste toujours un administrateur local actif.** La règle du §9.26 est
+étendue : ni la désactivation, ni la rétrogradation, ni le rattachement ne
+peuvent retirer le dernier administrateur `source=local`. L'avant-dernier suit
+le schéma en deux temps de la levée d'une conservation forcée (§9.29) — refus,
+puis passage si l'appelant l'assume, et le fait est consigné.
+
+**Un annuaire injoignable ne ferme pas la console.** C'est le corollaire de
+l'invariant précédent, et l'implémentation l'a d'abord manqué : un refus
+d'annuaire faisait échouer la connexion avant que la porte locale ait son mot à
+dire, si bien qu'une panne de l'annuaire aurait verrouillé tout le monde — y
+compris l'administrateur local que l'invariant préserve précisément pour ce
+jour-là. Deux verdicts laissent donc la main au chemin local quand une porte
+locale existe : **mot de passe refusé** — la même adresse peut exister des deux
+côtés avec deux mots de passe différents, et un mode hybride n'a de sens que si
+chacune des deux portes se prononce — et **annuaire injoignable**. Les deux
+refus qui restent définitifs sont « aucun groupe mappé » et « adresse déjà
+locale » : ils ne portent pas sur des identifiants mais sur une décision.
+
+**Un compte d'annuaire n'a pas de mot de passe local**, et n'en obtient pas par
+la bande : `User.passwordHash` devient nullable. Lui en donner un ouvrirait une
+porte que l'annuaire ne saurait pas fermer en désactivant le compte. Il est
+exclu de la politique de mot de passe et de l'écran de renouvellement, qui
+n'auraient rien à changer.
+
+**La synchronisation ne crée rien : elle retire.** Toutes les six heures par
+défaut, elle désactive les comptes d'annuaire qui n'y sont plus ou qui sont
+sortis des groupes mappés. C'est le seul mécanisme du produit qui ferme une
+porte sans qu'un humain l'ait fait, et c'est pourquoi il ne fait que
+désactiver, jamais supprimer. **Un annuaire injoignable ne désactive
+personne** : on ne ferme pas des portes sur une panne de réseau.
+
+**Le filtre est échappé (RFC 4515).** Un login contenant `*)(` réécrirait le
+filtre et rendrait n'importe quel compte de l'annuaire. Le filtre doit par
+ailleurs contenir `{login}` — sans lui, il rendrait toujours le même compte, et
+n'importe qui entrerait sous l'identité de celui-là.
+
+**`ldapts`, et une interface étroite.** Le produit ne demande à un annuaire que
+trois choses : se lier, chercher un compte, vérifier des identifiants. L'étroitesse
+borne ce que le produit sait faire et rend le chemin d'authentification
+éprouvable sans serveur — ce qui compte pour un chemin qu'on ne veut pas
+découvrir en production. Chaque opération ouvre et referme sa connexion : un
+pool tiendrait des sockets vers le contrôleur de domaine d'une banque pendant
+des heures, et une socket qu'on croit vivante coûte plus qu'une poignée de main.
+
+**Réserve** — la synchronisation interroge l'annuaire compte par compte : c'est
+sans conséquence sur les dizaines de comptes d'un service conformité, et à
+revoir en une recherche unique si un client en ouvrait des centaines. Le login
+est par ailleurs déduit de la partie locale de l'adresse, ce qui vaut tant que
+les deux coïncident ; le jour où un annuaire les dissociera, il faudra retenir
+le login à côté de l'adresse. Enfin, `externalId` est relevé mais ne sert pas
+encore à retrouver un compte : un utilisateur renommé dans l'annuaire y
+apparaîtra comme un compte nouveau, l'ancien étant désactivé à la
+synchronisation suivante. C'est bruyant mais sûr — l'inverse, rattacher par
+identifiant sans que personne ne l'ait décidé, contredirait la règle du
+rattachement explicite.

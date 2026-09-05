@@ -7,6 +7,9 @@ import type {
   InstanceSettingsResponse,
   EtatHorloge,
   MajReglagesReseauRequest,
+  MajReglagesAnnuaireRequest,
+  ReglagesAnnuaireResponse,
+  ResultatTestAnnuaire,
   ReglagesReseauResponse,
   ResultatTestDns,
   ResultatTestNtp,
@@ -189,6 +192,27 @@ export const api = {
    * horodatage non fiable s'affiche en tête de toute la console (§9.36).
    */
   horloge: (): Promise<EtatHorloge> => appeler('/administration/reseau/horloge'),
+
+  /** Onglet Annuaire — CLAUDE.md §9.37. */
+  reglagesAnnuaire: (): Promise<ReglagesAnnuaireResponse> => appeler('/administration/annuaire'),
+
+  definirReglagesAnnuaire: (
+    demande: MajReglagesAnnuaireRequest,
+  ): Promise<ReglagesAnnuaireResponse> =>
+    appeler('/administration/annuaire', { method: 'PUT', body: demande }),
+
+  testerAnnuaire: (login?: string): Promise<ResultatTestAnnuaire> =>
+    appeler('/administration/annuaire/test', { method: 'POST', body: { login } }),
+
+  /**
+   * Rattache un compte local à l'annuaire (§9.37). Il perd son mot de passe
+   * local : la connexion ne passera plus que par l'annuaire.
+   */
+  rattacherALAnnuaire: (id: string, acceptSansContreValidation?: boolean): Promise<UserSummary> =>
+    appeler(`/users/${id}/rattacher-annuaire`, {
+      method: 'POST',
+      body: { acceptSansContreValidation },
+    }),
 
   /** Politiques d'enregistrement — CLAUDE.md §9.23. */
   politiques: (): Promise<PolicyVersionSummary[]> => appeler('/policies'),
