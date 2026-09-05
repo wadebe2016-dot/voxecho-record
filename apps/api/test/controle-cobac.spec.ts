@@ -270,7 +270,10 @@ describe('scénario « contrôle COBAC »', () => {
     const pose = await request(app.getHttpServer())
       .post(`/api/recordings/${sousEnquete}/holds`)
       .set('Authorization', `Bearer ${await jeton('superviseur@banque.cm')}`)
-      .send({ reason: 'Réquisition judiciaire n° 2026-118 du parquet de Douala' })
+      .send({
+        reason: 'Réquisition judiciaire n° 2026-118 du parquet de Douala',
+        caseReference: 'REQ-2026-118',
+      })
       .expect(201);
     expect((pose.body as { releasedAt: string | null }).releasedAt).toBeNull();
 

@@ -161,7 +161,7 @@ describe('purge', () => {
       const admin = await jeton('admin@a.cm');
       await avec(admin)
         .post(`/api/recordings/${garde.id}/holds`)
-        .send({ reason: MOTIF_HOLD })
+        .send({ reason: MOTIF_HOLD, caseReference: 'REQ-2026-118' })
         .expect(201);
 
       const rapport = await avec(admin).post('/api/purge/reports').expect(201);
@@ -208,7 +208,7 @@ describe('purge', () => {
       const admin = await jeton('admin@a.cm');
       await avec(admin)
         .post(`/api/recordings/${garde.id}/holds`)
-        .send({ reason: MOTIF_HOLD })
+        .send({ reason: MOTIF_HOLD, caseReference: 'REQ-2026-118' })
         .expect(201);
 
       const rapport = await avec(admin).post('/api/purge/reports').expect(201);
@@ -314,7 +314,7 @@ describe('purge', () => {
       const admin = await jeton('admin@a.cm');
       await avec(admin)
         .post(`/api/recordings/${garde.id}/holds`)
-        .send({ reason: MOTIF_HOLD })
+        .send({ reason: MOTIF_HOLD, caseReference: 'REQ-2026-118' })
         .expect(201);
 
       const rapport = await avec(admin).post('/api/purge/reports').expect(201);
@@ -338,7 +338,7 @@ describe('purge', () => {
       // plus sur ce qui serait détruit.
       await avec(admin)
         .post(`/api/recordings/${appels[0]!.id}/holds`)
-        .send({ reason: MOTIF_HOLD })
+        .send({ reason: MOTIF_HOLD, caseReference: 'REQ-2026-118' })
         .expect(201);
 
       const refus = await avec(admin)

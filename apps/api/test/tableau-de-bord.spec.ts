@@ -135,7 +135,7 @@ describe('tableau de bord', () => {
       await request(app.getHttpServer())
         .post(`/api/recordings/${appel.id}/holds`)
         .set('Authorization', `Bearer ${await jeton('admin@a.cm')}`)
-        .send({ reason: 'Contentieux 2026-114 : pièce réclamée.' })
+        .send({ reason: 'Contentieux 2026-114 : pièce réclamée.', caseReference: 'REQ-2026-118' })
         .expect(201);
 
       const reponse = await lire(await jeton('auditeur@a.cm')).expect(200);

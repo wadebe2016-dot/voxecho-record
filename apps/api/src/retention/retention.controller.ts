@@ -8,7 +8,7 @@ import type {
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import type { AuthUser } from '../auth/auth.types';
-import { HoldReasonDto } from './dto/hold-reason.dto';
+import { ReleaseHoldDto, SetHoldDto } from './dto/hold-reason.dto';
 import { LegalHoldsService } from './legal-holds.service';
 import { RetentionService } from './retention.service';
 import { SetRetentionDto } from './dto/set-retention.dto';
@@ -70,7 +70,7 @@ export class LegalHoldsController {
   @Post(':id/holds')
   poser(
     @Param('id') id: string,
-    @Body() dto: HoldReasonDto,
+    @Body() dto: SetHoldDto,
     @CurrentUser() user: AuthUser,
     @Req() request: Request,
   ): Promise<LegalHoldResponse> {
@@ -81,7 +81,7 @@ export class LegalHoldsController {
   @Post(':id/holds/release')
   lever(
     @Param('id') id: string,
-    @Body() dto: HoldReasonDto,
+    @Body() dto: ReleaseHoldDto,
     @CurrentUser() user: AuthUser,
     @Req() request: Request,
   ): Promise<LegalHoldResponse> {
