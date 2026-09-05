@@ -12,10 +12,12 @@ import { AppConfig } from '../config/config.module';
 import { PrismaService } from '../prisma/prisma.service';
 import type { AuthUser } from '../auth/auth.types';
 import { SetRetentionDto } from './dto/set-retention.dto';
+import { lirePlanchersReglementaires, plancherDe, type PlanchersReglementaires } from './planchers';
 
 @Injectable()
 export class RetentionService {
   private readonly plancher: number;
+  private readonly planchersReglementaires: PlanchersReglementaires;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -23,6 +25,17 @@ export class RetentionService {
     config: AppConfig,
   ) {
     this.plancher = config.get('RETENTION_MIN_DAYS');
+    // Une déclaration mal formée doit empêcher le démarrage, comme un secret
+    // d'exemple non remplacé (§2) : un plancher qu'on croit posé et qui ne
+    // l'est pas est pire que pas de plancher du tout.
+    this.planchersReglementaires = lirePlanchersReglementaires(
+      config.get('RETENTION_REGULATORY_FLOORS'),
+    );
+  }
+
+  /** Plancher réglementaire d'une catégorie, ou zéro s'il n'est pas déclaré. */
+  plancherReglementaire(categorie: string | null): number {
+    return plancherDe(this.planchersReglementaires, categorie);
   }
 
   /** Le plancher de l'instance, que le portail affiche avant de laisser saisir. */
@@ -60,7 +73,12 @@ export class RetentionService {
         days: ligne?.days ?? generale?.days ?? RETENTION_DAYS_DEFAULT,
         belowFloorReason: ligne?.belowFloorReason ?? null,
         updatedAt: (ligne?.updatedAt ?? new Date(0)).toISOString(),
+        // « Décidée » ou « héritée » : sans cette distinction, on ne saurait
+        // pas si 730 jours résultent d'un choix ou d'un défaut.
         enregistree: ligne !== undefined,
+        plancherReglementaire: this.plancherReglementaire(
+          appliesTo === RETENTION_SCOPE_ALL ? null : appliesTo,
+        ),
       };
     };
 
@@ -125,6 +143,18 @@ export class RetentionService {
     dto: SetRetentionDto,
     ip: string | null,
   ): Promise<RetentionPolicyResponse> {
+    const perimetreDemande = dto.appliesTo ?? RETENTION_SCOPE_ALL;
+    const plancherLegal = this.plancherReglementaire(
+      perimetreDemande === RETENTION_SCOPE_ALL ? null : perimetreDemande,
+    );
+    if (dto.days < plancherLegal) {
+      // Non dérogeable, à la différence du plancher d'instance : on ne déroge
+      // pas à une obligation extérieure par une phrase dans un formulaire.
+      throw new BadRequestException(
+        `Durée refusée : en dessous du minimum réglementaire de ${plancherLegal} jours.`,
+      );
+    }
+
     const sousLePlancher = dto.days < this.plancher;
     const motif = dto.belowFloorReason?.trim() ?? '';
 
@@ -141,7 +171,7 @@ export class RetentionService {
       );
     }
 
-    const perimetre = this.exigerPerimetre(dto.appliesTo ?? RETENTION_SCOPE_ALL);
+    const perimetre = this.exigerPerimetre(perimetreDemande);
     const ensembleAvant = await this.lireEnsemble(user.tenantId);
     const avant =
       perimetre === RETENTION_SCOPE_ALL

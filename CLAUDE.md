@@ -1549,3 +1549,80 @@ retient la borne la plus lointaine puis affine appel par appel : correct, mais
 il lit plus de lignes que nécessaire quand une catégorie conserve dix ans et les
 autres un an. Sur les volumes visés c'est sans conséquence ; au-delà, ce sera un
 recensement par catégorie plutôt qu'un filtrage après coup.
+
+### 9.29 Une conservation forcée se pose sur pièce et se lève à quatre yeux (S6)
+
+Poser une conservation forcée protège une preuve ; la lever la rend
+destructible. Le §9.6 traitait les deux actes de la même façon — un motif
+écrit — alors qu'ils n'engagent pas également.
+
+**La référence du dossier est exigée à la pose**, en plus du motif.
+« Réquisition judiciaire » dit ce qu'on fait ; « n° 2026-118 du parquet de
+Douala » dit de quoi on parle, et c'est cette seconde information qu'un
+contrôleur demandera. Elle est libre — chaque banque numérote ses dossiers à sa
+façon — et inscrite au journal avec le motif, pour que la trace se lise sans
+autre source.
+
+**La levée demande un second administrateur.** Celui qui a posé ne peut pas
+lever : défaire seul ce qu'on a seul décidé rendrait la conservation aussi
+solide que la volonté d'une personne. Un administrateur **désactivé** ne compte
+pas comme second — c'est le contournement le plus évident, et il est testé.
+
+**L'exception est assumée, en deux temps.** Une instance qui n'a qu'un
+administrateur actif ne peut pas se retrouver dans l'impossibilité de lever une
+conservation devenue sans objet. La levée est alors d'abord **refusée**, avec un
+message qui explique la situation ; elle passe si l'appelant l'assume
+explicitement, et le journal porte « levée sans contre-validation ». Empêcher
+aurait créé un blocage sans issue ; laisser passer en silence aurait effacé la
+différence entre deux niveaux de garantie. Le fait est aussi retenu sur la
+ligne, pour qu'on puisse le retrouver sans relire le journal.
+
+**Un appel protégé n'est jamais candidat à la purge**, quelle que soit son
+ancienneté, et n'est jamais détruit : deux tests le vérifient sur un appel de
+cinq ans sous une conservation de deux. La section « épargnés » du rapport
+demeure — c'est la décision du §9.7, et un auditeur veut voir ce qui a échappé
+à la purge et pourquoi.
+
+**Réserve** — le quorum est de deux administrateurs *du locataire*, sans
+distinguer celui qui a posé de celui qui contre-valide en pratique : rien
+n'empêche deux personnes de s'entendre. C'est le propre de toute règle à quatre
+yeux, et ce qui la rend utile n'est pas l'impossibilité de la contourner mais le
+fait que le contournement laisse deux noms au journal au lieu d'un.
+
+### 9.30 Deux planchers, et une migration qui s'éprouve sur une base peuplée (S6)
+
+**Le plancher d'instance et le plancher réglementaire ne disent pas la même
+chose.** Le premier (`RETENTION_MIN_DAYS`) est une règle de maison : on descend
+en dessous avec un motif écrit, et le journal en garde trace (§9.6). Le second
+(`RETENTION_REGULATORY_FLOORS`, par catégorie) se veut l'écho d'une obligation
+extérieure : **il ne se déroge pas**. Une durée inférieure est refusée, motif ou
+non, avec le message « en dessous du minimum réglementaire de N jours ».
+
+**Il vaut zéro par défaut**, et c'est la seule position tenable : tant que la
+cote de texte n'est pas établie (§9.9), le produit ne fait pas semblant de
+connaître une durée légale. C'est l'exploitant qui déclare ce qu'il sait, en
+connaissance de cause — et une déclaration mal formée empêche le démarrage,
+comme un secret d'exemple non remplacé (§2) : un plancher qu'on croit posé et
+qui ne l'est pas est pire que pas de plancher du tout.
+
+**L'écran annonce le minimum avant la saisie**, et distingue une durée
+**décidée** d'une durée **héritée** : sans cette distinction, on ne saurait pas
+si 730 jours résultent d'un choix ou d'un défaut.
+
+**Une migration s'éprouve désormais sur une base peuplée.**
+`scripts/migrate-check.sh` restaure un dump d'instance — ou, à défaut, fabrique
+une base en retard d'une migration puis y insère une ligne dans chaque table
+qu'une migration risque de contraindre — avant d'appliquer ce qui reste. Il
+tourne en CI.
+
+La règle vient d'un défaut réel : `ADD COLUMN case_reference TEXT NOT NULL` sans
+défaut passait sur une base vide et aurait refusé de s'appliquer sur une base
+contenant déjà des conservations forcées, laissant l'api refuser de démarrer
+chez le client. Le script a été vérifié dans les deux sens — il accepte la
+migration corrigée et rejette celle d'origine.
+
+**Réserve** — le mode sans dump peuple les tables que nous connaissons
+aujourd'hui ; une migration qui contraindrait une table oubliée du jeu passerait
+sans être éprouvée. Le mode `--dump`, lui, ne dépend d'aucune liste : c'est
+celui qu'il faut employer avant une mise en service, et il suppose un dump
+récent de l'instance visée.

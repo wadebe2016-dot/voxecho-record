@@ -80,6 +80,17 @@ export const envSchema = z.object({
   // suppose que la décision existe quelque part de lisible (CLAUDE.md §9.6).
   RETENTION_MIN_DAYS: z.coerce.number().int().min(1).max(7300).default(730),
 
+  /**
+   * Planchers réglementaires par catégorie d'opération — CLAUDE.md §9.30.
+   * Format `categorie:jours`, séparés par des virgules. Vide par défaut, donc
+   * zéro : tant que la cote de texte n'est pas établie (§9.9), le produit ne
+   * fait pas semblant de connaître une durée légale.
+   *
+   * À la différence du plancher d'instance ci-dessus, celui-ci **ne se déroge
+   * pas** : une durée inférieure est refusée, motif ou non.
+   */
+  RETENTION_REGULATORY_FLOORS: z.string().default(''),
+
   // Chiffrement au repos des pièces audio (CLAUDE.md §8, §9.13).
   // La clé maître vit hors du dépôt : montée en secret, en variable
   // d'environnement, ou fournie par un coffre. Elle n'a pas de valeur par

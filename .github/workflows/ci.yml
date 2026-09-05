@@ -98,6 +98,12 @@ jobs:
           sudo apt-get install -y --no-install-recommends postgresql-client-16
           pg_dump --version
 
+      # Une migration qui passe sur une base vide ne prouve rien : celle qui a
+      # ajouté `case_reference NOT NULL` aurait refusé de s'appliquer sur une
+      # base contenant déjà des conservations forcées (§9.30).
+      - name: Migrations sur une base peuplée
+        run: ./scripts/migrate-check.sh
+
       - name: Tests
         run: pnpm test
 
